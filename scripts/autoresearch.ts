@@ -46,12 +46,12 @@ import {
 } from "../lib/autoresearch-cost";
 import {
   CALA_AGENT_MODEL,
-  CALA_AGENT_NAME,
   CALA_AGENT_VERSION,
   runCalaAgent,
   type CalaAgentResult,
 } from "../lib/cala-agent";
 import { submitToLeaderboard } from "../lib/leaderboard-submit";
+import { PUBLIC_AUTORESEARCH_AGENT_NAME } from "../lib/agent-version";
 
 // Same prompt the UI dispatches.
 const DEFAULT_RUN_PROMPT =
@@ -99,7 +99,7 @@ async function runOneExperiment(
     id: runId,
     requestId,
     prompt: DEFAULT_RUN_PROMPT,
-    agentName: CALA_AGENT_NAME,
+    agentName: PUBLIC_AUTORESEARCH_AGENT_NAME,
     agentVersion: CALA_AGENT_VERSION,
     model: CALA_AGENT_MODEL,
   });
@@ -166,6 +166,7 @@ async function runOneExperiment(
 
   const submitResult = await submitToLeaderboard(
     agentResult.output.submissionPayload,
+    { agentName: PUBLIC_AUTORESEARCH_AGENT_NAME },
   );
 
   if (!submitResult.ok) {

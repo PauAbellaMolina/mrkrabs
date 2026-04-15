@@ -4,10 +4,11 @@ import { z } from "zod"
 import { createCalaTools } from "./cala-tools"
 
 const DEFAULT_MODEL = "claude-haiku-4-5"
-// Public brand for every submission. These flow into submissionPayload.model_agent_*
-// but are unconditionally overridden by `submitToLeaderboard` with a fresh
-// `vN` each call, so the final public values are allocated in one place.
-const DEFAULT_AGENT_NAME = "Mr. Krabs Autoresearch"
+// Local display name for manual runs. The autoresearch outer loop overrides
+// this when it creates its own run records, so "Mr. Krabs Autoresearch" only
+// ever labels runs produced by scripts/autoresearch.ts — never manual Run-agent
+// clicks from the dashboard.
+const DEFAULT_AGENT_NAME = DEFAULT_MODEL
 const DEFAULT_AGENT_VERSION = "—"
 
 export const CALA_AGENT_NAME = DEFAULT_AGENT_NAME

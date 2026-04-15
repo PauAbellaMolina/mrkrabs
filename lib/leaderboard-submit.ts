@@ -12,14 +12,21 @@ export interface SubmissionPayload {
   }>
 }
 
-// Every submission that leaves this module has its name and version stamped
-// here, not by the agent or the caller. This keeps two invariants:
-//   1. Public identifiers are generic — no model / provider / stack leakage.
-//   2. Every submission gets a fresh monotonic `vN` so the public leaderboard
-//      shows a clean experimentation trail under a single name.
-export async function submitToLeaderboard(submissionPayload: SubmissionPayload) {
+// Every submission that leaves this module has its version allocated here.
+// The name defaults to PUBLIC_AGENT_NAME (manual-run brand) but callers can
+// override — scripts/autoresearch.ts passes PUBLIC_AUTORESEARCH_AGENT_NAME
+// so only outer-loop experiments are labeled as autoresearch on the public
+// leaderboard.
+export interface SubmitOptions {
+  agentName?: string
+}
+
+export async function submitToLeaderboard(
+  submissionPayload: SubmissionPayload,
+  options: SubmitOptions = {},
+) {
   const requestId = crypto.randomUUID()
-  const agentName = PUBLIC_AGENT_NAME
+  const agentName = options.agentName ?? PUBLIC_AGENT_NAME
   const agentVersion = await allocateNextVersion()
 
   const stampedPayload: SubmissionPayload = {
