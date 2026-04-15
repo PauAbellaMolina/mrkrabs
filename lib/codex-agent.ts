@@ -371,39 +371,70 @@ const normalizeAndValidateOutput = (
 const buildCodexPrompt = (prompt: string) => `
 You are building a submission-ready portfolio for Cala's "Lobster of Wall Street" challenge.
 
-Hard constraints:
-- Use Cala as the knowledge source via MCP.
-- At least 50 unique NASDAQ tickers.
-- Each position must be at least $5,000.
-- Total allocation must equal exactly $1,000,000.
-- No duplicate tickers.
-- Do not use stock prices, returns, or events after 2025-04-15.
-- Only recommend companies with verified Cala UUIDs.
-- Use <entity UUID="...">Company Name</entity> tags in reportMarkdown.
-- submissionPayload.transactions[].nasdaq_code and positions[].nasdaqCode must be the exact tradable ticker symbol, not the company name.
-- Never use a spelled-out company name where a ticker symbol is required.
-- Examples of correct symbol formatting: WDAY not WORKDAY, PYPL not PAYPAL, MDLZ not MONDELEZ, GOOGL not GOOGLE.
+The grading server enforces every rule below. Any violation returns a 400 and the
+entire submission is wasted. Read each rule and the exact server error it produces.
+
+HARD CONSTRAINTS (server-enforced, non-negotiable):
+1. transactions must contain AT LEAST 50 UNIQUE NASDAQ tickers.
+   - Server error if short: "Must invest in at least 50 companies. You submitted N."
+   - AIM FOR 52–60 positions, NEVER EXACTLY 50. Dedupe, ticker mis-verification, or
+     an empty companyEntityId will silently drop candidates after you emit them, so
+     you need headroom. 50 is a floor, not a target.
+2. No duplicate nasdaq_code values. Case-insensitive (AAPL and aapl are the same).
+   Different share classes are different tickers: GOOGL and GOOG are distinct; BRK.A
+   and BRK.B are distinct.
+   - Server error: "Duplicate companies found: AAPL."
+3. Every amount must be >= 5000 USD. Integer dollars only.
+   - Server error: "Each company must receive at least $5,000."
+4. SUM of all amount values must equal EXACTLY 1,000,000 USD. Not 999,999. Not
+   1,000,100. EXACTLY. Plan your weights before you emit the JSON.
+   - Server error: "Total investment must be exactly $1,000,000."
+5. Every nasdaq_code must be a real, currently-tradable NASDAQ symbol — not a
+   company name, not a CUSIP, not a placeholder.
+   - Server error: "Price fetch failed: No data found for XYZZ."
+   - Examples of correct formatting: WDAY not WORKDAY, PYPL not PAYPAL, MDLZ not
+     MONDELEZ, GOOGL not GOOGLE, META not FACEBOOK.
+6. No data from after 2025-04-15. Research uses Cala's pre-cutoff graph only.
+
+PRE-SUBMISSION SELF-CHECK (run this in your head before you emit the final JSON,
+in this exact order — fix anything that fails before returning):
+  (a) Count unique nasdaq_codes across transactions. If count < 52, go find more
+      verified companies. Do NOT submit with exactly 50; one dedupe and you lose.
+  (b) Sum all amount values. If sum !== 1,000,000, rebalance. Easiest fix:
+      distribute the delta across your top-conviction names in $1,000 increments.
+  (c) Scan every amount. If any is < 5000 or not an integer, fix it.
+  (d) Scan every nasdaq_code for placeholder patterns (UNKNOWN, UNVERIFIABLE,
+      MISSING, TBD, NONE, N/A, blank). Remove those positions, then re-check (a).
+  (e) Scan every companyEntityId. If any is missing, empty, not a UUID, or was
+      invented rather than retrieved from Cala, remove that position and re-check
+      (a). Never pad with made-up UUIDs.
+  (f) Scan every nasdaq_code. Is it a short market symbol (<= 5 uppercase letters,
+      optionally with a dot class suffix)? If you wrote "NVIDIA" anywhere, fix it
+      to "NVDA".
+  (g) After all fixes, recount. If unique count dropped below 52, loop back to (a).
 
 Required identifiers:
 - TEAM_ID: ${process.env.TEAM_ID}
 - MODEL_AGENT_NAME: ${DEFAULT_AGENT_NAME}
 - MODEL_AGENT_VERSION: ${DEFAULT_AGENT_VERSION}
 
-Instructions:
-- Use Cala MCP tools for research.
-- Prefer entity_search, entity_introspection, and retrieve_entity for company verification.
-- Use knowledge_search only if you need broader discovery, then verify companies with Cala entity tools.
-- For every selected company, verify both:
-  1. the Cala company UUID
-  2. the exact NASDAQ ticker symbol used in submissionPayload.transactions[].nasdaq_code
-- Treat ticker verification as mandatory. If you cannot verify the exact ticker symbol, exclude the company.
-- Every position must include a real Cala company UUID in companyEntityId.
-- supportingEntityIds must contain only Cala UUID strings when present.
-- Do not emit placeholders, fake tickers, fake UUIDs, or blocker payloads.
-- Do not infer ticker symbols from company names and do not expand ticker symbols into company names.
-- Before finalizing, re-check that every nasdaq_code is a short market symbol rather than a human-readable company label.
-- If you cannot verify a company in Cala, exclude it.
-- Return only the final JSON object matching the provided schema.
+Research workflow:
+- Use Cala MCP tools for research. Prefer entity_search → entity_introspection →
+  retrieve_entity for company verification. Use knowledge_search only for broader
+  discovery, then verify every resulting company with the entity tools.
+- For every selected company you must independently verify:
+  1. the Cala company UUID (retrieved from Cala, never invented), and
+  2. the exact NASDAQ ticker symbol used in submissionPayload.transactions[].nasdaq_code.
+- If you cannot verify either, exclude the company. Do not emit placeholders.
+- supportingEntityIds must contain only UUID strings actually retrieved from Cala.
+- Use <entity UUID="...">Company Name</entity> tags in reportMarkdown for every
+  buy recommendation.
+- Do not infer ticker symbols from company names; do not expand tickers into names.
+
+Output:
+- Return ONLY the final JSON object matching the provided schema.
+- submissionPayload.transactions and positions[] must describe the same portfolio,
+  same tickers, same amounts, same length.
 
 User request:
 ${prompt}

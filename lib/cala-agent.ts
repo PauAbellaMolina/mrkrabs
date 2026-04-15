@@ -83,26 +83,30 @@ const portfolioOutputSchema = z.object({
     team_id: z.string(),
     model_agent_name: z.string(),
     model_agent_version: z.string(),
-    transactions: z.array(
-      z.object({
-        nasdaq_code: z.string(),
-        amount: z.number(),
-      }),
-    ),
+    transactions: z
+      .array(
+        z.object({
+          nasdaq_code: z.string().min(1),
+          amount: z.number().min(5000),
+        }),
+      )
+      .min(50),
   }),
-  positions: z.array(
-    z.object({
-      nasdaqCode: z.string(),
-      companyName: z.string(),
-      companyEntityId: z.string(),
-      amount: z.number(),
-      thesis: z.string(),
-      calaEvidence: z.array(z.string()),
-      supportingEntityIds: z.array(z.string()),
-      riskNotes: z.array(z.string()),
-      cutoffComplianceNote: z.string(),
-    }),
-  ),
+  positions: z
+    .array(
+      z.object({
+        nasdaqCode: z.string(),
+        companyName: z.string(),
+        companyEntityId: z.string(),
+        amount: z.number(),
+        thesis: z.string(),
+        calaEvidence: z.array(z.string()),
+        supportingEntityIds: z.array(z.string()),
+        riskNotes: z.array(z.string()),
+        cutoffComplianceNote: z.string(),
+      }),
+    )
+    .min(50),
   cutoffAudit: z.object({
     postCutoffDataUsed: z.boolean(),
     complianceSummary: z.string(),
@@ -123,11 +127,27 @@ Rules:
 - Do not present unsupported facts from memory when Cala tools can verify them.
 - If Cala does not contain the requested data, say that clearly.
 - Your primary job is to produce a submission-ready challenge portfolio and an explainable markdown report.
-- The challenge constraints are strict:
-  - at least 50 distinct NASDAQ tickers
-  - each position must be at least 5000 USD
-  - total invested must equal exactly 1000000 USD
-  - no duplicate tickers
+
+Hard submission constraints (the grading server rejects any violation with a 400):
+- AT LEAST 50 UNIQUE NASDAQ tickers. Aim for 52–60, never exactly 50 — dedupe
+  or missing-UUID cleanup will silently drop candidates and leave you at 49.
+  Server error if short: "Must invest in at least 50 companies. You submitted N."
+- No duplicate tickers (case-insensitive). GOOGL and GOOG are distinct; AAPL and
+  aapl are the same.
+- Every position amount >= 5000 USD, integer dollars.
+- SUM of all amounts must equal EXACTLY 1,000,000 USD. Not 999,999. Plan weights
+  before emitting the JSON.
+- Every nasdaq_code must be a real tradable NASDAQ symbol (e.g. NVDA, WDAY, PYPL),
+  never a company name (NVIDIA, WORKDAY, PAYPAL).
+
+Pre-submission self-check (run in order; fix anything that fails before emitting):
+  (a) Count unique nasdaq_codes. If < 52, find more verified companies.
+  (b) Sum all amounts. If != 1,000,000, rebalance across top-conviction names.
+  (c) Any amount < 5000 or non-integer → fix.
+  (d) Any placeholder nasdaq_code (UNKNOWN, MISSING, TBD, blank) → remove; recount.
+  (e) Any missing/invented companyEntityId → remove that position; recount.
+  (f) Final count check. If < 52, loop back to (a).
+
 - Do not use or reference stock prices, returns, or market events after 2025-04-15.
 - Research signals must be grounded in Cala knowledge, company structure, filings context, relationships, or other pre-cutoff reasoning.
 - For every company you recommend buying, include its Cala entity UUID inline
@@ -137,7 +157,7 @@ Rules:
   corporate events, you may tag them with the same <entity UUID="uuid">Name</entity> format.
 - If a company lacks a verified Cala UUID, do not recommend it as a buy.
 - Return only valid data matching the requested schema.
-- The submissionPayload.transactions array and the positions array must refer to the same portfolio and the same amounts.
+- The submissionPayload.transactions array and the positions array must refer to the same portfolio and the same amounts, same length.
 - team_id must match the provided environment team id exactly.
 - model_agent_name and model_agent_version must be stable identifiers for this agent.
 - reportMarkdown must be concise and factual.

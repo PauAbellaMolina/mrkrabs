@@ -30,6 +30,53 @@ export async function POST(
       )
     }
 
+    const preflightIssues: string[] = []
+    const transactions = submissionPayload.transactions ?? []
+    const uniqueTickers = new Set(
+      transactions.map((t) => t.nasdaq_code?.trim().toUpperCase()).filter(Boolean),
+    )
+    const totalAmount = transactions.reduce((sum, t) => sum + (t.amount ?? 0), 0)
+
+    if (uniqueTickers.size < 50) {
+      preflightIssues.push(
+        `transactions has ${uniqueTickers.size} unique tickers; server requires >= 50.`,
+      )
+    }
+    if (uniqueTickers.size !== transactions.length) {
+      preflightIssues.push(
+        `transactions contains duplicate tickers (${transactions.length} rows, ${uniqueTickers.size} unique).`,
+      )
+    }
+    if (totalAmount !== 1_000_000) {
+      preflightIssues.push(
+        `transactions sum is $${totalAmount.toLocaleString()}; server requires exactly $1,000,000.`,
+      )
+    }
+    const underMin = transactions.filter((t) => (t.amount ?? 0) < 5000)
+    if (underMin.length > 0) {
+      preflightIssues.push(
+        `${underMin.length} position(s) below the $5,000 floor: ${underMin
+          .map((t) => t.nasdaq_code)
+          .join(", ")}.`,
+      )
+    }
+
+    if (preflightIssues.length > 0) {
+      await appendRunEvent(id, {
+        level: "error",
+        type: "run-failed",
+        title: "Submission blocked by preflight validation",
+        data: { issues: preflightIssues },
+      })
+      return Response.json(
+        {
+          error: "Submission payload failed preflight validation.",
+          issues: preflightIssues,
+        },
+        { status: 400 },
+      )
+    }
+
     await appendRunEvent(id, {
       level: "info",
       type: "run-started",
