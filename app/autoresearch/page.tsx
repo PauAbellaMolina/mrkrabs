@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { AutoresearchTrigger } from "@/components/autoresearch-trigger";
 import {
   loadAutoresearchState,
   type AutoresearchState,
@@ -40,6 +41,8 @@ export default async function AutoresearchPage() {
           <ChampionBadge state={state} />
         </div>
       </header>
+
+      <AutoresearchTrigger />
 
       {!state.isLive ? (
         <EmptyState />
