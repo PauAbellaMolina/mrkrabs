@@ -27,6 +27,12 @@ export function NewRunForm() {
     setError(null);
     setStartedAt(Date.now());
 
+    // The API route writes the run record before it starts the agent, so a
+    // quick refresh surfaces the new run in the list within ~400ms — long
+    // before the full ~30s fetch resolves. Without this the list waits on
+    // AutoRefresh's idle 4s tick.
+    window.setTimeout(() => router.refresh(), 400);
+
     startTransition(async () => {
       try {
         const response = await fetch("/api/agent", {
