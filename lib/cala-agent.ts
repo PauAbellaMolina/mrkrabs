@@ -8,7 +8,7 @@ const DEFAULT_MODEL = "claude-haiku-4-5"
 // this when it creates its own run records, so "Mr. Krabs Autoresearch" only
 // ever labels runs produced by scripts/autoresearch.ts — never manual Run-agent
 // clicks from the dashboard.
-const DEFAULT_AGENT_NAME = DEFAULT_MODEL
+const DEFAULT_AGENT_NAME = "Mr. Krabs"
 const DEFAULT_AGENT_VERSION = "—"
 
 export const CALA_AGENT_NAME = DEFAULT_AGENT_NAME

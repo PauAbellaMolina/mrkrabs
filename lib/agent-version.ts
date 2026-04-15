@@ -7,8 +7,8 @@ import path from "node:path";
 // brand is reserved for the outer-loop experimentation flow (scripts/autoresearch.ts),
 // which passes PUBLIC_AUTORESEARCH_AGENT_NAME explicitly when it submits.
 // This prevents a single Run-agent click from being labeled as autoresearch.
-export const PUBLIC_AGENT_NAME = "claude-haiku-4-5";
-export const PUBLIC_AUTORESEARCH_AGENT_NAME = "Mr. Krabs Autoresearch";
+export const PUBLIC_AGENT_NAME = "Mr. Krabs";
+export const PUBLIC_AUTORESEARCH_AGENT_NAME = "Mr. MegaKrabs";
 
 const COUNTER_DIR = path.join(process.cwd(), ".data", "autoresearch");
 const COUNTER_PATH = path.join(COUNTER_DIR, "version-counter.json");
