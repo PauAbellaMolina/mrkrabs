@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { DEFAULT_RUN_PROMPT } from "@/lib/run-prompt";
@@ -63,7 +64,7 @@ export function NewRunForm() {
 
   return (
     <div className="border border-[color:var(--border)] bg-[color:var(--surface)]">
-      <div className="flex items-center justify-center px-6 py-10">
+      <div className="flex flex-wrap items-center justify-center gap-4 px-6 py-10">
         <button
           type="button"
           onClick={handleClick}
@@ -83,6 +84,13 @@ export function NewRunForm() {
             "Run agent"
           )}
         </button>
+
+        <Link
+          href="/autoresearch"
+          className="inline-flex min-w-[260px] items-center justify-center gap-3 border border-[color:var(--border)] bg-transparent px-8 py-4 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--foreground)] transition hover:border-[color:var(--foreground)] hover:bg-[color:var(--foreground)] hover:text-[color:var(--background)]"
+        >
+          Autoresearch →
+        </Link>
       </div>
 
       {error ? (
