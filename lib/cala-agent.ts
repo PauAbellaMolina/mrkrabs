@@ -379,6 +379,12 @@ export const runCalaAgent = async (
   const effectiveSystemPrompt =
     options?.systemPromptOverride?.trim() || BASE_SYSTEM_PROMPT_FOR_RESEARCH;
 
+  // Anthropic's context-management features (clear_tool_uses_20250919,
+  // compact_20260112) are only supported on Sonnet/Opus at the moment;
+  // Haiku returns a 400 if they're included in providerOptions. Feature-
+  // detect by model family and skip the block for Haiku.
+  const modelSupportsContextManagement = !effectiveModel.startsWith("claude-haiku-");
+
   const aggregatedSteps: CalaAgentStep[] = [];
   type UsageLike = Record<string, unknown>;
   let aggregatedUsage: UsageLike | undefined;
@@ -456,11 +462,15 @@ export const runCalaAgent = async (
         stopWhen: stepCountIs(stepBudget),
         tools: calaTools,
         toolChoice: "auto",
-        providerOptions: {
-          anthropic: {
-            contextManagement: anthropicContextManagement,
-          } satisfies AnthropicLanguageModelOptions,
-        },
+        ...(modelSupportsContextManagement
+          ? {
+              providerOptions: {
+                anthropic: {
+                  contextManagement: anthropicContextManagement,
+                } satisfies AnthropicLanguageModelOptions,
+              },
+            }
+          : {}),
         maxOutputTokens: 8000,
         maxRetries: 2,
         experimental_onStepStart: async (event: {
