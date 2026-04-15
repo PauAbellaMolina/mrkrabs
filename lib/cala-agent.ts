@@ -3,7 +3,7 @@ import { generateText, Output, stepCountIs } from "ai";
 import { createCalaTools } from "./cala-tools";
 import { portfolioOutputSchema, type PortfolioOutput } from "./portfolio-schema";
 
-const DEFAULT_MODEL = "claude-haiku-4-5"
+const DEFAULT_MODEL = "claude-sonnet-4-6"
 // Local display name for manual runs. The autoresearch outer loop overrides
 // this when it creates its own run records, so "Mr. Krabs Autoresearch" only
 // ever labels runs produced by scripts/autoresearch.ts — never manual Run-agent
@@ -106,6 +106,10 @@ interface RunCalaAgentOptions {
   // agent can research more candidates per run; manual UI runs keep the
   // default.
   stepBudget?: number;
+  // Override the default Anthropic model ID (e.g. "claude-haiku-4-5",
+  // "claude-opus-4-6"). Manual runs from the UI pass the user's picked
+  // model here; autoresearch/scripts leave it unset.
+  model?: string;
   onTelemetryEvent?: (event: {
     level: "info" | "error";
     type: "step-started" | "tool-started" | "tool-finished" | "step-finished";
@@ -219,10 +223,12 @@ export async function runCalaAgent(
     toolNames: Object.keys(tools),
   });
 
+  const effectiveModel = options?.model?.trim() || DEFAULT_MODEL;
+
   try {
     const effectiveSystemPrompt = options?.systemPromptOverride ?? systemPrompt;
     const result = await generateText({
-      model: anthropic(DEFAULT_MODEL),
+      model: anthropic(effectiveModel),
       system: effectiveSystemPrompt,
       prompt: [
         `TEAM_ID: ${process.env.TEAM_ID}`,
@@ -316,14 +322,14 @@ export async function runCalaAgent(
     });
 
     console.info("[cala-agent][generateText][success]", {
-      model: DEFAULT_MODEL,
+      model: effectiveModel,
       steps: result.steps.length,
       positions: result.output.positions.length,
       transactions: result.output.submissionPayload.transactions.length,
     });
 
     const response = {
-      model: DEFAULT_MODEL,
+      model: effectiveModel,
       output: result.output,
       steps: result.steps.map((step) => ({
         text: step.text,
@@ -346,7 +352,7 @@ export async function runCalaAgent(
     return response;
   } catch (error) {
     console.error("[cala-agent][generateText][error]", {
-      model: DEFAULT_MODEL,
+      model: effectiveModel,
       error:
         error instanceof Error
           ? {

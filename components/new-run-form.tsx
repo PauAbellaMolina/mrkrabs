@@ -7,9 +7,17 @@ import { DEFAULT_RUN_PROMPT } from "@/lib/run-prompt";
 
 type AgentBackend = "anthropic" | "codex-cli";
 
-const BACKEND_OPTIONS: { value: AgentBackend; label: string }[] = [
-  { value: "codex-cli", label: "Codex CLI" },
-  { value: "anthropic", label: "Anthropic API" },
+type AgentOption = {
+  label: string;
+  backend: AgentBackend;
+  model?: string;
+};
+
+const AGENT_OPTIONS: AgentOption[] = [
+  { label: "Codex CLI", backend: "codex-cli" },
+  { label: "Sonnet 4.6", backend: "anthropic", model: "claude-sonnet-4-6" },
+  { label: "Haiku 4.5", backend: "anthropic", model: "claude-haiku-4-5" },
+  { label: "Opus 4.6", backend: "anthropic", model: "claude-opus-4-6" },
 ];
 
 export function NewRunForm() {
@@ -17,7 +25,7 @@ export function NewRunForm() {
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
 
-  const runAgent = (backend: AgentBackend) => {
+  const runAgent = (option: AgentOption) => {
     setError(null);
     setExpanded(false);
 
@@ -30,7 +38,11 @@ export function NewRunForm() {
     fetch("/api/agent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: DEFAULT_RUN_PROMPT, backend }),
+      body: JSON.stringify({
+        prompt: DEFAULT_RUN_PROMPT,
+        backend: option.backend,
+        ...(option.model ? { model: option.model } : {}),
+      }),
     })
       .then(async response => {
         const data = (await response.json().catch(() => ({}))) as {
@@ -60,15 +72,15 @@ export function NewRunForm() {
         {expanded ? (
           <div
             role="group"
-            aria-label="Pick agent backend"
-            className="inline-flex min-w-[260px] divide-x divide-[color:var(--foreground)] border border-[color:var(--foreground)]"
+            aria-label="Pick agent backend and model"
+            className="inline-flex divide-x divide-[color:var(--foreground)] border border-[color:var(--foreground)]"
           >
-            {BACKEND_OPTIONS.map(option => (
+            {AGENT_OPTIONS.map(option => (
               <button
-                key={option.value}
+                key={`${option.backend}:${option.model ?? ""}`}
                 type="button"
-                onClick={() => runAgent(option.value)}
-                className="flex-1 bg-transparent px-4 py-4 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--foreground)] transition hover:bg-[color:var(--foreground)] hover:text-[color:var(--background)]"
+                onClick={() => runAgent(option)}
+                className="flex-1 bg-transparent px-4 py-4 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--foreground)] transition hover:bg-[color:var(--foreground)] hover:text-[color:var(--background)] whitespace-nowrap"
               >
                 {option.label}
               </button>

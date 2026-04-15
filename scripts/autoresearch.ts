@@ -41,7 +41,7 @@ import {
 } from "../lib/autoresearch-ledger";
 import { proposeRule } from "../lib/autoresearch-mutator";
 import {
-  estimateHaikuCostUsd,
+  estimateAnthropicCostUsd,
   getBudgetCapUsd,
 } from "../lib/autoresearch-cost";
 import {
@@ -50,6 +50,22 @@ import {
   runCalaAgent,
   type CalaAgentResult,
 } from "../lib/cala-agent";
+
+// Model to run the outer loop on. The dashboard trigger passes this via
+// AUTORESEARCH_MODEL; `pnpm autoresearch` from the CLI falls back to the
+// cala-agent default (Sonnet 4.6). Whatever ends up here is the model used
+// for every iteration in the run, stamped on every run record, and fed to
+// the cost estimator.
+const ALLOWED_MODELS = new Set([
+  "claude-sonnet-4-6",
+  "claude-haiku-4-5",
+  "claude-opus-4-6",
+]);
+const RESOLVED_MODEL =
+  process.env.AUTORESEARCH_MODEL &&
+  ALLOWED_MODELS.has(process.env.AUTORESEARCH_MODEL)
+    ? process.env.AUTORESEARCH_MODEL
+    : CALA_AGENT_MODEL;
 import { submitToLeaderboard } from "../lib/leaderboard-submit";
 import { PUBLIC_AUTORESEARCH_AGENT_NAME } from "../lib/agent-version";
 
@@ -101,7 +117,7 @@ async function runOneExperiment(
     prompt: DEFAULT_RUN_PROMPT,
     agentName: PUBLIC_AUTORESEARCH_AGENT_NAME,
     agentVersion: CALA_AGENT_VERSION,
-    model: CALA_AGENT_MODEL,
+    model: RESOLVED_MODEL,
   });
 
   let agentCostUsd = 0;
@@ -111,11 +127,12 @@ async function runOneExperiment(
     agentResult = await runCalaAgent(DEFAULT_RUN_PROMPT, {
       systemPromptOverride: variantPrompt,
       stepBudget: AUTORESEARCH_STEP_BUDGET,
+      model: RESOLVED_MODEL,
       onTelemetryEvent: (event) => appendRunEvent(runId, event),
       onFinish: async (event) => {
-        agentCostUsd = estimateHaikuCostUsd(event.totalUsage);
+        agentCostUsd = estimateAnthropicCostUsd(event.totalUsage, RESOLVED_MODEL);
         await completeRunRecord(runId, {
-          model: CALA_AGENT_MODEL,
+          model: RESOLVED_MODEL,
           result: event.result,
           telemetry: {
             functionId: event.functionId,

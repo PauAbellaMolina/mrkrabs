@@ -27,7 +27,16 @@ const DEFAULT_BACKEND: AgentBackend = "codex-cli"
 interface AgentRequestBody {
   prompt?: string
   backend?: AgentBackend
+  // Anthropic-only: pick a specific model ID (e.g. "claude-sonnet-4-6",
+  // "claude-haiku-4-5", "claude-opus-4-6"). Ignored by Codex CLI.
+  model?: string
 }
+
+const ALLOWED_ANTHROPIC_MODELS = new Set([
+  "claude-sonnet-4-6",
+  "claude-haiku-4-5",
+  "claude-opus-4-6",
+])
 
 const AGENT_BACKENDS = {
   "codex-cli": {
@@ -99,9 +108,15 @@ export async function POST(request: Request) {
         : DEFAULT_BACKEND
     const agent = AGENT_BACKENDS[backend]
 
+    const resolvedModel =
+      backend === "anthropic" && body.model && ALLOWED_ANTHROPIC_MODELS.has(body.model)
+        ? body.model
+        : agent.model
+
     console.info("[agent][start]", {
       requestId,
       backend,
+      model: resolvedModel,
       promptLength: prompt.length,
       promptPreview: prompt.slice(0, 240),
     })
@@ -114,14 +129,15 @@ export async function POST(request: Request) {
       prompt,
       agentName: agent.name,
       agentVersion: agent.version,
-      model: agent.model,
+      model: resolvedModel,
     })
 
     const result = await agent.run(prompt, {
+      ...(backend === "anthropic" ? { model: resolvedModel } : {}),
       onTelemetryEvent: (event) => appendRunEvent(runId, event),
       onFinish: (event) =>
         completeRunRecord(runId, {
-          model: agent.model,
+          model: resolvedModel,
           result: event.result,
           telemetry: {
             functionId: event.functionId,

@@ -1,53 +1,48 @@
 import { z } from "zod"
 
-const nonEmptyString = z.string().trim().min(1)
-const uuidString = z.string().uuid()
-const isoDateString = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Expected YYYY-MM-DD date")
+// Anthropic's structured-output API only accepts a tiny subset of JSON
+// Schema: no `minItems > 1`, no numeric `minimum`/`maximum`, no string
+// `pattern`/`format`/`minLength`. Codex CLI accepts all of those, but this
+// schema is shared, so we strip every constraint and let each agent's
+// post-generation validator enforce the real leaderboard rules.
 
 export const portfolioOutputSchema = z.object({
-  portfolioThesis: nonEmptyString,
+  portfolioThesis: z.string(),
   submissionPayload: z.object({
-    team_id: nonEmptyString,
-    model_agent_name: nonEmptyString,
-    model_agent_version: nonEmptyString,
+    team_id: z.string(),
+    model_agent_name: z.string(),
+    model_agent_version: z.string(),
     transactions: z.array(
       z.object({
-        nasdaq_code: nonEmptyString,
-        amount: z.number().min(5000),
+        nasdaq_code: z.string(),
+        amount: z.number(),
       }),
-    ).min(50),
+    ),
   }),
   positions: z.array(
     z.object({
-      nasdaqCode: nonEmptyString,
-      companyName: nonEmptyString,
-      companyEntityId: uuidString,
-      amount: z.number().min(5000),
-      thesis: nonEmptyString,
-      currentAnnualFilingDate: isoDateString.describe(
-        "Latest annual filing date used for this pick, on or before 2025-04-15.",
-      ),
-      priorAnnualFilingDate: isoDateString
+      nasdaqCode: z.string(),
+      companyName: z.string(),
+      companyEntityId: z.string(),
+      amount: z.number(),
+      thesis: z.string(),
+      currentAnnualFilingDate: z
+        .string()
+        .describe("Latest annual filing date used for this pick (YYYY-MM-DD), on or before 2025-04-15."),
+      priorAnnualFilingDate: z
+        .string()
         .nullable()
         .describe(
-          "Immediately previous annual filing date used for change detection, or null if unavailable.",
+          "Immediately previous annual filing date (YYYY-MM-DD) used for change detection, or null if unavailable.",
         ),
       subsidiaryCount: z
         .number()
-        .int()
-        .nonnegative()
         .describe("Count of subsidiaries/legal entities observed in the filing-linked graph."),
       jurisdictionCount: z
         .number()
-        .int()
-        .nonnegative()
         .describe("Count of distinct jurisdictions in the filing-linked company structure."),
       hierarchyDepth: z
         .number()
-        .int()
-        .nonnegative()
         .describe("Observed legal-entity hierarchy depth for the company structure."),
       complexityScore: z
         .number()
@@ -58,19 +53,19 @@ export const portfolioOutputSchema = z.object({
         .describe(
           "Change in complexity versus the prior annual filing; negative values mean improving/simplifying.",
         ),
-      calaEvidence: z.array(nonEmptyString).min(1),
-      supportingEntityIds: z.array(uuidString),
-      riskNotes: z.array(nonEmptyString).min(1),
-      cutoffComplianceNote: nonEmptyString,
+      calaEvidence: z.array(z.string()),
+      supportingEntityIds: z.array(z.string()),
+      riskNotes: z.array(z.string()),
+      cutoffComplianceNote: z.string(),
     }),
-  ).min(50),
+  ),
   cutoffAudit: z.object({
     postCutoffDataUsed: z.boolean(),
-    complianceSummary: nonEmptyString,
-    bannedDataChecks: z.array(nonEmptyString).min(1),
+    complianceSummary: z.string(),
+    bannedDataChecks: z.array(z.string()),
   }),
-  openGaps: z.array(nonEmptyString),
-  reportMarkdown: nonEmptyString,
+  openGaps: z.array(z.string()),
+  reportMarkdown: z.string(),
 })
 
 export type PortfolioOutput = z.infer<typeof portfolioOutputSchema>
