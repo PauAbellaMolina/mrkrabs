@@ -42,8 +42,9 @@ export default async function Home() {
             <p className="mt-4 max-w-[64ch] text-sm leading-relaxed text-[color:var(--muted-foreground)]">
               An AI agent that allocates $1,000,000 across ≥50 NASDAQ-listed
               companies on 2025-04-15, reasoning over Cala&rsquo;s verified
-              knowledge graph. Runs walk three stages — running, ready,
-              submitted — and the list below shows exactly where each one is.
+              knowledge graph. The agent now finalizes a validated portfolio
+              draft locally; leaderboard submission remains a separate manual
+              step. The list below shows exactly where each run stands.
             </p>
           </div>
           <HybridRunsHeaderStats serverRuns={serverRuns} />
@@ -84,7 +85,7 @@ function EmptyState() {
       </p>
       <p className="mt-2 font-mono text-[10px] text-[color:var(--muted-foreground)]">
         entity_search → entity_introspection → retrieve_entity →
-        submit_portfolio
+        finalize_portfolio
       </p>
     </div>
   );

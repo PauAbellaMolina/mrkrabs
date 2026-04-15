@@ -77,7 +77,7 @@ Output discipline:
 
 const TOOL_LOOP_SUFFIX = `
 
-Final action. When you are confident in your portfolio, call submit_portfolio
+Final action. When you are confident in your portfolio, call finalize_portfolio
 exactly once with the full 50-position list. Each position must include:
 - ticker: the NASDAQ ticker symbol, uppercase
 - notional_usd: an integer dollar amount, at least $5,000
@@ -85,9 +85,10 @@ exactly once with the full 50-position list. Each position must include:
   at most 280 characters
 - cala_entity_id: the UUID you researched the pick from
 
-If the validator rejects your submission, read the errors carefully, revise, and
-call submit_portfolio again with the fix. Do not call any other tool after a
-successful submission.
+If the validator rejects your portfolio, read the errors carefully, revise, and
+call finalize_portfolio again with the fix. This is local validation only, not
+a leaderboard submission. Do not call any other tool after a successful
+finalization.
 `.trim();
 
 export const SHARED_SYSTEM_PROMPT = BASE_SYSTEM_PROMPT;

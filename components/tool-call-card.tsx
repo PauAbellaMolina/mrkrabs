@@ -25,8 +25,8 @@ export function ToolCallCard({ part: rawPart }: Props) {
   const toolName = part.type.replace(/^tool-/, "");
   const state = part.state ?? "input-streaming";
 
-  // submit_portfolio is handled by <PortfolioPanel/>; render a terse row here.
-  const isSubmit = toolName === "submit_portfolio";
+  // finalize_portfolio is handled by <PortfolioPanel/>; render a terse row here.
+  const isSubmit = toolName === "finalize_portfolio";
 
   const glyph =
     state === "input-streaming"
@@ -132,7 +132,7 @@ function summarize(toolName: string, input: unknown): string | null {
   ) {
     return obj.entity_id.slice(0, 8) + "…";
   }
-  if (toolName === "submit_portfolio") {
+  if (toolName === "finalize_portfolio") {
     const positions = (obj.positions as unknown[]) ?? [];
     return `${positions.length} positions`;
   }

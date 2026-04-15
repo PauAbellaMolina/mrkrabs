@@ -9,7 +9,7 @@ import { RunControls } from "./run-controls";
 
 const INITIAL_TRIGGER =
   "Build the $1,000,000 NASDAQ portfolio now. Follow your system instructions. " +
-  "Research candidates, reason over Cala's graph, then submit via submit_portfolio.";
+  "Research candidates, reason over Cala's graph, then finalize via finalize_portfolio.";
 
 export function AgentTheater() {
   const { messages, sendMessage, setMessages, stop, status, error, clearError } =
@@ -58,7 +58,7 @@ function EmptyState() {
         research loop.
       </p>
       <p className="mt-2 text-xs text-[color:var(--muted-foreground)]">
-        entity_search → entity_introspection → retrieve_entity → submit_portfolio
+        entity_search → entity_introspection → retrieve_entity → finalize_portfolio
       </p>
     </div>
   );

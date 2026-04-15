@@ -7,14 +7,14 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import { hasToolCall, stepCountIs, ToolLoopAgent, tool } from "ai";
 import { z } from "zod";
-import { submitPortfolioTool } from "./submit-portfolio-tool";
+import { finalizePortfolioTool } from "./submit-portfolio-tool";
 import { SYSTEM_PROMPT } from "./system-prompt";
 
 const execFileAsync = promisify(execFile);
 
 // The trading agent. Composes Anthropic Sonnet 4.5 with Cala's three-endpoint
-// research loop plus our submit_portfolio validator tool. Two stop conditions:
-// either the agent commits via submit_portfolio, or we run out of steps.
+// research loop plus our finalize_portfolio validator tool. Two stop conditions:
+// either the agent finalizes via finalize_portfolio, or we run out of steps.
 //
 // Step budget note: 50 stocks x 3 tool calls = 150 worst case. We start at 80
 // because the system prompt encourages batched introspection and lighter
@@ -159,9 +159,9 @@ export async function createTradingAgent() {
     tools: {
       ...calaTools,
       run_code: createCodeExecutionTool(),
-      submit_portfolio: submitPortfolioTool,
+      finalize_portfolio: finalizePortfolioTool,
     },
-    stopWhen: [stepCountIs(80), hasToolCall("submit_portfolio")],
+    stopWhen: [stepCountIs(80), hasToolCall("finalize_portfolio")],
   });
 }
 

@@ -14,7 +14,7 @@ type Props = {
 
 type PortfolioInput = { positions: Position[] };
 
-// Find the latest submit_portfolio tool call from the assistant's messages.
+// Find the latest finalize_portfolio tool call from the assistant's messages.
 // We read `input` as soon as it's available — i.e. at the moment the agent
 // commits, BEFORE the validator runs. The validator result (accepted / errors)
 // is displayed as a badge on top of the already-rendered table.
@@ -32,7 +32,7 @@ function findSubmitPart(messages: TradingMessage[]): {
         input?: unknown;
         output?: unknown;
       };
-      if (part.type !== "tool-submit_portfolio") continue;
+      if (part.type !== "tool-finalize_portfolio") continue;
       if (part.state !== "input-available" && part.state !== "output-available") continue;
       const input = part.input as PortfolioInput | undefined;
       if (!input?.positions?.length) continue;
@@ -63,7 +63,7 @@ export function PortfolioPanel({ messages }: Props) {
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--border)] px-5 py-4">
         <div>
           <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--muted-foreground)]">
-            Submitted portfolio
+            Finalized portfolio draft
           </div>
           <h2 className="mt-1 font-sans text-lg font-semibold text-[color:var(--foreground)]">
             {positions.length} positions · ${total.toLocaleString()}
