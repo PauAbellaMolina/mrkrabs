@@ -57,8 +57,8 @@ returns 20 entities per call. At 12 parallel searches that's 240 entity
 records per step and most are irrelevant namesakes ("LATTICE CONSULTING",
 "LATTICE GROUP HOLDINGS", etc.) polluting context. When you know the
 company you're looking for (which is almost always — you supplied the
-name), pass `limit: 3` explicitly. Only raise the limit when the first
-round comes back ambiguous.
+name), pass "limit": 3 explicitly in the tool input. Only raise the
+limit when the first round comes back ambiguous.
 
 Tool call batching (IMPORTANT FOR LATENCY). Anthropic's API supports parallel
 tool calls — you can emit many tool_use blocks in a SINGLE assistant turn and
