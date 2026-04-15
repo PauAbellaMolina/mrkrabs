@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, ViewTransition } from "react";
+import { useMemo, useState, ViewTransition } from "react";
 import type { AgentRunRecord } from "@/lib/agent-runs";
 import { indexEventsByUuid } from "@/lib/entity-events";
 import { useMockMode } from "@/lib/mock-mode";
@@ -391,6 +391,7 @@ function SettledBody({
 }) {
   const result = run.result!;
   const isSubmittable = stage === "done" || stage === "submit-failed";
+  const [tab, setTab] = useState<DetailTab>("evidence");
 
   // Build the uuid → Cala-tool-call index once per run; EntityPill in the
   // portfolio detail panel and the report renderer both consume it to show
@@ -413,103 +414,168 @@ function SettledBody({
 
   return (
     <>
-      {stage === "submitted" || stage === "submit-failed" ? (
-        <RunSubmissionPanel
-          runId={run.id}
-          initialSubmission={run.leaderboardSubmission}
-          isMock={isMock}
-        />
-      ) : null}
+      <DetailTabs value={tab} onChange={setTab} />
 
-      <section className="grid gap-8 xl:grid-cols-[0.95fr_1.35fr]">
-        <div className="flex flex-col gap-6">
-          <Panel eyebrow="Output" title="Result summary">
-            <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-2">
-                <MiniMetric label="Model" value={result.model} />
-                <MiniMetric
-                  label="Allocated"
-                  value={money.format(totalAllocated)}
-                  border="l"
-                />
-                <MiniMetric
-                  label="Post-cutoff"
-                  value={
-                    result.output.cutoffAudit.postCutoffDataUsed
-                      ? "flagged"
-                      : "clean"
-                  }
-                  border="t"
-                />
-                <MiniMetric
-                  label="Transactions"
-                  value={`${result.output.submissionPayload.transactions.length}`}
-                  border="tl"
-                />
-              </div>
-              <p className="text-sm leading-6 text-[color:var(--muted-foreground)]">
-                {result.output.cutoffAudit.complianceSummary}
-              </p>
-            </div>
-          </Panel>
-
-          {isSubmittable ? (
+      {tab === "evidence" ? (
+        <>
+          {stage === "submitted" || stage === "submit-failed" ? (
             <RunSubmissionPanel
               runId={run.id}
               initialSubmission={run.leaderboardSubmission}
               isMock={isMock}
             />
           ) : null}
-        </div>
 
-        <div className="flex flex-col gap-6">
-          {diff && baseline ? (
-            <RunDiffPanel
-              diff={diff}
-              baselineRunId={baseline.id}
-              baselineStartedAt={baseline.startedAt}
-            />
-          ) : (
-            <section className="border border-dashed border-[color:var(--border)] bg-[color:var(--surface)] px-5 py-6">
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-                No baseline
-              </p>
-              <p className="mt-2 font-sans text-sm text-[color:var(--foreground)]">
-                This is the first completed run — no baseline to compare
-                against yet. Future runs will show a diff against this one.
-              </p>
-            </section>
-          )}
+          <section className="flex flex-col gap-6">
+            <Panel eyebrow="Output" title="Result summary">
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4">
+                  <MiniMetric label="Model" value={result.model} />
+                  <MiniMetric
+                    label="Allocated"
+                    value={money.format(totalAllocated)}
+                    border="l"
+                  />
+                  <MiniMetric
+                    label="Post-cutoff"
+                    value={
+                      result.output.cutoffAudit.postCutoffDataUsed
+                        ? "flagged"
+                        : "clean"
+                    }
+                    border="l"
+                  />
+                  <MiniMetric
+                    label="Transactions"
+                    value={`${result.output.submissionPayload.transactions.length}`}
+                    border="l"
+                  />
+                </div>
+                <p className="text-sm leading-6 text-[color:var(--muted-foreground)]">
+                  {result.output.cutoffAudit.complianceSummary}
+                </p>
+              </div>
+            </Panel>
 
-          <Panel
-            eyebrow="Portfolio"
-            title={`${result.output.positions.length} positions`}
-          >
-            <RunPortfolioTable
-              result={result}
-              markers={markers}
-              toolEvents={toolEvents}
-            />
-          </Panel>
+            {isSubmittable ? (
+              <RunSubmissionPanel
+                runId={run.id}
+                initialSubmission={run.leaderboardSubmission}
+                isMock={isMock}
+              />
+            ) : null}
 
-          <Panel eyebrow="Narrative" title="Report">
-            <ReportRenderer
-              markdown={result.output.reportMarkdown}
-              toolEvents={toolEvents}
-              companyByUuid={companyByUuid}
-            />
-          </Panel>
+            {diff && baseline ? (
+              <RunDiffPanel
+                diff={diff}
+                baselineRunId={baseline.id}
+                baselineStartedAt={baseline.startedAt}
+              />
+            ) : (
+              <section className="border border-dashed border-[color:var(--border)] bg-[color:var(--surface)] px-5 py-6">
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+                  No baseline
+                </p>
+                <p className="mt-2 font-sans text-sm text-[color:var(--foreground)]">
+                  This is the first completed run — no baseline to compare
+                  against yet. Future runs will show a diff against this one.
+                </p>
+              </section>
+            )}
 
+            <Panel
+              eyebrow="Portfolio"
+              title={`${result.output.positions.length} positions`}
+            >
+              <RunPortfolioTable
+                result={result}
+                markers={markers}
+                toolEvents={toolEvents}
+              />
+            </Panel>
+
+            <Panel eyebrow="Narrative" title="Report">
+              <ReportRenderer
+                markdown={result.output.reportMarkdown}
+                toolEvents={toolEvents}
+                companyByUuid={companyByUuid}
+              />
+            </Panel>
+          </section>
+        </>
+      ) : (
+        <section className="flex flex-col gap-6">
           <Panel eyebrow="Telemetry" title="Timeline">
             <RunActivityFeed events={run.events} />
+          </Panel>
+
+          <Panel eyebrow="Context" title="Prompt">
+            <pre className="whitespace-pre-wrap border border-[color:var(--border)] bg-[color:var(--background)] p-4 font-mono text-xs leading-6 text-[color:var(--foreground)]">
+              {run.prompt}
+            </pre>
           </Panel>
 
           <Panel eyebrow="JSON" title="Submission payload">
             <CodeBlock value={result.output.submissionPayload} />
           </Panel>
-        </div>
-      </section>
+        </section>
+      )}
     </>
+  );
+}
+
+type DetailTab = "evidence" | "internal";
+
+function DetailTabs({
+  value,
+  onChange,
+}: {
+  value: DetailTab;
+  onChange: (next: DetailTab) => void;
+}) {
+  const tabs: Array<{ id: DetailTab; label: string; hint: string }> = [
+    { id: "evidence", label: "Evidence", hint: "Portfolio · narrative · submission" },
+    { id: "internal", label: "Internal", hint: "Timeline · prompt · raw JSON" },
+  ];
+  return (
+    <nav
+      role="tablist"
+      aria-label="Run detail view"
+      className="inline-flex self-start border border-[color:var(--border)] bg-[color:var(--surface)]"
+    >
+      {tabs.map(tab => {
+        const active = tab.id === value;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(tab.id)}
+            className={
+              "flex flex-col items-start gap-1 px-4 py-2 text-left transition " +
+              (active
+                ? "bg-[color:var(--foreground)] text-[color:var(--background)]"
+                : "text-[color:var(--foreground)] hover:bg-[color:var(--surface-elevated)]")
+            }
+          >
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em]">
+              {tab.label}
+            </span>
+            <span
+              className={
+                "font-mono text-[9px] uppercase tracking-[0.18em] " +
+                (active
+                  ? "text-[color:var(--background)] opacity-70"
+                  : "text-[color:var(--muted-foreground)]")
+              }
+            >
+              {tab.hint}
+            </span>
+          </button>
+        );
+      })}
+    </nav>
   );
 }
 
