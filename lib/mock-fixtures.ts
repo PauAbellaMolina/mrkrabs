@@ -440,6 +440,7 @@ export function buildMockRunRecords(): AgentRunRecord[] {
   });
   const running: AgentRunRecord = {
     id: MOCK_RUN_IDS.running,
+    runId: MOCK_RUN_IDS.running,
     requestId: MOCK_RUN_IDS.running + "-req",
     prompt: runningPrompt,
     agentName: MOCK_AGENT_NAME,
@@ -467,6 +468,7 @@ export function buildMockRunRecords(): AgentRunRecord[] {
   });
   const doneAlt: AgentRunRecord = {
     id: MOCK_RUN_IDS.doneAlt,
+    runId: MOCK_RUN_IDS.doneAlt,
     requestId: MOCK_RUN_IDS.doneAlt + "-req",
     prompt: runningPrompt,
     agentName: MOCK_AGENT_NAME,
@@ -493,6 +495,7 @@ export function buildMockRunRecords(): AgentRunRecord[] {
   });
   const doneStrong: AgentRunRecord = {
     id: MOCK_RUN_IDS.doneStrong,
+    runId: MOCK_RUN_IDS.doneStrong,
     requestId: MOCK_RUN_IDS.doneStrong + "-req",
     prompt: runningPrompt,
     agentName: MOCK_AGENT_NAME,
@@ -537,6 +540,7 @@ export function buildMockRunRecords(): AgentRunRecord[] {
   ];
   const submittedWinner: AgentRunRecord = {
     id: MOCK_RUN_IDS.submittedWinner,
+    runId: MOCK_RUN_IDS.submittedWinner,
     requestId: MOCK_RUN_IDS.submittedWinner + "-req",
     prompt: runningPrompt,
     agentName: MOCK_AGENT_NAME,
@@ -590,6 +594,7 @@ export function buildMockRunRecords(): AgentRunRecord[] {
   ];
   const submittedLoser: AgentRunRecord = {
     id: MOCK_RUN_IDS.submittedLoser,
+    runId: MOCK_RUN_IDS.submittedLoser,
     requestId: MOCK_RUN_IDS.submittedLoser + "-req",
     prompt: runningPrompt,
     agentName: MOCK_AGENT_NAME,
@@ -645,6 +650,7 @@ export function buildMockRunRecords(): AgentRunRecord[] {
   });
   const submitFailed: AgentRunRecord = {
     id: MOCK_RUN_IDS.submitFailed,
+    runId: MOCK_RUN_IDS.submitFailed,
     requestId: MOCK_RUN_IDS.submitFailed + "-req",
     prompt: runningPrompt,
     agentName: MOCK_AGENT_NAME,
@@ -685,6 +691,7 @@ export function buildMockRunRecords(): AgentRunRecord[] {
   });
   const failed: AgentRunRecord = {
     id: MOCK_RUN_IDS.failed,
+    runId: MOCK_RUN_IDS.failed,
     requestId: MOCK_RUN_IDS.failed + "-req",
     prompt: runningPrompt,
     agentName: MOCK_AGENT_NAME,
@@ -719,6 +726,7 @@ export function buildFreshRunningFixture(): AgentRunRecord {
   });
   return {
     id,
+    runId: id,
     requestId: id + "-req",
     prompt: runningPrompt,
     agentName: MOCK_AGENT_NAME,
