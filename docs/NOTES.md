@@ -8,6 +8,8 @@
 ### Implementation notes
 
 - ✅ Added `lib/cala.ts` with REST client wrappers for: `GET /v1/entities?name=...`, `GET /v1/entities/{id}/introspection`, and `POST /v1/entities/{id}` using typed responses, endpoint-specific normalization, and Cala API error handling.
+- ✅ Added an Anthropic-backed Cala MCP agent path: `lib/cala-agent.ts` + `app/api/agent/route.ts` + homepage playground UI. Current test model is `claude-haiku-4-5`, talking to Cala over remote HTTP MCP with `X-API-KEY`.
+- ✅ Tightened the agent output contract: report-first markdown with buy recommendations and `<entity UUID="...">...</entity>` tags for Cala-backed company citations.
 
 ## 2026-04-15
 
@@ -33,7 +35,7 @@ A Cala engineer at the booth told us to **focus on these three endpoints** — i
 
 Full API research lives in the agent's report; the load-bearing facts:
 
-- **No submission endpoint in Cala's public API.** The hackathon submission/leaderboard infra is separate — we _must_ ask at the booth for the URL and payload before we can submit anything. This is a hard blocker for end-to-end.
+- **Submission is not on Cala's public API.** Portfolio submit uses the hackathon Convex endpoint and rules documented in [`LEADERBOARD.md`](./LEADERBOARD.md) (source: [Hacker Guide](https://cala-leaderboard.apps.rebolt.ai/guide)).
 - **No market data in Cala.** Zero prices, OHLC, earnings, analyst ratings, insider transactions, or ownership data. Cala is entity-graph shaped: companies, people, filings-as-entities, relationships. Sources: **SEC EDGAR + GLEIF**. We need a second data source for prices (see task #8).
 - **No point-in-time queries.** Cala always returns latest known facts. Sources carry a `date` (when Cala scraped it) but you can't ask "as of 2025-04-15". → real **look-ahead-bias** risk in our backtest.
 - **Rate limits undocumented.** HTTP 429 returns `rate_limit_exceeded` with no published RPM. Assume tens/minute until we test.
@@ -174,17 +176,18 @@ print(response.json())
 - MCP setup: https://docs.cala.ai/integrations/mcp
 - Console / API keys: https://console.cala.ai/api-keys
 - Support: heyeli@cala.ai
+- **Hackathon guide (evaluation + submit API):** https://cala-leaderboard.apps.rebolt.ai/guide · local summary: [`LEADERBOARD.md`](./LEADERBOARD.md)
 
 ### Open questions (for the Cala booth — ask ASAP)
 
-- [ ] **Submission endpoint** — URL, auth, exact payload shape, dry-run / validation mode, resubmission rate cap
+- [x] **Submission endpoint** — documented in [`LEADERBOARD.md`](./LEADERBOARD.md) (`POST …/api/submit`, JSON body, server-side validation)
 - [ ] **Leaderboard endpoint** — how do we poll our current rank
 - [ ] **Point-in-time / look-ahead** — is there any hackathon-only "as-of 2025-04-15" mode? Are we expected to pretend we don't know the future, or is it accepted that we do?
 - [ ] **Rate limits** — actual RPM/RPD for hackathon keys (may be bumped)
 - [ ] **Pricing** — free tier quota, is there a hackathon-sponsored key, is it unlimited as advertised?
 - [ ] **NASDAQ universe** — does Cala expose a canonical list of NASDAQ-listed tickers? Try `companies.exchange=NASDAQ` but undocumented
 - [ ] **Historical prices** — anywhere in the graph, or do we bring our own?
-- [ ] **Scoring** — absolute return? Sharpe? Max drawdown? Narrative?
+- [x] **Scoring** — ~50% leaderboard total value (vs SPY); ~50% qualitative (Cala-grounded rationale, per-stock explanation, no post–2025-04-15 market data). See [`LEADERBOARD.md`](./LEADERBOARD.md).
 
 ### Architectural implications
 
