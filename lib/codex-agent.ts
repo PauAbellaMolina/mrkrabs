@@ -17,6 +17,7 @@ const CALA_MCP_PROXY_PATH = path.join(process.cwd(), "scripts", "cala-mcp-proxy.
 const MIN_POSITION_SIZE = 5_000
 const REQUIRED_PORTFOLIO_BUDGET = 1_000_000
 const MIN_POSITION_COUNT = 50
+const TARGET_FILING_CUTOFF = "2025-04-15"
 const PLACEHOLDER_TICKER_PATTERN =
   /^(UNVERIFIABLE|UNAVAILABLE|DO-NOT-|INVALID-|PLACEHOLDER|REMOVE_|CALA_|BLOCKED|MISSING|NO_SUBMISSION|OMIT|THIS|PAYLOAD)/i
 
@@ -108,6 +109,15 @@ const normalizeText = (value: string, fallback: string) => {
   return normalized.length > 0 ? normalized : fallback
 }
 
+const normalizeDateOrNull = (value: string | null | undefined) => {
+  if (!value) {
+    return null
+  }
+
+  const normalized = value.trim()
+  return normalized.length > 0 ? normalized : null
+}
+
 const safeJsonPreview = (value: unknown, maxLength = 800) => {
   try {
     const serialized = JSON.stringify(value, null, 2)
@@ -128,6 +138,14 @@ const mergePositions = (positions: PortfolioPosition[]) => {
       continue
     }
 
+    const incomingCurrentAnnualFilingDate = normalizeText(
+      position.currentAnnualFilingDate,
+      TARGET_FILING_CUTOFF,
+    )
+    const incomingPriorAnnualFilingDate = normalizeDateOrNull(
+      position.priorAnnualFilingDate,
+    )
+
     const existing = merged.get(ticker)
     if (!existing) {
       merged.set(ticker, {
@@ -136,6 +154,13 @@ const mergePositions = (positions: PortfolioPosition[]) => {
         companyName: normalizeText(position.companyName, ticker),
         companyEntityId: position.companyEntityId.trim(),
         thesis: normalizeText(position.thesis, `Cala-backed thesis for ${ticker}.`),
+        currentAnnualFilingDate: incomingCurrentAnnualFilingDate,
+        priorAnnualFilingDate: incomingPriorAnnualFilingDate,
+        subsidiaryCount: Math.max(position.subsidiaryCount, 0),
+        jurisdictionCount: Math.max(position.jurisdictionCount, 0),
+        hierarchyDepth: Math.max(position.hierarchyDepth, 0),
+        complexityScore: position.complexityScore,
+        complexityChangeVsPrior: position.complexityChangeVsPrior,
         cutoffComplianceNote: normalizeText(
           position.cutoffComplianceNote,
           "Reasoning was intended to avoid data after 2025-04-15.",
@@ -146,6 +171,9 @@ const mergePositions = (positions: PortfolioPosition[]) => {
       })
       continue
     }
+
+    const useIncomingSignal =
+      incomingCurrentAnnualFilingDate > existing.currentAnnualFilingDate
 
     merged.set(ticker, {
       ...existing,
@@ -162,6 +190,27 @@ const mergePositions = (positions: PortfolioPosition[]) => {
         existing.thesis.length >= position.thesis.trim().length
           ? existing.thesis
           : normalizeText(position.thesis, existing.thesis),
+      currentAnnualFilingDate: useIncomingSignal
+        ? incomingCurrentAnnualFilingDate
+        : existing.currentAnnualFilingDate,
+      priorAnnualFilingDate: useIncomingSignal
+        ? incomingPriorAnnualFilingDate
+        : existing.priorAnnualFilingDate,
+      subsidiaryCount: useIncomingSignal
+        ? Math.max(position.subsidiaryCount, 0)
+        : existing.subsidiaryCount,
+      jurisdictionCount: useIncomingSignal
+        ? Math.max(position.jurisdictionCount, 0)
+        : existing.jurisdictionCount,
+      hierarchyDepth: useIncomingSignal
+        ? Math.max(position.hierarchyDepth, 0)
+        : existing.hierarchyDepth,
+      complexityScore: useIncomingSignal
+        ? position.complexityScore
+        : existing.complexityScore,
+      complexityChangeVsPrior: useIncomingSignal
+        ? position.complexityChangeVsPrior
+        : existing.complexityChangeVsPrior,
       cutoffComplianceNote:
         existing.cutoffComplianceNote.length >=
         position.cutoffComplianceNote.trim().length
@@ -252,6 +301,9 @@ const renderReportMarkdown = (output: Omit<PortfolioOutput, "reportMarkdown">) =
       `- Ticker: ${position.nasdaqCode}`,
       `- Allocation: $${position.amount.toLocaleString("en-US")}`,
       `- Thesis: ${position.thesis}`,
+      `- Filing date used: ${position.currentAnnualFilingDate}`,
+      `- Prior filing date used: ${position.priorAnnualFilingDate ?? "Not available"}`,
+      `- Complexity metrics: subsidiaries=${position.subsidiaryCount}, jurisdictions=${position.jurisdictionCount}, depth=${position.hierarchyDepth}, score=${position.complexityScore.toFixed(2)}, change_vs_prior=${position.complexityChangeVsPrior == null ? "n/a" : position.complexityChangeVsPrior.toFixed(2)}`,
       `- Cutoff note: ${position.cutoffComplianceNote}`,
       "- Cala-backed evidence:",
       ...evidenceLines,
@@ -276,6 +328,9 @@ const renderReportMarkdown = (output: Omit<PortfolioOutput, "reportMarkdown">) =
     "",
     "## Thesis",
     output.portfolioThesis,
+    "",
+    "## Signal Design",
+    "Favor NASDAQ companies with low or improving filing-linked legal-entity complexity using subsidiary count, jurisdiction count, and hierarchy depth from annual-filing-backed company structure on or before 2025-04-15.",
     "",
     "## Portfolio Decisions",
     ...portfolioLines,
@@ -312,6 +367,19 @@ const normalizeAndValidateOutput = (
     if (!position.companyEntityId) {
       issues.push(`Position ${position.nasdaqCode} is missing a Cala entity UUID.`)
     }
+    if (position.currentAnnualFilingDate > TARGET_FILING_CUTOFF) {
+      issues.push(
+        `${position.nasdaqCode} uses currentAnnualFilingDate=${position.currentAnnualFilingDate}, which is after the ${TARGET_FILING_CUTOFF} cutoff.`,
+      )
+    }
+    if (
+      position.priorAnnualFilingDate &&
+      position.priorAnnualFilingDate > TARGET_FILING_CUTOFF
+    ) {
+      issues.push(
+        `${position.nasdaqCode} uses priorAnnualFilingDate=${position.priorAnnualFilingDate}, which is after the ${TARGET_FILING_CUTOFF} cutoff.`,
+      )
+    }
     if (PLACEHOLDER_TICKER_PATTERN.test(position.nasdaqCode)) {
       issues.push(
         `Position ${position.nasdaqCode} looks like a placeholder ticker rather than a real NASDAQ symbol.`,
@@ -333,7 +401,7 @@ const normalizeAndValidateOutput = (
   const normalizedOutput: PortfolioOutput = {
     portfolioThesis: normalizeText(
       output.portfolioThesis,
-      "Cala-grounded NASDAQ portfolio thesis.",
+      "Favor NASDAQ companies with low or improving filing-linked legal-entity complexity.",
     ),
     submissionPayload: {
       team_id: teamId,
@@ -464,8 +532,6 @@ const createModel = () =>
           CALA_API_KEY: process.env.CALA_API_KEY ?? "",
         },
         enabledTools: [
-          "knowledge_search",
-          "knowledge_query",
           "entity_search",
           "entity_introspection",
           "retrieve_entity",
@@ -493,8 +559,6 @@ export async function runCalaAgent(
     calaMcpProxyPath: CALA_MCP_PROXY_PATH,
     codexPath: BUNDLED_CODEX_PATH ?? "npx:@openai/codex",
     enabledTools: [
-      "knowledge_search",
-      "knowledge_query",
       "entity_search",
       "entity_introspection",
       "retrieve_entity",

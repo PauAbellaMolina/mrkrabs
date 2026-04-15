@@ -1,5 +1,5 @@
 import { api } from "../convex/_generated/api";
-import { getConvexClient } from "./convex-client";
+import { getConvexClient, hasConvexClientConfig } from "./convex-client";
 import type { CalaAgentResult } from "./cala-agent";
 
 // Convex rejects values of type `undefined` — an object key either exists
@@ -194,8 +194,15 @@ export async function failRunRecord(
 }
 
 export async function listRunSummaries(): Promise<AgentRunSummary[]> {
-  const summaries = await getConvexClient().query(api.runs.listSummaries, {});
-  return summaries as unknown as AgentRunSummary[];
+  if (!hasConvexClientConfig()) {
+    return [];
+  }
+  try {
+    const summaries = await getConvexClient().query(api.runs.listSummaries, {});
+    return summaries as unknown as AgentRunSummary[];
+  } catch {
+    return [];
+  }
 }
 
 export async function recordRunSubmission(

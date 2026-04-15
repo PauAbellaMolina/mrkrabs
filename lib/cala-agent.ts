@@ -1,7 +1,7 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import { generateText, Output, stepCountIs } from "ai";
-import { z } from "zod";
 import { createCalaTools } from "./cala-tools";
+import { portfolioOutputSchema, type PortfolioOutput } from "./portfolio-schema";
 
 const DEFAULT_MODEL = "claude-haiku-4-5"
 // Local display name for manual runs. The autoresearch outer loop overrides
@@ -24,34 +24,7 @@ export interface CalaAgentStep {
 
 export interface CalaAgentResult {
   model: string;
-  output: {
-    submissionPayload: {
-      team_id: string;
-      model_agent_name: string;
-      model_agent_version: string;
-      transactions: Array<{
-        nasdaq_code: string;
-        amount: number;
-      }>;
-    };
-    positions: Array<{
-      nasdaqCode: string;
-      companyName: string;
-      companyEntityId: string;
-      amount: number;
-      thesis: string;
-      calaEvidence: string[];
-      supportingEntityIds: string[];
-      riskNotes: string[];
-      cutoffComplianceNote: string;
-    }>;
-    cutoffAudit: {
-      postCutoffDataUsed: boolean;
-      complianceSummary: string;
-      bannedDataChecks: string[];
-    };
-    reportMarkdown: string;
-  };
+  output: PortfolioOutput;
   steps: CalaAgentStep[];
 }
 
@@ -78,45 +51,8 @@ interface RunCalaAgentOptions {
   }) => Promise<void> | void;
 }
 
-const portfolioOutputSchema = z.object({
-  submissionPayload: z.object({
-    team_id: z.string(),
-    model_agent_name: z.string(),
-    model_agent_version: z.string(),
-    transactions: z
-      .array(
-        z.object({
-          nasdaq_code: z.string().min(1),
-          amount: z.number().min(5000),
-        }),
-      )
-      .min(50),
-  }),
-  positions: z
-    .array(
-      z.object({
-        nasdaqCode: z.string(),
-        companyName: z.string(),
-        companyEntityId: z.string(),
-        amount: z.number(),
-        thesis: z.string(),
-        calaEvidence: z.array(z.string()),
-        supportingEntityIds: z.array(z.string()),
-        riskNotes: z.array(z.string()),
-        cutoffComplianceNote: z.string(),
-      }),
-    )
-    .min(50),
-  cutoffAudit: z.object({
-    postCutoffDataUsed: z.boolean(),
-    complianceSummary: z.string(),
-    bannedDataChecks: z.array(z.string()),
-  }),
-  reportMarkdown: z.string(),
-});
-
-// Exported so the autoresearch script can bootstrap the baseline champion
-// prompt in Convex and measure mutation drift against it.
+// Exported so the autoresearch script can bootstrap `.data/autoresearch/champion.md`
+// from the baseline and measure mutation drift against it.
 export const BASE_SYSTEM_PROMPT = `
 You are a financial research agent building a NASDAQ portfolio report for Cala's
 "Lobster of Wall Street" challenge using Cala's verified entity graph tools.
@@ -127,29 +63,26 @@ Rules:
 - Do not present unsupported facts from memory when Cala tools can verify them.
 - If Cala does not contain the requested data, say that clearly.
 - Your primary job is to produce a submission-ready challenge portfolio and an explainable markdown report.
-
-Hard submission constraints (the grading server rejects any violation with a 400):
-- AT LEAST 50 UNIQUE NASDAQ tickers. Aim for 52–60, never exactly 50 — dedupe
-  or missing-UUID cleanup will silently drop candidates and leave you at 49.
-  Server error if short: "Must invest in at least 50 companies. You submitted N."
-- No duplicate tickers (case-insensitive). GOOGL and GOOG are distinct; AAPL and
-  aapl are the same.
-- Every position amount >= 5000 USD, integer dollars.
-- SUM of all amounts must equal EXACTLY 1,000,000 USD. Not 999,999. Plan weights
-  before emitting the JSON.
-- Every nasdaq_code must be a real tradable NASDAQ symbol (e.g. NVDA, WDAY, PYPL),
-  never a company name (NVIDIA, WORKDAY, PAYPAL).
-
-Pre-submission self-check (run in order; fix anything that fails before emitting):
-  (a) Count unique nasdaq_codes. If < 52, find more verified companies.
-  (b) Sum all amounts. If != 1,000,000, rebalance across top-conviction names.
-  (c) Any amount < 5000 or non-integer → fix.
-  (d) Any placeholder nasdaq_code (UNKNOWN, MISSING, TBD, blank) → remove; recount.
-  (e) Any missing/invented companyEntityId → remove that position; recount.
-  (f) Final count check. If < 52, loop back to (a).
-
+- The primary alpha thesis is FIXED: favor companies with low or improving
+  filing-linked legal-entity complexity. Do not invent a different thesis.
+- The challenge constraints are strict:
+  - at least 50 distinct NASDAQ tickers
+  - each position must be at least 5000 USD
+  - total invested must equal exactly 1000000 USD
+  - no duplicate tickers
 - Do not use or reference stock prices, returns, or market events after 2025-04-15.
-- Research signals must be grounded in Cala knowledge, company structure, filings context, relationships, or other pre-cutoff reasoning.
+- Research signals must be grounded in Cala filing-linked company structure on or
+  before 2025-04-15.
+- Use legal-entity complexity as the primary ranking signal:
+  - currentAnnualFilingDate
+  - priorAnnualFilingDate when available
+  - subsidiaryCount
+  - jurisdictionCount
+  - hierarchyDepth
+  - complexityScore
+  - complexityChangeVsPrior
+- Executive changes, corporate events, regulatory context, supply-chain context,
+  and financial metrics may appear only as tie-breakers, evidence color, or risk notes.
 - For every company you recommend buying, include its Cala entity UUID inline
   using this exact HTML tag format: <entity UUID="uuid">Company Name</entity>
 - Never invent UUIDs. Only use UUIDs that came back from Cala tools.
@@ -161,16 +94,31 @@ Pre-submission self-check (run in order; fix anything that fails before emitting
 - team_id must match the provided environment team id exactly.
 - model_agent_name and model_agent_version must be stable identifiers for this agent.
 - reportMarkdown must be concise and factual.
+- Use exactly 50 positions at $20,000 each unless the schema or validator forces a repair.
+
+Workflow:
+1. Resolve companies with entity_search, preferring SEC legal names over casual ticker-name queries.
+2. Introspect each company to discover populated ownership/control structure and dated evidence.
+3. Retrieve only the filing-linked structural facts needed to estimate legal-entity complexity.
+4. Exclude companies that cannot be tied to filing-linked pre-cutoff evidence.
+5. Rank on low or improving complexity, then write the narrative.
 
 reportMarkdown should follow this structure:
 ## Thesis
+State the single fixed filings/entity-relationship complexity thesis.
+
+## Signal Design
+Define the filing-linked legal-entity complexity signal and cutoff discipline.
 
 ## Portfolio Decisions
 For each buy:
 - Company: <entity UUID="...">Name</entity>
 - Ticker: TICKER
 - Allocation: $...
-- Why it belongs
+- Filing date used
+- Prior filing date used
+- Complexity metrics: subsidiary count, jurisdiction count, hierarchy depth, complexity score, change vs prior
+- Why it belongs under the fixed thesis
 - Cala-backed evidence
 - Risks
 
@@ -317,8 +265,6 @@ export async function runCalaAgent(
     };
 
     await options?.onFinish?.({
-      functionId: result.functionId,
-      metadata: result.metadata,
       totalUsage: result.totalUsage,
       result: response,
     });

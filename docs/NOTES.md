@@ -5,6 +5,29 @@
 
 ## 2026-04-15
 
+### Agent steering tightened around one thesis
+
+We are no longer asking the model to invent a Cala thesis at runtime. That was too broad and let it drift into supply-chain, executive, event, regulatory, or generic graph-story picks depending on the run.
+
+**Locked thesis now:**
+
+- Prefer NASDAQ companies with **low or improving legal-entity complexity**, measured from filing-linked subsidiary/control graphs available on or before `2025-04-15`.
+
+**Implementation consequences:**
+
+- Docs now treat filings/entity-relationship complexity as the only primary alpha thesis.
+- Agent prompts should say "execute this procedure" rather than "pick a graph-shaped strategy."
+- Output schema should carry explicit per-position filing/signal fields:
+  - current annual filing date
+  - prior annual filing date
+  - subsidiary count
+  - jurisdiction count
+  - hierarchy depth
+  - complexity score
+  - complexity change vs prior
+- Executive/events/regulatory/supply-chain facts are allowed only as supporting explanation or risk context, not as primary ranking signals.
+- Equal-weight 50-name construction is the default until we have evidence that a more complex sizing rule helps.
+
 ### Mission Control — localStorage mock runs for UI iteration
 
 Added an always-visible status strip in the top-right corner that expands on hover into a dev panel. Lets Pau (and future Claudes) populate the list/detail pages with fake `AgentRunRecord[]` data without touching the real agent or the Convex submit endpoint. Everything persists in `localStorage` under `mrkrabs.mockMode.*` so toggling mock mode survives refreshes.

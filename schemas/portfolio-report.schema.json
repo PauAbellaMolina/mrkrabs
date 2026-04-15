@@ -73,6 +73,13 @@
           "companyEntityId",
           "amount",
           "thesis",
+          "currentAnnualFilingDate",
+          "priorAnnualFilingDate",
+          "subsidiaryCount",
+          "jurisdictionCount",
+          "hierarchyDepth",
+          "complexityScore",
+          "complexityChangeVsPrior",
           "calaEvidence",
           "supportingEntityIds",
           "riskNotes",
@@ -98,6 +105,38 @@
           "thesis": {
             "type": "string",
             "minLength": 1
+          },
+          "currentAnnualFilingDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "priorAnnualFilingDate": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "subsidiaryCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "jurisdictionCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "hierarchyDepth": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "complexityScore": {
+            "type": "number"
+          },
+          "complexityChangeVsPrior": {
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "calaEvidence": {
             "type": "array",

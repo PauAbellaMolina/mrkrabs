@@ -1,56 +1,115 @@
 # Strategy
 
-> _Our trading thesis and the Cala signals we lean on. Fill in as we learn what data is available._
+> _Committed thesis and the exact Cala-native signal design we want the agent to execute._
 
-## What Cala actually gives us (verified via live probes — see NOTES.md "Live probes")
+## Locked thesis
 
-Cala is an entity knowledge graph over **SEC EDGAR + GLEIF**. Our earlier "no quant data" take was wrong. Confirmed by poking NVIDIA CORP live:
+Our single thesis is:
 
-- **Properties** — `cik`, `lei`, `legal_name`, `headquarters_address`, `employee_count`, `founding_date`, `bics`, `esg_policy`, plus relationships
-- **🔥 `numerical_observations.FinancialMetric`** — XBRL `us-gaap` facts (Cash and Cash Equivalents, Other Assets, etc.). Shape of a _specific_ metric retrieval (scalar vs time-series) is not yet probed — see task #10
-- **Rich relationships** — `LISTED_ON`, `IS_ULTIMATE_PARENT_OF`, `IS_DIRECT_OWNER_OF`, `IS_AFFILIATE_OF`, `PARTICIPATES_IN_CORPORATE_EVENT`, `HAS_PRIVATE_FUND`, more
+**Favor NASDAQ companies whose filing-linked legal-entity graph is simple, or getting simpler, as of 2025-04-15.**
 
-Cala **still** does not give us prices / returns directly. We need at minimum a reference file for market values on 2025-04-15 and 2026-04-15 to compute P&L. But the signals that _inform_ the buy decision can plausibly live entirely in Cala.
+The core idea is not "find bullish stories in Cala." The core idea is:
 
-**Constraint:** field population is sparse for smaller / foreign / non-SEC-filer entities. A REIT had 9 properties and zero FinancialMetrics; NVIDIA CORP had 13 and a FinancialMetric list. Our universe should skew toward large SEC-registered US filers — which matches the challenge's "NASDAQ-listed" requirement anyway.
+1. use Cala's entity graph to reconstruct legal-entity complexity from annual-filing-linked company structure
+2. rank companies by low complexity and improving complexity
+3. use Cala again to explain the picks with dated, filing-backed evidence
 
-## Thesis candidates (TBD — after booth chat)
+We are explicitly **not** asking the agent to choose between competing thesis families at runtime.
 
-_Pick one and commit, or invent a fifth. All must be explainable with Cala signals._
+## Why this is the Cala-native edge
 
-1. **Corporate-event driven** — spin-offs, subsidiary IPO announcements, M&A rumors, major product launches surfaced through `CorporateEvent` entities. Story: "Cala's graph flagged these structural events ahead of the market."
-2. **Executive / relationship signal** — new CEO appointments, founder returns, board changes, cross-company director links. Story: "Leadership changes → operational inflection → price response."
-3. **Regulatory / filings exposure** — companies newly affected by (or exempted from) a specific `Law` entity; rollups via the graph. Story: "Cala's verified regulatory knowledge surfaces winners of policy shifts."
-4. **Supply-chain / subsidiary graph** — reason about a company through its parents, subsidiaries, suppliers, customers, partners. Story: "Who benefits when X does Y?" Pure graph-reasoning flex.
-5. **???** — something weirder the Cala API makes uniquely possible.
+This thesis is the cleanest fit for Cala because it leans on what Cala is best at:
 
-**Gut pick to beat:** thesis #4 (supply-chain / subsidiary graph) is the most distinctively Cala-flavored and hardest for a non-graph-based competitor to replicate. It's also the most compatible with a multi-step agentic research loop, which plays to the Vercel AI SDK's strengths.
+- typed company entities
+- parent / subsidiary / control relationships
+- jurisdictions and legal registrations
+- source provenance on graph facts
+- annual-filing-shaped company structure
 
-**Alternative to consider** (pending task #10 probe): if `FinancialMetric` retrieval returns a time series, we could build a **fundamentals-at-reasonable-price** quant screen — rank companies by, e.g., cash growth, low debt, steady employee count, using only Cala's us-gaap facts. Less storytelling, more defensible. Gate this decision on what the FinancialMetric probe actually returns.
+It is also the safest thesis against look-ahead bias because it can be anchored to the latest annual filing available on or before **2025-04-15**, rather than to open-ended narrative/event knowledge that may have been enriched later.
 
-## Why this thesis (TBD)
+## Signal definition
 
-We need to beat SPX **and** explain it with Cala data. That means whatever signal we pick should:
+For each eligible NASDAQ company, the agent should try to build two filing-linked snapshots:
 
-- Be present in Cala's verified knowledge but _not_ trivially available elsewhere
-- Have point-in-time integrity (no lookahead) — the data we use must have been knowable on 2025-04-15
-- Fit a concentrated-but-diversified 50-name portfolio
+1. `current_snapshot`: the latest annual filing available on or before `2025-04-15`
+2. `prior_snapshot`: the immediately previous annual filing
 
-## Signals we're actually using (TBD)
+From those snapshots, extract:
 
-_Fill in as the Cala API research agent comes back._
+- `subsidiaryCount`
+- `jurisdictionCount`
+- `hierarchyDepth`
+- dated source evidence tying the structure to pre-cutoff filings
 
-## Allocation rule (TBD)
+The operational score is:
 
-Possible approaches:
+```text
+ComplexityScore =
+  0.50 * log(1 + subsidiaryCount) +
+  0.30 * log(1 + jurisdictionCount) +
+  0.20 * hierarchyDepth
+```
 
-- Equal weight ($20k × 50 = $1M). Simple, hard to mess up, explicitly mediocre.
-- Rank-weighted (top-ranked names get more, min $5k floor).
-- Conviction-weighted (agent assigns a score, we normalize to dollars).
+Selection prefers:
 
-## Risks / what could go wrong
+- lower current complexity
+- negative `complexityChangeVsPrior` (improving / simplifying)
+- stronger dated filing evidence
 
-- **Lookahead bias:** if Cala data for 2025-04-15 is actually "as-of today" we'd be cheating our own backtest.
-- **Concentration blow-ups:** one bad $50k bet matters way more than one bad $5k bet.
-- **NASDAQ-only skew:** the index is already tech-heavy; overweighting tech doesn't help us vs SPX.
-- **Agent hallucination:** the LLM may "remember" winners from its training data. We need to force it to cite Cala signals.
+If the agent cannot retrieve filing-linked evidence for those fields, it should exclude the company rather than substitute another thesis.
+
+## What the agent may and may not use
+
+Primary ranking signal:
+
+- filings / entity-relationship complexity only
+
+Allowed as secondary support or risk notes only:
+
+- executive changes
+- corporate events
+- regulatory/law context
+- supply-chain / partner / affiliate context
+- XBRL financial metrics
+
+Those can help explain or break ties, but they must **not** become the main ranking logic.
+
+## Portfolio construction
+
+Default construction is intentionally simple:
+
+- exactly 50 names
+- equal weight
+- `$20,000` per name
+
+This keeps the submission focused on **selection edge**, not on optimizer noise.
+
+## Time-cutoff discipline
+
+The agent must treat Cala as a latest-known graph unless a fact can be tied to dated pre-cutoff provenance.
+
+Required rules:
+
+- never use a filing submitted after `2025-04-15`
+- never use post-cutoff market outcomes
+- prefer entity-search -> introspection -> targeted retrieval over natural-language search
+- verify the final selected names manually against filing-linked evidence where possible
+
+## Risks / failure modes
+
+- **False simplification:** entity-tree shrinkage may reflect distress rather than healthy focus.
+- **Legitimate complexity:** some excellent global businesses are structurally complex for good reasons.
+- **Sparse coverage:** smaller or unusual filers may not have enough graph coverage to score safely.
+- **Graph backfill:** old-looking facts may still have been ingested later, so source dates matter.
+
+## Steering implications for the agent
+
+The prompts and schemas should force this workflow:
+
+1. resolve company -> UUID
+2. introspect populated company structure
+3. retrieve filing-linked structural evidence
+4. compute / record complexity features
+5. rank on the fixed thesis
+6. only then generate the narrative

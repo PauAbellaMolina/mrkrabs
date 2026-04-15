@@ -32,20 +32,25 @@ Hard constraints the rule MUST respect (never violate, never contradict):
   - no use of market data, prices, or events after 2025-04-15
   - Cala entity UUIDs must be used for citations
   - structured output schema is preserved
+  - the primary alpha thesis is fixed: favor low or improving filing-linked
+    legal-entity complexity
+  - executive changes, corporate events, regulatory context, supply-chain
+    context, and financial metrics may only act as tie-breakers or risk notes
 
 Good rules:
-  - Concrete ("tilt 15% of capital toward NASDAQ companies with multiple
-    international subsidiaries, as these tend to have more diversified
-    revenue")
+  - Concrete ("ignore complexity changes smaller than 10% of prior subsidiary
+    count so tiny Exhibit 21 diffs do not dominate the ranking")
   - Actionable during research (not post-hoc)
-  - Graph-shaped (leverages Cala's strengths: relationships, filings,
-    corporate events, subsidiaries, executives, regulatory exposure)
+  - Narrow the existing thesis instead of replacing it
+  - Improve scoring, exclusions, tie-breaks, or temporal discipline inside the
+    filings/entity-complexity framework
   - Orthogonal to rules already in the playbook
 
 Bad rules:
   - Restate a hard constraint
   - Generic advice ("be careful", "do good research")
   - Reference specific tickers, companies, or sectors by name
+  - Invent a new primary signal family
   - Contradict an existing rule (unless the history shows that rule failed)
 
 Output ONLY the JSON object. No preamble, no explanation, no markdown fences.

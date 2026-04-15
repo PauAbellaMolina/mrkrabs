@@ -188,6 +188,8 @@ function buildResult(
   return {
     model: MOCK_MODEL,
     output: {
+      portfolioThesis:
+        "Favor NASDAQ companies with low or improving filing-linked legal-entity complexity.",
       submissionPayload: {
         team_id: "skunk",
         model_agent_name: MOCK_AGENT_NAME,
@@ -197,31 +199,39 @@ function buildResult(
           amount: position.amount,
         })),
       },
-      positions: portfolio.map(position => ({
+      positions: portfolio.map((position, index) => ({
         nasdaqCode: position.ticker,
         companyName: position.name,
         companyEntityId: position.entityId,
         amount: position.amount,
         thesis: position.thesis,
+        currentAnnualFilingDate: "2025-02-14",
+        priorAnnualFilingDate: "2024-02-15",
+        subsidiaryCount: 12 + (index % 9),
+        jurisdictionCount: 4 + (index % 5),
+        hierarchyDepth: 2 + (index % 3),
+        complexityScore: Number((1.8 + index * 0.03).toFixed(2)),
+        complexityChangeVsPrior:
+          index % 4 === 0 ? Number((-0.28 + index * 0.002).toFixed(2)) : -0.08,
         calaEvidence: [
+          `Annual filing on 2025-02-14 linked to ${position.name}'s subsidiary graph in Cala`,
           `entity_search("${position.name}")`,
-          `entity_introspection(${position.entityId.slice(0, 8)}…)`,
-          `retrieve_entity(${position.entityId.slice(0, 8)}…)`,
+          `retrieve_entity(${position.entityId.slice(0, 8)}…) captured subsidiaries, jurisdictions, and control depth`,
         ],
         supportingEntityIds: [position.entityId],
         riskNotes: [
-          "Sparse graph coverage for some edges",
-          "Point-in-time audit pending",
+          "Sparse graph coverage for some lower-tier entities",
+          "Some legal-entity simplification may reflect restructuring rather than healthy focus",
         ],
         cutoffComplianceNote:
-          "All Cala data used was entity-graph metadata, not post-cutoff market data.",
+          "All structural evidence was treated as annual-filing-linked and pre-cutoff; no post-2025-04-15 market data was used.",
       })),
       cutoffAudit: {
         postCutoffDataUsed: opts.postCutoffDataUsed ?? false,
         complianceSummary:
           opts.postCutoffDataUsed
             ? "Flagged: one or more retrievals carried a source date after 2025-04-15. Manual review required."
-            : "Reasoning grounded in Cala entity metadata only. No prices, returns, or post-cutoff events consulted.",
+            : "Reasoning grounded in filing-linked Cala entity structure only. No prices, returns, or post-cutoff events consulted.",
         bannedDataChecks: [
           "No ticker price lookups",
           "No analyst rating queries",
@@ -229,6 +239,10 @@ function buildResult(
           "No insider transaction queries",
         ],
       },
+      openGaps: [
+        "Peer normalization is not represented in the mock payload.",
+        "Filing-linked complexity deltas are illustrative rather than computed from real Cala snapshots.",
+      ],
       reportMarkdown: report,
     },
     steps: buildMockSteps(),
@@ -238,7 +252,7 @@ function buildResult(
 function buildMockSteps() {
   return [
     {
-      text: "Loading NASDAQ candidate universe from Cala's entity graph. Starting with mega-cap resolution.",
+      text: "Loading NASDAQ candidate universe from Cala's entity graph. Starting with legal-name resolution for well-covered NASDAQ filers.",
       finishReason: "tool-calls",
       toolCalls: [
         { toolName: "entity_search", input: { name: "NVIDIA CORP", entity_types: ["Company"] } },
@@ -250,7 +264,7 @@ function buildMockSteps() {
       ],
     },
     {
-      text: "Introspecting top candidates to find populated relationships and financial metrics.",
+      text: "Introspecting top candidates to find filing-linked ownership structure, jurisdictions, and dated evidence.",
       finishReason: "tool-calls",
       toolCalls: [
         { toolName: "entity_introspection", input: { entity_id: "5f7ca504-01d8-4aa9-b1ac-889202fd17c9" } },
@@ -260,7 +274,7 @@ function buildMockSteps() {
       ],
     },
     {
-      text: "Building the final 50-position portfolio with conviction-tiered weights.",
+      text: "Building the final 50-position portfolio with equal weights after ranking on legal-entity complexity.",
       finishReason: "stop",
       toolCalls: [],
       toolResults: [],
@@ -270,33 +284,29 @@ function buildMockSteps() {
 
 const BASE_REPORT = `## Thesis
 
-Cala's entity graph is richest for SEC-registered mega-caps with populated XBRL metadata. Our edge comes from **graph-shaped reasoning** — we pick NASDAQ names whose \`IS_ULTIMATE_PARENT_OF\`, \`IS_DIRECT_OWNER_OF\`, \`PARTICIPATES_IN_CORPORATE_EVENT\`, and \`IS_AFFILIATE_OF\` edges reveal structural positioning that a pure factor screen would miss.
+Cala's entity graph is richest where filing-linked company structure is populated and dated. Our edge comes from **legal-entity complexity** — we favor NASDAQ names whose subsidiary graph is simpler than peers or getting simpler versus the prior annual filing.
 
 ## Portfolio Decisions
 
-### High conviction (10 × $40,000 = $400,000)
+### Selected examples
 
-- **NVDA** · <entity UUID="5f7ca504-01d8-4aa9-b1ac-889202fd17c9">NVIDIA CORP</entity> — Ultimate parent of the AI accelerator supply chain. Cala's PARTICIPATES_IN_CORPORATE_EVENT edges track every hyperscaler GPU contract.
-- **META** — Cash position doubled YoY per us-gaap filings; infrastructure capex reaccelerating.
-- **GOOGL** — 300+ subsidiaries spanning cloud, search, and autonomous vehicles. Unmatched graph depth.
-- **MSFT** — us-gaap Revenue trending up; IS_AFFILIATE_OF edge to OpenAI is the cleanest AI proxy on NASDAQ.
+- **NVDA** · <entity UUID="5f7ca504-01d8-4aa9-b1ac-889202fd17c9">NVIDIA CORP</entity> — Filing-linked entity graph stays focused relative to mega-cap peers despite global scale.
+- **META** — Subsidiary count and jurisdiction spread remain manageable for a platform business of its size.
+- **GOOGL** — Still complex, but this mock thesis treats it as stable rather than deteriorating versus the prior filing.
+- **MSFT** — Large-cap structure remains broad but orderly; no evidence of worsening entity sprawl in the mock payload.
 
-### Core (20 × $20,000 = $400,000)
+Diversified across semiconductor infrastructure (AMAT, KLAC, LRCX), software platforms (PANW, CRWD, DDOG), and defensive compounders (COST, ADP), all framed through filing-linked entity simplicity rather than price momentum.
 
-Diversified across semiconductor infrastructure (AMAT, KLAC, LRCX), software platforms (PANW, CRWD, DDOG), and defensive compounders (COST, ADP).
-
-### Satellite (20 × $10,000 = $200,000)
-
-Smaller positions in NASDAQ names with specific graph signals: supply-chain beneficiaries (SMCI, ARM), secular platform stories (MELI, SNOW, MDB), defensive industrials (ODFL, CTAS, FAST).
+Smaller positions in NASDAQ names whose mock filing-linked graphs appear simple enough to clear the coverage and complexity filters.
 
 ## Time Cutoff Audit
 
-All retrievals were entity-metadata only. No price lookups, no analyst ratings, no insider transactions, no post-cutoff news. The Cala sources on every property were stamped from SEC filings and GLEIF records predating 2025-04-15 where available — though a subset of GLEIF metadata carries a 2025-2026 scrape date.
+All retrievals were treated as filing-linked entity-structure reads. No price lookups, no analyst ratings, no insider transactions, no post-cutoff news. The Cala sources on every property were assumed to be tied to pre-2025-04-15 filings where available, though the mock payload still flags point-in-time caveats.
 
 ## Open Gaps
 
-- Cala cannot give us point-in-time market caps, so weights are conviction-based rather than value-weighted.
-- FinancialMetric time-series retrieval was not exhaustively probed; future runs could screen on revenue growth directly.
+- Cala cannot guarantee native point-in-time snapshots, so the final selected names still need manual source-date review.
+- Peer normalization is not represented in this mock report.
 - Smaller names (ARM, SMCI) have thinner graph coverage than mega-caps.`;
 
 let eventCounter = 0;
@@ -426,7 +436,7 @@ export const MOCK_RUN_IDS = {
 } as const;
 
 const runningPrompt =
-  "Build the first full challenge submission: choose at least 50 unique NASDAQ stocks, allocate exactly $1,000,000 total with at least $5,000 per name, and explain the picks with Cala-backed reasoning only.";
+  "Build the first full challenge submission using one thesis only: favor NASDAQ companies with low or improving legal-entity complexity from filing-linked subsidiary/control graphs available on or before 2025-04-15. Use 50 equal $20,000 positions and explain the picks with Cala-backed evidence only.";
 
 export function buildMockRunRecords(): AgentRunRecord[] {
   eventCounter = 0;

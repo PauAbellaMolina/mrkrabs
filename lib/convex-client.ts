@@ -10,6 +10,10 @@ import { ConvexHttpClient } from "convex/browser";
 
 let singleton: ConvexHttpClient | null = null;
 
+export function hasConvexClientConfig(): boolean {
+  return Boolean(process.env.NEXT_PUBLIC_CONVEX_URL);
+}
+
 export function getConvexClient(): ConvexHttpClient {
   if (singleton) return singleton;
   const url = process.env.NEXT_PUBLIC_CONVEX_URL;
