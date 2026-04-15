@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { ViewTransition } from "react";
+import { useMemo, ViewTransition } from "react";
 import type { AgentRunRecord } from "@/lib/agent-runs";
+import { indexEventsByUuid } from "@/lib/entity-events";
 import { useMockMode } from "@/lib/mock-mode";
 import { readMockRunRecords } from "@/lib/mock-store";
 import { buildDiffMarkerMap, diffRuns, type DiffMarker } from "@/lib/run-diff";
 import { deriveRunStage, type RunStage } from "@/lib/run-stage";
 import { AutoRefresh } from "./auto-refresh";
+import { ReportRenderer } from "./report-renderer";
 import { RunActivityFeed } from "./run-activity-feed";
 import { RunDiffPanel } from "./run-diff-panel";
 import { RunPortfolioTable } from "./run-portfolio-table";
@@ -390,6 +392,25 @@ function SettledBody({
   const result = run.result!;
   const isSubmittable = stage === "done" || stage === "submit-failed";
 
+  // Build the uuid → Cala-tool-call index once per run; EntityPill in the
+  // portfolio detail panel and the report renderer both consume it to show
+  // each entity's provenance on click. Runs have ~200 events max, so this
+  // is cheap, but useMemo keeps it stable across re-renders (e.g. expand
+  // toggles inside the portfolio table).
+  const toolEvents = useMemo(
+    () => indexEventsByUuid(run.events),
+    [run.events],
+  );
+  const companyByUuid = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const position of result.output.positions) {
+      if (position.companyEntityId) {
+        map.set(position.companyEntityId.toLowerCase(), position.companyName);
+      }
+    }
+    return map;
+  }, [result.output.positions]);
+
   return (
     <>
       {stage === "submitted" || stage === "submit-failed" ? (
@@ -464,13 +485,19 @@ function SettledBody({
             eyebrow="Portfolio"
             title={`${result.output.positions.length} positions`}
           >
-            <RunPortfolioTable result={result} markers={markers} />
+            <RunPortfolioTable
+              result={result}
+              markers={markers}
+              toolEvents={toolEvents}
+            />
           </Panel>
 
           <Panel eyebrow="Narrative" title="Report">
-            <pre className="max-h-[720px] overflow-auto border border-[color:var(--border)] bg-[color:var(--background)] p-5 font-mono text-[11px] leading-6 whitespace-pre-wrap break-words text-[color:var(--foreground)]">
-              {result.output.reportMarkdown || "No report available."}
-            </pre>
+            <ReportRenderer
+              markdown={result.output.reportMarkdown}
+              toolEvents={toolEvents}
+              companyByUuid={companyByUuid}
+            />
           </Panel>
 
           <Panel eyebrow="Telemetry" title="Timeline">
