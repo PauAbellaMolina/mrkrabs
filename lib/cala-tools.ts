@@ -31,8 +31,22 @@ export function createCalaTools(client: CalaClient = createCalaClient()) {
           .optional()
           .describe("Maximum number of matches to return. Defaults to Cala's default of 20."),
       }),
-      execute: async ({ name, entity_types, limit }) =>
-        client.searchEntities({ name, entityTypes: entity_types, limit }),
+      execute: async ({ name, entity_types, limit }) => {
+        const response = await client.searchEntities({
+          name,
+          entityTypes: entity_types,
+          limit,
+        });
+        return {
+          query: response.query,
+          entities: response.entities.map(({ id, name, entityType, score }) => ({
+            id,
+            name,
+            entityType,
+            score,
+          })),
+        };
+      },
     }),
 
     entity_introspection: tool({
@@ -44,7 +58,16 @@ export function createCalaTools(client: CalaClient = createCalaClient()) {
           .uuid()
           .describe("The UUID of the entity, as returned by entity_search."),
       }),
-      execute: async ({ entity_id }) => client.introspectEntity(entity_id),
+      execute: async ({ entity_id }) => {
+        const response = await client.introspectEntity(entity_id);
+        return {
+          id: response.id,
+          entityType: response.entityType,
+          properties: response.properties,
+          relationships: response.relationships,
+          numericalObservations: response.numericalObservations,
+        };
+      },
     }),
 
     retrieve_entity: tool({
