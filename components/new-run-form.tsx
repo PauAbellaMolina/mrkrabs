@@ -2,30 +2,50 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { DEFAULT_RUN_PROMPT } from "@/lib/run-prompt";
+import {
+  ANTHROPIC_FAMILIES,
+  DEFAULT_ANTHROPIC_FAMILY,
+  DEFAULT_ANTHROPIC_VARIANT,
+  findAnthropicFamily,
+  resolveAnthropicModelId,
+  type AgentBackend,
+  type AnthropicFamilyId,
+} from "@/lib/agent-options";
 
-type AgentBackend = "anthropic" | "codex-cli";
-
-type AgentOption = {
-  label: string;
-  backend: AgentBackend;
-  model?: string;
-};
-
-const AGENT_OPTIONS: AgentOption[] = [
-  { label: "Codex CLI", backend: "codex-cli" },
-  { label: "Sonnet 4.6", backend: "anthropic", model: "claude-sonnet-4-6" },
-  { label: "Haiku 4.5", backend: "anthropic", model: "claude-haiku-4-5" },
-  { label: "Opus 4.6", backend: "anthropic", model: "claude-opus-4-6" },
-];
+const CODEX_PREVIEW_ID = "codex-cli (bundled)";
 
 export function NewRunForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [backend, setBackend] = useState<AgentBackend>("anthropic");
+  const [familyId, setFamilyId] = useState<AnthropicFamilyId>(
+    DEFAULT_ANTHROPIC_FAMILY,
+  );
+  const [variantId, setVariantId] = useState<string>(DEFAULT_ANTHROPIC_VARIANT);
 
-  const runAgent = (option: AgentOption) => {
+  const family = useMemo(() => findAnthropicFamily(familyId), [familyId]);
+  const resolvedModelId =
+    backend === "anthropic" ? resolveAnthropicModelId(familyId, variantId) : null;
+  const previewId = backend === "codex-cli" ? CODEX_PREVIEW_ID : resolvedModelId;
+
+  const handleBackend = (next: AgentBackend) => {
+    setBackend(next);
+  };
+
+  const handleFamily = (next: AnthropicFamilyId) => {
+    setFamilyId(next);
+    const nextFamily = findAnthropicFamily(next);
+    // Reset variant to the family's first option if the current variant
+    // isn't available on the new family (standard/long-context/dated).
+    if (!nextFamily.variants.some(v => v.id === variantId)) {
+      setVariantId(nextFamily.variants[0].id);
+    }
+  };
+
+  const runAgent = () => {
     setError(null);
     setExpanded(false);
 
@@ -40,8 +60,10 @@ export function NewRunForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         prompt: DEFAULT_RUN_PROMPT,
-        backend: option.backend,
-        ...(option.model ? { model: option.model } : {}),
+        backend,
+        ...(backend === "anthropic" && resolvedModelId
+          ? { model: resolvedModelId }
+          : {}),
       }),
     })
       .then(async response => {
@@ -68,23 +90,67 @@ export function NewRunForm() {
 
   return (
     <div className="border border-[color:var(--border)] bg-[color:var(--surface)]">
-      <div className="flex flex-wrap items-center justify-center gap-4 px-6 py-10">
+      <div className="flex flex-wrap items-start justify-center gap-4 px-6 py-10">
         {expanded ? (
-          <div
-            role="group"
-            aria-label="Pick agent backend and model"
-            className="inline-flex divide-x divide-[color:var(--foreground)] border border-[color:var(--foreground)]"
-          >
-            {AGENT_OPTIONS.map(option => (
+          <div className="flex min-w-[360px] flex-col items-stretch gap-3">
+            <SegmentedRow
+              label="Backend"
+              options={[
+                { value: "anthropic", label: "Anthropic" },
+                { value: "codex-cli", label: "Codex CLI" },
+              ]}
+              selected={backend}
+              onSelect={v => handleBackend(v as AgentBackend)}
+            />
+
+            {backend === "anthropic" ? (
+              <>
+                <SegmentedRow
+                  label="Family"
+                  options={ANTHROPIC_FAMILIES.map(f => ({
+                    value: f.id,
+                    label: f.label,
+                  }))}
+                  selected={familyId}
+                  onSelect={v => handleFamily(v as AnthropicFamilyId)}
+                />
+                <SegmentedRow
+                  label="Variant"
+                  options={family.variants.map(v => ({
+                    value: v.id,
+                    label: v.label,
+                  }))}
+                  selected={variantId}
+                  onSelect={setVariantId}
+                />
+              </>
+            ) : null}
+
+            <div className="mt-1 flex items-baseline justify-between border-t border-[color:var(--border)] pt-3">
+              <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+                Model ID
+              </span>
+              <code className="font-mono text-[11px] text-[color:var(--foreground)]">
+                {previewId}
+              </code>
+            </div>
+
+            <div className="flex gap-3">
               <button
-                key={`${option.backend}:${option.model ?? ""}`}
                 type="button"
-                onClick={() => runAgent(option)}
-                className="flex-1 bg-transparent px-4 py-4 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--foreground)] transition hover:bg-[color:var(--foreground)] hover:text-[color:var(--background)] whitespace-nowrap"
+                onClick={runAgent}
+                className="flex-1 border border-[color:var(--foreground)] bg-[color:var(--foreground)] px-6 py-3 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--background)] transition hover:bg-transparent hover:text-[color:var(--foreground)]"
               >
-                {option.label}
+                Run agent
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={() => setExpanded(false)}
+                className="border border-[color:var(--border)] bg-transparent px-4 py-3 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-[color:var(--muted-foreground)] transition hover:border-[color:var(--foreground)] hover:text-[color:var(--foreground)]"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         ) : (
           <button
@@ -114,6 +180,52 @@ export function NewRunForm() {
           </p>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function SegmentedRow({
+  label,
+  options,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  options: { value: string; label: string }[];
+  selected: string;
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+        {label}
+      </span>
+      <div
+        role="radiogroup"
+        aria-label={label}
+        className="inline-flex divide-x divide-[color:var(--foreground)] border border-[color:var(--foreground)]"
+      >
+        {options.map(option => {
+          const isSelected = option.value === selected;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              onClick={() => onSelect(option.value)}
+              className={
+                "px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] transition " +
+                (isSelected
+                  ? "bg-[color:var(--foreground)] text-[color:var(--background)]"
+                  : "bg-transparent text-[color:var(--foreground)] hover:bg-[color:var(--foreground)] hover:text-[color:var(--background)]")
+              }
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -16,14 +16,28 @@ export const maxDuration = 10;
 
 interface RunRequestBody {
   iterations?: number;
+  model?: string;
 }
+
+const ALLOWED_MODELS = new Set([
+  "claude-haiku-4-5",
+  "claude-haiku-4-5-20251001",
+  "claude-sonnet-4-6",
+  "claude-sonnet-4-6[1m]",
+  "claude-opus-4-6",
+  "claude-opus-4-6[1m]",
+]);
 
 export async function POST(request: Request) {
   let iterations = 5;
+  let model: string | undefined;
   try {
     const body = (await request.json()) as RunRequestBody;
     if (typeof body.iterations === "number" && Number.isFinite(body.iterations)) {
       iterations = Math.max(1, Math.min(50, Math.floor(body.iterations)));
+    }
+    if (typeof body.model === "string" && ALLOWED_MODELS.has(body.model)) {
+      model = body.model;
     }
   } catch {
     // empty body is fine — we'll use the default
@@ -45,7 +59,10 @@ export async function POST(request: Request) {
         cwd: process.cwd(),
         detached: true,
         stdio: "ignore",
-        env: process.env,
+        env: {
+          ...process.env,
+          ...(model ? { AUTORESEARCH_MODEL: model } : {}),
+        },
       },
     );
     child.unref();
@@ -53,12 +70,14 @@ export async function POST(request: Request) {
     console.info("[autoresearch][spawn]", {
       pid: child.pid,
       iterations,
+      model: model ?? "default",
     });
 
     return Response.json(
       {
         ok: true,
         iterations,
+        model: model ?? null,
         pid: child.pid ?? null,
       },
       { status: 202 },

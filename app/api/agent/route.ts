@@ -32,10 +32,17 @@ interface AgentRequestBody {
   model?: string
 }
 
+// Anthropic model IDs we accept from clients. Includes base IDs, the `[1m]`
+// 1-million-context variants for Sonnet/Opus, and the pinned Haiku snapshot.
+// Keep this list in sync with the UI option matrix in components/new-run-form
+// and the allow-list in scripts/autoresearch.ts.
 const ALLOWED_ANTHROPIC_MODELS = new Set([
-  "claude-sonnet-4-6",
   "claude-haiku-4-5",
+  "claude-haiku-4-5-20251001",
+  "claude-sonnet-4-6",
+  "claude-sonnet-4-6[1m]",
   "claude-opus-4-6",
+  "claude-opus-4-6[1m]",
 ])
 
 const AGENT_BACKENDS = {

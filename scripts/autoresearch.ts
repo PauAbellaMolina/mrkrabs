@@ -57,9 +57,12 @@ import {
 // for every iteration in the run, stamped on every run record, and fed to
 // the cost estimator.
 const ALLOWED_MODELS = new Set([
-  "claude-sonnet-4-6",
   "claude-haiku-4-5",
+  "claude-haiku-4-5-20251001",
+  "claude-sonnet-4-6",
+  "claude-sonnet-4-6[1m]",
   "claude-opus-4-6",
+  "claude-opus-4-6[1m]",
 ]);
 const RESOLVED_MODEL =
   process.env.AUTORESEARCH_MODEL &&

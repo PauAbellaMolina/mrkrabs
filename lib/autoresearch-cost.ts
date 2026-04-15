@@ -1,13 +1,20 @@
 // Rough Anthropic pricing (USD per million tokens). Authoritative source is
 // the Anthropic dashboard — these are conservative and only used locally by
 // the autoresearch loop to enforce the hard budget cap.
+// Dated snapshots map to the same tier as the base alias. The `[1m]` long-
+// context variants are billed at a higher tier than the base (+50% input,
+// +50% output on Anthropic's current pricing), but we approximate with a
+// flat multiplier so this file stays a single source of truth.
 const ANTHROPIC_PRICING: Record<
   string,
   { input: number; output: number }
 > = {
   "claude-haiku-4-5": { input: 1.0, output: 5.0 },
+  "claude-haiku-4-5-20251001": { input: 1.0, output: 5.0 },
   "claude-sonnet-4-6": { input: 3.0, output: 15.0 },
+  "claude-sonnet-4-6[1m]": { input: 6.0, output: 22.5 },
   "claude-opus-4-6": { input: 15.0, output: 75.0 },
+  "claude-opus-4-6[1m]": { input: 30.0, output: 112.5 },
 };
 
 const DEFAULT_PRICING = ANTHROPIC_PRICING["claude-haiku-4-5"];
