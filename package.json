@@ -18,6 +18,8 @@
     "@ai-sdk/react": "^3.0.163",
     "ai": "^6.0.161",
     "convex": "^1.35.1",
+    "ai-sdk-provider-codex-cli": "^1.1.0",
+    "convex": "^1.35.1",
     "next": "16.2.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",

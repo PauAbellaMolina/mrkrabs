@@ -83,6 +83,9 @@ Stage is derived from `(status, result, leaderboardSubmission)` in `lib/run-stag
 - ✅ Tightened the agent output contract: report-first markdown with buy recommendations and `<entity UUID="...">...</entity>` tags for Cala-backed company citations.
 - ✅ Switched the agent contract to validated structured output: submission payload + per-position records + cutoff audit + markdown report. `TEAM_ID` is now required server-side.
 - ✅ Added `/api/submit` plus a UI submit button. The app can now POST the generated `submissionPayload` to the hackathon Convex endpoint and show the raw submission response in-page.
+- ✅ Added deterministic portfolio normalization + validation retries in `lib/cala-agent.ts`: dedupe tickers, enforce team/model identifiers server-side, rebalance to exactly `$1,000,000` with the `$5,000` floor, rebuild markdown from normalized positions, and retry generation when the model still produces an invalid portfolio.
+- ✅ Reworked agent generation into two passes: Cala MCP research pass with detailed tool/step logging, then a separate structured-output synthesis pass (`generateObject`) so the final response uses a strict schema without mixing MCP tool calls and JSON generation in the same model step.
+- ✅ Swapped the app backend from Anthropic to local Codex CLI. The new path uses `codex exec --json --output-schema ...` with repo-local schema + normalization logic; Cala access now depends on Codex having a local `Cala` MCP server configured.
 
 ## 2026-04-15
 

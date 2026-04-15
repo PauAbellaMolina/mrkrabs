@@ -1,7 +1,7 @@
-import { anthropic } from "@ai-sdk/anthropic"
-import { generateText, Output, stepCountIs } from "ai"
-import { z } from "zod"
-import { createCalaTools } from "./cala-tools"
+import { anthropic } from "@ai-sdk/anthropic";
+import { generateText, Output, stepCountIs } from "ai";
+import { z } from "zod";
+import { createCalaTools } from "./cala-tools";
 
 const DEFAULT_MODEL = "claude-haiku-4-5"
 // Local display name for manual runs. The autoresearch outer loop overrides
@@ -11,75 +11,71 @@ const DEFAULT_MODEL = "claude-haiku-4-5"
 const DEFAULT_AGENT_NAME = "Mr. Krabs"
 const DEFAULT_AGENT_VERSION = "—"
 
-export const CALA_AGENT_NAME = DEFAULT_AGENT_NAME
-export const CALA_AGENT_VERSION = DEFAULT_AGENT_VERSION
-export const CALA_AGENT_MODEL = DEFAULT_MODEL
+export const CALA_AGENT_NAME = DEFAULT_AGENT_NAME;
+export const CALA_AGENT_VERSION = DEFAULT_AGENT_VERSION;
+export const CALA_AGENT_MODEL = DEFAULT_MODEL;
 
 export interface CalaAgentStep {
-  text: string
-  finishReason: string
-  toolCalls: unknown[]
-  toolResults: unknown[]
+  text: string;
+  finishReason: string;
+  toolCalls: unknown[];
+  toolResults: unknown[];
 }
 
 export interface CalaAgentResult {
-  model: string
+  model: string;
   output: {
     submissionPayload: {
-      team_id: string
-      model_agent_name: string
-      model_agent_version: string
+      team_id: string;
+      model_agent_name: string;
+      model_agent_version: string;
       transactions: Array<{
-        nasdaq_code: string
-        amount: number
-      }>
-    }
+        nasdaq_code: string;
+        amount: number;
+      }>;
+    };
     positions: Array<{
-      nasdaqCode: string
-      companyName: string
-      companyEntityId: string
-      amount: number
-      thesis: string
-      calaEvidence: string[]
-      supportingEntityIds: string[]
-      riskNotes: string[]
-      cutoffComplianceNote: string
-    }>
+      nasdaqCode: string;
+      companyName: string;
+      companyEntityId: string;
+      amount: number;
+      thesis: string;
+      calaEvidence: string[];
+      supportingEntityIds: string[];
+      riskNotes: string[];
+      cutoffComplianceNote: string;
+    }>;
     cutoffAudit: {
-      postCutoffDataUsed: boolean
-      complianceSummary: string
-      bannedDataChecks: string[]
-    }
-    reportMarkdown: string
-  }
-  steps: CalaAgentStep[]
+      postCutoffDataUsed: boolean;
+      complianceSummary: string;
+      bannedDataChecks: string[];
+    };
+    reportMarkdown: string;
+  };
+  steps: CalaAgentStep[];
 }
 
 interface RunCalaAgentOptions {
   // Autoresearch hook. When provided, the outer loop's variant prompt is
   // used instead of BASE_SYSTEM_PROMPT. Manual runs from the UI leave this
   // unset and get the baseline prompt.
-  systemPromptOverride?: string
+  systemPromptOverride?: string;
   // Override the default step budget. Autoresearch uses a higher cap so the
   // agent can research more candidates per run; manual UI runs keep the
   // default.
-  stepBudget?: number
+  stepBudget?: number;
   onTelemetryEvent?: (event: {
-    level: "info" | "error"
-    type:
-      | "step-started"
-      | "tool-started"
-      | "tool-finished"
-      | "step-finished"
-    title: string
-    data?: unknown
-  }) => Promise<void> | void
+    level: "info" | "error";
+    type: "step-started" | "tool-started" | "tool-finished" | "step-finished";
+    title: string;
+    data?: unknown;
+  }) => Promise<void> | void;
   onFinish?: (event: {
-    functionId?: string
-    metadata?: Record<string, unknown>
-    totalUsage: unknown
-    result: CalaAgentResult
-  }) => Promise<void> | void
+    functionId?: string;
+    metadata?: Record<string, unknown>;
+    totalUsage: unknown;
+    result: CalaAgentResult;
+  }) => Promise<void> | void;
 }
 
 const portfolioOutputSchema = z.object({
@@ -113,7 +109,7 @@ const portfolioOutputSchema = z.object({
     bannedDataChecks: z.array(z.string()),
   }),
   reportMarkdown: z.string(),
-})
+});
 
 // Exported so the autoresearch script can bootstrap `.data/autoresearch/champion.md`
 // from the baseline and measure mutation drift against it.
@@ -163,31 +159,31 @@ Explain why the reasoning avoided post-2025-04-15 information.
 
 ## Open Gaps
 Missing data, point-in-time caveats, or reasons confidence is limited.
-`.trim()
+`.trim();
 
 // Internal alias kept for the existing generateText call site below.
-const systemPrompt = BASE_SYSTEM_PROMPT
+const systemPrompt = BASE_SYSTEM_PROMPT;
 
 export async function runCalaAgent(
   prompt: string,
   options?: RunCalaAgentOptions,
 ): Promise<CalaAgentResult> {
   if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error("ANTHROPIC_API_KEY is required")
+    throw new Error("ANTHROPIC_API_KEY is required");
   }
 
   if (!process.env.TEAM_ID) {
-    throw new Error("TEAM_ID is required")
+    throw new Error("TEAM_ID is required");
   }
-  const tools = createCalaTools()
+  const tools = createCalaTools();
 
   console.info("[cala-agent][tools]", {
     toolCount: Object.keys(tools).length,
     toolNames: Object.keys(tools),
-  })
+  });
 
   try {
-    const effectiveSystemPrompt = options?.systemPromptOverride ?? systemPrompt
+    const effectiveSystemPrompt = options?.systemPromptOverride ?? systemPrompt;
     const result = await generateText({
       model: anthropic(DEFAULT_MODEL),
       system: effectiveSystemPrompt,
@@ -227,7 +223,7 @@ export async function runCalaAgent(
                 stepNumber: event.stepNumber,
                 model: event.model,
               },
-            })
+            });
           },
           onToolCallStart: async (event) => {
             await options?.onTelemetryEvent?.({
@@ -240,7 +236,7 @@ export async function runCalaAgent(
                 toolName: event.toolCall.toolName,
                 input: event.toolCall.input,
               },
-            })
+            });
           },
           onToolCallFinish: async (event) => {
             await options?.onTelemetryEvent?.({
@@ -262,7 +258,7 @@ export async function runCalaAgent(
                     durationMs: event.durationMs,
                     error: event.error,
                   },
-            })
+            });
           },
           onStepFinish: async (event) => {
             await options?.onTelemetryEvent?.({
@@ -276,18 +272,18 @@ export async function runCalaAgent(
                 text: event.text,
                 usage: event.usage,
               },
-            })
+            });
           },
         },
       },
-    })
+    });
 
     console.info("[cala-agent][generateText][success]", {
       model: DEFAULT_MODEL,
       steps: result.steps.length,
       positions: result.output.positions.length,
       transactions: result.output.submissionPayload.transactions.length,
-    })
+    });
 
     const response = {
       model: DEFAULT_MODEL,
@@ -298,16 +294,16 @@ export async function runCalaAgent(
         toolCalls: step.toolCalls,
         toolResults: step.toolResults,
       })),
-    }
+    };
 
     await options?.onFinish?.({
       functionId: result.functionId,
       metadata: result.metadata,
       totalUsage: result.totalUsage,
       result: response,
-    })
+    });
 
-    return response
+    return response;
   } catch (error) {
     console.error("[cala-agent][generateText][error]", {
       model: DEFAULT_MODEL,
@@ -319,7 +315,7 @@ export async function runCalaAgent(
               stack: error.stack,
             }
           : error,
-    })
-    throw error
+    });
+    throw error;
   }
 }

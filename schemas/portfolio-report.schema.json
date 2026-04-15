@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "portfolioThesis",
+    "submissionPayload",
+    "positions",
+    "cutoffAudit",
+    "openGaps",
+    "reportMarkdown"
+  ],
+  "properties": {
+    "portfolioThesis": {
+      "type": "string",
+      "minLength": 1
+    },
+    "submissionPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "team_id",
+        "model_agent_name",
+        "model_agent_version",
+        "transactions"
+      ],
+      "properties": {
+        "team_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_agent_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_agent_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transactions": {
+          "type": "array",
+          "minItems": 50,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "nasdaq_code",
+              "amount"
+            ],
+            "properties": {
+              "nasdaq_code": {
+                "type": "string",
+                "minLength": 1
+              },
+              "amount": {
+                "type": "number",
+                "minimum": 5000
+              }
+            }
+          }
+        }
+      }
+    },
+    "positions": {
+      "type": "array",
+      "minItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "nasdaqCode",
+          "companyName",
+          "companyEntityId",
+          "amount",
+          "thesis",
+          "calaEvidence",
+          "supportingEntityIds",
+          "riskNotes",
+          "cutoffComplianceNote"
+        ],
+        "properties": {
+          "nasdaqCode": {
+            "type": "string",
+            "minLength": 1
+          },
+          "companyName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "companyEntityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 5000
+          },
+          "thesis": {
+            "type": "string",
+            "minLength": 1
+          },
+          "calaEvidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "supportingEntityIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "riskNotes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "cutoffComplianceNote": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "cutoffAudit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "postCutoffDataUsed",
+        "complianceSummary",
+        "bannedDataChecks"
+      ],
+      "properties": {
+        "postCutoffDataUsed": {
+          "type": "boolean"
+        },
+        "complianceSummary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bannedDataChecks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "openGaps": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "reportMarkdown": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

@@ -3,7 +3,7 @@ import {
   CALA_AGENT_NAME,
   CALA_AGENT_VERSION,
   runCalaAgent,
-} from "@/lib/cala-agent"
+} from "@/lib/codex-agent"
 import {
   appendRunEvent,
   completeRunRecord,
@@ -12,7 +12,7 @@ import {
 } from "@/lib/agent-runs"
 
 export const runtime = "nodejs"
-export const maxDuration = 30
+export const maxDuration = 300
 
 interface AgentRequestBody {
   prompt?: string
@@ -27,11 +27,17 @@ const serializeError = (error: unknown) => {
   }
 
   const errorWithCause = error as Error & { cause?: unknown }
+  const errorWithStreams = error as Error & {
+    stdout?: string
+    stderr?: string
+  }
 
   return {
     name: error.name,
     message: error.message,
     stack: error.stack,
+    stdout: errorWithStreams.stdout,
+    stderr: errorWithStreams.stderr,
     cause:
       errorWithCause.cause instanceof Error
         ? {

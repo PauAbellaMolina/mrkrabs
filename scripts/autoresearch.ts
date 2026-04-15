@@ -18,7 +18,7 @@
 //   6. Abort if cumulative spend crosses AUTORESEARCH_BUDGET_USD.
 //
 // Autoresearch runs appear in the dashboard like any other run. The public
-// identity stamped on Cala submissions is "Mr. Krabs Autoresearch vN".
+// identity stamped on Cala submissions is "Mr. Krabs Agent vN".
 
 import {
   appendRunEvent,
@@ -111,8 +111,8 @@ async function runOneExperiment(
     agentResult = await runCalaAgent(DEFAULT_RUN_PROMPT, {
       systemPromptOverride: variantPrompt,
       stepBudget: AUTORESEARCH_STEP_BUDGET,
-      onTelemetryEvent: event => appendRunEvent(runId, event),
-      onFinish: async event => {
+      onTelemetryEvent: (event) => appendRunEvent(runId, event),
+      onFinish: async (event) => {
         agentCostUsd = estimateHaikuCostUsd(event.totalUsage);
         await completeRunRecord(runId, {
           model: CALA_AGENT_MODEL,
@@ -311,11 +311,7 @@ async function main() {
       outcome.score != null && championScore.score > 0
         ? `${(((outcome.score - championScore.score) / championScore.score) * 100).toFixed(2)}%`
         : "—";
-    const tag = kept
-      ? "KEPT"
-      : outcome.skipReason
-        ? "SKIP"
-        : "discard";
+    const tag = kept ? "KEPT" : outcome.skipReason ? "SKIP" : "discard";
     console.info(
       `[autoresearch] iter=${iteration} score=${scoreStr} Δ=${deltaStr} cost=$${iterationCost.toFixed(4)} spent=$${spent.toFixed(2)}/$${budgetCap.toFixed(2)} [${tag}]${outcome.skipReason ? " " + outcome.skipReason : ""}`,
     );
@@ -335,7 +331,7 @@ async function main() {
   );
 }
 
-main().catch(error => {
+main().catch((error) => {
   console.error("[autoresearch] fatal", error);
   process.exit(1);
 });

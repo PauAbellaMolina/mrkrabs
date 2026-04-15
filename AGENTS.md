@@ -19,3 +19,5 @@ Read `docs/NOTES.md` first — it's the fastest way to catch up on what we've al
 # Implementations
 
 For every major task, document it under `docs/`. When you need context, read it from there.
+
+# After you have completed your task use the 'npm run lint' command to check for errors and warnings.
