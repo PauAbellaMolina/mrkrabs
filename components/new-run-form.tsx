@@ -2,94 +2,87 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState } from "react";
 import { DEFAULT_RUN_PROMPT } from "@/lib/run-prompt";
+
+type AgentBackend = "anthropic" | "codex-cli";
+
+const BACKEND_OPTIONS: { value: AgentBackend; label: string }[] = [
+  { value: "codex-cli", label: "Codex CLI" },
+  { value: "anthropic", label: "Anthropic API" },
+];
 
 export function NewRunForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [elapsedMs, setElapsedMs] = useState(0);
-  const [isPending, startTransition] = useTransition();
+  const [expanded, setExpanded] = useState(false);
 
-  useEffect(() => {
-    if (!startedAt) {
-      setElapsedMs(0);
-      return;
-    }
-    const interval = window.setInterval(() => {
-      setElapsedMs(Date.now() - startedAt);
-    }, 250);
-    return () => window.clearInterval(interval);
-  }, [startedAt]);
-
-  const handleClick = () => {
+  const runAgent = (backend: AgentBackend) => {
     setError(null);
-    setStartedAt(Date.now());
+    setExpanded(false);
 
-    // The API route writes the run record before it starts the agent, so a
-    // quick refresh surfaces the new run in the list within ~400ms — long
-    // before the full ~30s fetch resolves. Without this the list waits on
-    // AutoRefresh's idle 4s tick.
+    // Fire-and-forget. The API route writes the run record before the agent
+    // starts, so a refresh at ~400ms surfaces the new row — after that the
+    // auto-refresh in the runs list (1s while anything is running) keeps it
+    // fresh without tying this button's state to the long-running fetch.
     window.setTimeout(() => router.refresh(), 400);
 
-    startTransition(async () => {
-      try {
-        const response = await fetch("/api/agent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: DEFAULT_RUN_PROMPT }),
-        });
-
-        const data = (await response.json()) as {
+    fetch("/api/agent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: DEFAULT_RUN_PROMPT, backend }),
+    })
+      .then(async response => {
+        const data = (await response.json().catch(() => ({}))) as {
           error?: string;
           requestId?: string;
-          runId?: string;
         };
-
-        if (!response.ok || !data.runId) {
-          throw new Error(
+        if (!response.ok) {
+          setError(
             data.error ??
               `Agent request failed${data.requestId ? ` (${data.requestId})` : ""}`,
           );
         }
-
-        setStartedAt(null);
-        router.push(`/runs/${data.runId}`);
         router.refresh();
-      } catch (submitError) {
-        setStartedAt(null);
+      })
+      .catch(submitError => {
         setError(
           submitError instanceof Error
             ? submitError.message
             : "Unknown agent request error",
         );
-      }
-    });
+      });
   };
 
   return (
     <div className="border border-[color:var(--border)] bg-[color:var(--surface)]">
       <div className="flex flex-wrap items-center justify-center gap-4 px-6 py-10">
-        <button
-          type="button"
-          onClick={handleClick}
-          disabled={isPending}
-          aria-live="polite"
-          className="inline-flex min-w-[260px] items-center justify-center gap-3 border border-[color:var(--foreground)] bg-[color:var(--foreground)] px-8 py-4 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--background)] transition hover:bg-transparent hover:text-[color:var(--foreground)] disabled:cursor-not-allowed disabled:hover:bg-[color:var(--foreground)] disabled:hover:text-[color:var(--background)]"
-        >
-          {isPending ? (
-            <>
-              <span
-                aria-hidden
-                className="inline-block h-2 w-2 animate-pulse bg-[color:var(--background)]"
-              />
-              Running · {formatElapsed(elapsedMs)}
-            </>
-          ) : (
-            "Run agent"
-          )}
-        </button>
+        {expanded ? (
+          <div
+            role="group"
+            aria-label="Pick agent backend"
+            className="inline-flex min-w-[260px] divide-x divide-[color:var(--foreground)] border border-[color:var(--foreground)]"
+          >
+            {BACKEND_OPTIONS.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => runAgent(option.value)}
+                className="flex-1 bg-transparent px-4 py-4 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--foreground)] transition hover:bg-[color:var(--foreground)] hover:text-[color:var(--background)]"
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="inline-flex min-w-[260px] items-center justify-center gap-3 border border-[color:var(--foreground)] bg-[color:var(--foreground)] px-8 py-4 font-mono text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--background)] transition hover:bg-transparent hover:text-[color:var(--foreground)]"
+          >
+            Run agent
+          </button>
+        )}
 
         <Link
           href="/autoresearch"
@@ -111,11 +104,4 @@ export function NewRunForm() {
       ) : null}
     </div>
   );
-}
-
-function formatElapsed(elapsedMs: number) {
-  const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }

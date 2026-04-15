@@ -1,9 +1,15 @@
 import {
-  CALA_AGENT_MODEL,
-  CALA_AGENT_NAME,
-  CALA_AGENT_VERSION,
-  runCalaAgent,
+  CALA_AGENT_MODEL as CODEX_AGENT_MODEL,
+  CALA_AGENT_NAME as CODEX_AGENT_NAME,
+  CALA_AGENT_VERSION as CODEX_AGENT_VERSION,
+  runCalaAgent as runCodexAgent,
 } from "@/lib/codex-agent"
+import {
+  CALA_AGENT_MODEL as ANTHROPIC_AGENT_MODEL,
+  CALA_AGENT_NAME as ANTHROPIC_AGENT_NAME,
+  CALA_AGENT_VERSION as ANTHROPIC_AGENT_VERSION,
+  runCalaAgent as runAnthropicAgent,
+} from "@/lib/cala-agent"
 import {
   appendRunEvent,
   completeRunRecord,
@@ -14,9 +20,29 @@ import {
 export const runtime = "nodejs"
 export const maxDuration = 300
 
+export type AgentBackend = "anthropic" | "codex-cli"
+
+const DEFAULT_BACKEND: AgentBackend = "codex-cli"
+
 interface AgentRequestBody {
   prompt?: string
+  backend?: AgentBackend
 }
+
+const AGENT_BACKENDS = {
+  "codex-cli": {
+    run: runCodexAgent,
+    name: CODEX_AGENT_NAME,
+    version: CODEX_AGENT_VERSION,
+    model: CODEX_AGENT_MODEL,
+  },
+  anthropic: {
+    run: runAnthropicAgent,
+    name: ANTHROPIC_AGENT_NAME,
+    version: ANTHROPIC_AGENT_VERSION,
+    model: ANTHROPIC_AGENT_MODEL,
+  },
+} as const
 
 const serializeError = (error: unknown) => {
   if (!(error instanceof Error)) {
@@ -67,8 +93,15 @@ export async function POST(request: Request) {
       )
     }
 
+    const backend: AgentBackend =
+      body.backend && body.backend in AGENT_BACKENDS
+        ? body.backend
+        : DEFAULT_BACKEND
+    const agent = AGENT_BACKENDS[backend]
+
     console.info("[agent][start]", {
       requestId,
+      backend,
       promptLength: prompt.length,
       promptPreview: prompt.slice(0, 240),
     })
@@ -79,16 +112,16 @@ export async function POST(request: Request) {
       id: runId,
       requestId,
       prompt,
-      agentName: CALA_AGENT_NAME,
-      agentVersion: CALA_AGENT_VERSION,
-      model: CALA_AGENT_MODEL,
+      agentName: agent.name,
+      agentVersion: agent.version,
+      model: agent.model,
     })
 
-    const result = await runCalaAgent(prompt, {
+    const result = await agent.run(prompt, {
       onTelemetryEvent: (event) => appendRunEvent(runId, event),
       onFinish: (event) =>
         completeRunRecord(runId, {
-          model: CALA_AGENT_MODEL,
+          model: agent.model,
           result: event.result,
           telemetry: {
             functionId: event.functionId,
