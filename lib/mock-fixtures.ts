@@ -207,6 +207,32 @@ function buildAltPortfolio(): MockPosition[] {
   return reweighted;
 }
 
+// Equal-weight 50-ticker NASDAQ basket ($20k each = $1M). Tilted toward
+// names that were the top Nasdaq-100 performers over the 2025-04-15 →
+// 2026-04-15 window (PLTR, MU, WBD, NFLX), with the rest sampled from
+// large-cap megacaps, semi-equipment (AMAT/KLAC/LRCX), and a handful of
+// higher-beta software / consumer names. Used by the "skunk ready"
+// fixture as a clean ready-to-submit payload for smoke-testing the
+// submit pipeline — no Cala research backs it.
+const SKUNK_TICKERS: ReadonlyArray<string> = [
+  "AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA","AVGO","COST","ASML",
+  "AMD","PLTR","QCOM","CSCO","ADBE","CRM","INTU","MU","MSTR","WBD",
+  "NFLX","UBER","AMAT","DASH","KLAC","OKTA","SNPS","CDNS","WDAY","LRCX",
+  "CRWD","PANW","ZS","NET","SHOP","TTD","ROKU","CPRT","PDD","MRVL",
+  "TMUS","DKNG","GDDY","VEEV","MNST","ABNB","COIN","DECK","NTES","PZZA",
+];
+
+function buildSkunkPortfolio(): MockPosition[] {
+  return SKUNK_TICKERS.map((ticker, i) => ({
+    ticker,
+    name: ticker,
+    amount: 20_000,
+    thesis:
+      "Equal-weight NASDAQ basket tilted toward the 2025 Nasdaq-100 leaders (PLTR, MU, WBD, NFLX) and semi-equipment compounders. Hand-authored fixture — not Cala-backed.",
+    entityId: `deadbeef-${i.toString().padStart(4, "0")}-4000-8000-000000000000`,
+  }));
+}
+
 // -----------------------------------------------------------------------------
 // Result builders
 // -----------------------------------------------------------------------------
@@ -455,6 +481,7 @@ function buildRunEvents(opts: {
 // -----------------------------------------------------------------------------
 
 export const MOCK_RUN_IDS = {
+  skunkReady: "mock-run-000-skunk-ready",
   running: "mock-run-001-running",
   doneAlt: "mock-run-002-done-alt",
   doneStrong: "mock-run-003-done-strong",
@@ -469,6 +496,49 @@ const runningPrompt =
 
 export function buildMockRunRecords(): AgentRunRecord[] {
   eventCounter = 0;
+
+  // 0. SKUNK READY — hand-authored equal-weight portfolio, queued to submit.
+  // Sits at the top of the list so it's immediately actionable when demoing.
+  const skunkEvents = buildRunEvents({
+    startMinutesAgo: 2,
+    runId: MOCK_RUN_IDS.skunkReady,
+    prompt: runningPrompt,
+    stepCount: 3,
+    toolCalls: 6,
+    finished: "ok",
+  });
+  const skunkReport = `## Thesis
+
+Equal-weight 50-ticker NASDAQ basket. Hand-authored fixture — not Cala-backed — intended as a smoke-test payload for the submit pipeline.
+
+## Portfolio Decisions
+
+Fifty positions at $20,000 each, totalling $1,000,000. No conviction tiering; every name gets the same weight so we can isolate plumbing issues from allocation logic.
+
+## Time Cutoff Audit
+
+No external data consulted. No prices, no returns, no post-cutoff events.
+
+## Open Gaps
+
+This is a fixture, not a research run — don't read anything into the selections.`;
+  const skunkReady: AgentRunRecord = {
+    id: MOCK_RUN_IDS.skunkReady,
+    requestId: MOCK_RUN_IDS.skunkReady + "-req",
+    prompt: runningPrompt,
+    agentName: MOCK_AGENT_NAME,
+    agentVersion: MOCK_AGENT_VERSION,
+    status: "completed",
+    startedAt: minutesAgo(2),
+    finishedAt: secondsAgo(90),
+    durationMs: 30_000,
+    model: MOCK_MODEL,
+    eventCount: skunkEvents.length,
+    stepCount: 3,
+    toolCallCount: 6,
+    result: buildResult(buildSkunkPortfolio(), skunkReport),
+    events: skunkEvents,
+  };
 
   // 1. RUNNING — active, events so far, no result yet
   const runningEvents = buildRunEvents({
@@ -750,8 +820,10 @@ export function buildMockRunRecords(): AgentRunRecord[] {
     events: failedEvents,
   };
 
-  // Sorted newest-first to match listRunSummaries() ordering.
-  return [running, doneStrong, submittedWinner, doneAlt, submittedLoser, submitFailed, failed];
+  // Sorted newest-first to match listRunSummaries() ordering. skunkReady
+  // sits at the very top so the ready-to-submit fixture is the first thing
+  // in the list when mock mode is seeded.
+  return [skunkReady, running, doneStrong, submittedWinner, doneAlt, submittedLoser, submitFailed, failed];
 }
 
 // Convenience: rebuilds only a "fresh running" run — used by the Mission
