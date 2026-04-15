@@ -1,9 +1,5 @@
 import type { AgentRunEvent } from "@/lib/agent-runs";
 
-// Live stream of telemetry events while the agent is running. Newest on
-// top. Each event kind gets a different glyph so the eye can track the
-// flow at a glance, still without color.
-
 const EVENT_GLYPH: Record<AgentRunEvent["type"], string> = {
   "run-started": "▸",
   "step-started": "›",

@@ -1,9 +1,5 @@
 import { STAGE_GLYPHS, STAGE_LABELS, type RunStage } from "@/lib/run-stage";
 
-// Monochrome stage pill. State is carried by glyph + weight + a pulse on
-// active stages, never by hue. Two sizes and an inline "dense" variant for
-// list cards.
-
 type Props = {
   stage: RunStage;
   size?: "sm" | "md";

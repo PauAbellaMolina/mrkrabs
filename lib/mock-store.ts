@@ -1,19 +1,12 @@
 import type { AgentRunRecord, AgentRunSummary } from "./agent-runs";
 import { buildFreshRunningFixture, buildMockRunRecords } from "./mock-fixtures";
 
-// Browser-only mock store. Persists fake AgentRunRecord[] in localStorage so
-// the UI can be iterated on without running the real agent. Every accessor
-// is SSR-safe: on the server, reads return empty / defaults and writes
-// no-op. The hybrid wrappers gate on `isMockModeEnabled()` before calling.
-
 const STORAGE_KEY = "mrkrabs.mockMode.runs";
 const ENABLED_KEY = "mrkrabs.mockMode.enabled";
 
 function hasStorage(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
-
-// ---------- mode toggle --------------------------------------------------
 
 export function isMockModeEnabled(): boolean {
   if (!hasStorage()) return false;
@@ -29,12 +22,8 @@ export function setMockModeEnabled(enabled: boolean): void {
   try {
     if (enabled) window.localStorage.setItem(ENABLED_KEY, "1");
     else window.localStorage.removeItem(ENABLED_KEY);
-  } catch {
-    // Ignore quota / disabled-storage errors — mission control just won't persist.
-  }
+  } catch {}
 }
-
-// ---------- records CRUD -------------------------------------------------
 
 export function readMockRunRecords(): AgentRunRecord[] {
   if (!hasStorage()) return [];
@@ -53,18 +42,14 @@ export function writeMockRunRecords(records: AgentRunRecord[]): void {
   if (!hasStorage()) return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-  } catch {
-    // Quota exceeded or similar — best effort.
-  }
+  } catch {}
 }
 
 export function clearMockRunRecords(): void {
   if (!hasStorage()) return;
   try {
     window.localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // ignore
-  }
+  } catch {}
 }
 
 export function seedMockRunRecords(): AgentRunRecord[] {
@@ -74,8 +59,7 @@ export function seedMockRunRecords(): AgentRunRecord[] {
 }
 
 export function appendMockRunRecord(record: AgentRunRecord): AgentRunRecord[] {
-  const existing = readMockRunRecords();
-  const next = [record, ...existing];
+  const next = [record, ...readMockRunRecords()];
   writeMockRunRecords(next);
   return next;
 }
@@ -88,8 +72,7 @@ export function updateMockRunRecord(
   runId: string,
   mutator: (record: AgentRunRecord) => AgentRunRecord,
 ): AgentRunRecord[] {
-  const existing = readMockRunRecords();
-  const next = existing.map(record =>
+  const next = readMockRunRecords().map(record =>
     record.id === runId ? mutator(record) : record,
   );
   writeMockRunRecords(next);
@@ -97,16 +80,10 @@ export function updateMockRunRecord(
 }
 
 export function readMockRunRecord(runId: string): AgentRunRecord | null {
-  const records = readMockRunRecords();
-  return records.find(record => record.id === runId) ?? null;
+  return readMockRunRecords().find(record => record.id === runId) ?? null;
 }
 
-// ---------- summary projection ------------------------------------------
-//
-// Mirrors lib/agent-runs.ts#listRunSummaries(): strips the heavy `result`
-// and `events` fields so the list page matches exactly.
-
-export function toRunSummary(record: AgentRunRecord): AgentRunSummary {
+function toRunSummary(record: AgentRunRecord): AgentRunSummary {
   return {
     id: record.id,
     prompt: record.prompt,
@@ -135,13 +112,6 @@ export function listMockRunSummaries(): AgentRunSummary[] {
     .map(toRunSummary);
 }
 
-// ---------- change notification -----------------------------------------
-//
-// Mission control mutates the store, and the hybrid wrappers render from
-// it. We dispatch a custom event so wrappers can re-read the store
-// without a full router.refresh() round-trip. `storage` events also fire
-// on cross-tab edits, so we forward those through the same channel.
-
 const CHANGE_EVENT = "mrkrabs:mock-store-changed";
 
 export function emitMockStoreChanged(): void {
@@ -149,6 +119,8 @@ export function emitMockStoreChanged(): void {
   window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
 }
 
+// Forwards cross-tab `storage` events through the same channel so listeners
+// don't need to care about which side of the tab boundary the write came from.
 export function subscribeToMockStore(listener: () => void): () => void {
   if (!hasStorage()) return () => {};
   const wrapped = () => listener();

@@ -7,11 +7,6 @@ import { deriveSummaryStage } from "@/lib/run-stage";
 import { AutoRefresh } from "./auto-refresh";
 import { RunListCard } from "./run-list-card";
 
-// Client wrapper for the runs list. Takes the server-rendered summaries
-// as a fallback and overrides them with the mock store contents when
-// mock mode is enabled. While the provider is still hydrating (ready=false),
-// we render the server data so there's no flash of empty state.
-
 type Props = {
   serverRuns: AgentRunSummary[];
   emptyState: React.ReactNode;

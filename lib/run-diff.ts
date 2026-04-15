@@ -1,9 +1,5 @@
 import type { CalaAgentResult } from "./cala-agent";
 
-// A portfolio diff that lets us highlight what changed between two runs.
-// We treat the ticker as the identity key and compute (added, removed,
-// unchanged, reweighted) buckets. Allocation deltas are absolute dollars.
-
 export type RunDiffEntry = {
   ticker: string;
   companyName?: string;
@@ -112,9 +108,6 @@ export function diffRuns(
   };
 }
 
-// Per-ticker marker used by the positions table when a baseline exists.
-// "new" = not in baseline, "removed" = in baseline only, "up"/"down" = reweight,
-// "flat" = unchanged, null = no baseline to compare against.
 export type DiffMarker = "new" | "removed" | "up" | "down" | "flat" | null;
 
 export function buildDiffMarkerMap(

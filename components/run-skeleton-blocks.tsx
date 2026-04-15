@@ -1,7 +1,3 @@
-// Loading placeholders shown while a run is still in-flight. Strict
-// monochrome — the pulse animation carries "still working." Each block is
-// a rectangular surface elevated off the background by a hairline border.
-
 export function RunSkeletonPortfolio({ rows = 6 }: { rows?: number }) {
   return (
     <div className="flex flex-col border border-[color:var(--border)]">

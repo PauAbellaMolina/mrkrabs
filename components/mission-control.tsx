@@ -10,17 +10,6 @@ import {
   seedMockRunRecords,
 } from "@/lib/mock-store";
 
-// Peek-to-open dev panel flush to the top-right corner.
-//
-// Idle: a tiny 28×20px trigger in the corner — just a status dot inside
-// a hairline box. No label, no text, not noisy.
-//
-// Hover (or click): expands into a full label strip + control panel
-// directly below. The trigger and panel live in the same wrapping div
-// so moving the cursor between them doesn't trip onMouseLeave — only
-// leaving the combined area closes it, with a small grace delay to
-// absorb cursor wobble.
-
 const LEAVE_DELAY_MS = 180;
 
 export function MissionControl() {
@@ -91,9 +80,6 @@ export function MissionControl() {
         onMouseLeave={handleLeave}
         className="pointer-events-auto flex flex-col items-end"
       >
-        {/* Idle trigger. Minimal footprint — just a dot inside a hairline
-           box, flush to the corner. Clicking also toggles for keyboard /
-           touch, because not everyone hovers. */}
         <button
           type="button"
           onClick={() => setOpen(v => !v)}
@@ -118,10 +104,6 @@ export function MissionControl() {
           />
         </button>
 
-        {/* Expanded: only rendered when open so the DOM stays clean when
-           idle and there's zero visual noise. The wrapping div still
-           encloses this once it mounts, so moving the cursor from the
-           trigger into the panel doesn't fire onMouseLeave. */}
         {open ? (
           <div
             id="mission-control-panel"

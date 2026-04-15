@@ -6,10 +6,6 @@ import {
 } from "@/components/hybrid-runs-list";
 import { listRunSummaries } from "@/lib/agent-runs";
 
-// Runboard shell. The server still fetches real-run summaries from disk
-// so first-paint has something even with mock mode off; the hybrid
-// wrappers swap the data source to localStorage when mock mode is on.
-
 export const dynamic = "force-dynamic";
 
 export default async function Home() {

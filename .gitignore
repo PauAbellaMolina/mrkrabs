@@ -45,5 +45,10 @@ next-env.d.ts
 !/.runs/demo.json
 
 # Local agent state (run records, autoresearch ledger, version counter) —
-# never commit; regenerated per machine.
+# never commit; regenerated per machine. Historical snapshot is preserved
+# on disk but everything writes to Convex now.
 /.data/
+
+# Convex auto-generated types/runtime. `pnpm convex:dev` regenerates these
+# on each developer's machine.
+/convex/_generated/

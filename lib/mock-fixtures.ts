@@ -1,38 +1,15 @@
 import type { AgentRunEvent, AgentRunRecord } from "./agent-runs";
 import type { CalaAgentResult } from "./cala-agent";
 
-// Pre-built AgentRunRecord fixtures that cover every UI stage so the
-// frontend can be iterated on without running the real agent. Every
-// fixture matches the real AgentRunRecord shape exactly — the hybrid
-// wrappers can render them through the same components as real runs.
-//
-// All fixtures use a fake "mock-" id prefix so they can never collide
-// with the real UUIDs written by createRunRecord().
-
 const MOCK_AGENT_NAME = "mrkrabs-mock";
 const MOCK_AGENT_VERSION = "v0.1";
 const MOCK_MODEL = "claude-sonnet-4-5";
 
-// Stable reference timestamp so fixtures are reproducible across seeds.
-// Using a fixed anchor means the "5 minutes ago" math is deterministic.
+// Fixed anchor so "N minutes ago" math is deterministic across reloads.
 const NOW = new Date("2026-04-15T17:30:00.000Z").getTime();
 
 const minutesAgo = (n: number) => new Date(NOW - n * 60_000).toISOString();
 const secondsAgo = (n: number) => new Date(NOW - n * 1000).toISOString();
-
-// -----------------------------------------------------------------------------
-// Portfolio construction
-// -----------------------------------------------------------------------------
-//
-// Base portfolio: 50 NASDAQ-listed names with a conviction-tiered weighting.
-//   10 high-conviction × $40,000 = $400,000
-//   20 core          × $20,000 = $400,000
-//   20 satellite     × $10,000 = $200,000
-//                                $1,000,000 total
-//
-// Every ticker has a realistic UUID placeholder and a one-line thesis. The
-// "alt" portfolio swaps 5 names and reweights a handful so the diff panel
-// has actual data to render.
 
 type MockPosition = {
   ticker: string;
@@ -169,11 +146,8 @@ function buildBasePortfolio(): MockPosition[] {
   ];
 }
 
-// Variant used as the diff baseline: swaps a few satellites, bumps a few
-// core weights, drops a few others. Same $1M total.
 function buildAltPortfolio(): MockPosition[] {
   const base = buildBasePortfolio();
-  // Remove last 3 satellites, replace with different tickers
   const trimmed = base.slice(0, -3);
   const replacements: MockPosition[] = [
     {
@@ -198,7 +172,6 @@ function buildAltPortfolio(): MockPosition[] {
       entityId: "f3333333-3333-4333-8333-333333333333",
     },
   ];
-  // Reweight: bump NVDA from 40k to 55k, trim MSFT from 40k to 25k
   const reweighted = [...trimmed, ...replacements].map(position => {
     if (position.ticker === "NVDA") return { ...position, amount: 55_000 };
     if (position.ticker === "MSFT") return { ...position, amount: 25_000 };
@@ -206,36 +179,6 @@ function buildAltPortfolio(): MockPosition[] {
   });
   return reweighted;
 }
-
-// Equal-weight 50-ticker NASDAQ basket ($20k each = $1M). Tilted toward
-// names that were the top Nasdaq-100 performers over the 2025-04-15 →
-// 2026-04-15 window (PLTR, MU, WBD, NFLX), with the rest sampled from
-// large-cap megacaps, semi-equipment (AMAT/KLAC/LRCX), and a handful of
-// higher-beta software / consumer names. Used by the "skunk ready"
-// fixture as a clean ready-to-submit payload for smoke-testing the
-// submit pipeline — no Cala research backs it.
-const SKUNK_TICKERS: ReadonlyArray<string> = [
-  "AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA","AVGO","COST","ASML",
-  "AMD","PLTR","QCOM","CSCO","ADBE","CRM","INTU","MU","MSTR","WBD",
-  "NFLX","UBER","AMAT","DASH","KLAC","OKTA","SNPS","CDNS","WDAY","LRCX",
-  "CRWD","PANW","ZS","NET","SHOP","TTD","ROKU","CPRT","PDD","MRVL",
-  "TMUS","DKNG","GDDY","VEEV","MNST","ABNB","COIN","DECK","NTES","PZZA",
-];
-
-function buildSkunkPortfolio(): MockPosition[] {
-  return SKUNK_TICKERS.map((ticker, i) => ({
-    ticker,
-    name: ticker,
-    amount: 20_000,
-    thesis:
-      "Equal-weight NASDAQ basket tilted toward the 2025 Nasdaq-100 leaders (PLTR, MU, WBD, NFLX) and semi-equipment compounders. Hand-authored fixture — not Cala-backed.",
-    entityId: `deadbeef-${i.toString().padStart(4, "0")}-4000-8000-000000000000`,
-  }));
-}
-
-// -----------------------------------------------------------------------------
-// Result builders
-// -----------------------------------------------------------------------------
 
 function buildResult(
   portfolio: MockPosition[],
@@ -356,10 +299,6 @@ All retrievals were entity-metadata only. No price lookups, no analyst ratings, 
 - FinancialMetric time-series retrieval was not exhaustively probed; future runs could screen on revenue growth directly.
 - Smaller names (ARM, SMCI) have thinner graph coverage than mega-caps.`;
 
-// -----------------------------------------------------------------------------
-// Event builders
-// -----------------------------------------------------------------------------
-
 let eventCounter = 0;
 const eventId = () => `mock-evt-${(eventCounter++).toString().padStart(5, "0")}`;
 
@@ -476,12 +415,7 @@ function buildRunEvents(opts: {
   return events;
 }
 
-// -----------------------------------------------------------------------------
-// Fixture records
-// -----------------------------------------------------------------------------
-
 export const MOCK_RUN_IDS = {
-  skunkReady: "mock-run-000-skunk-ready",
   running: "mock-run-001-running",
   doneAlt: "mock-run-002-done-alt",
   doneStrong: "mock-run-003-done-strong",
@@ -497,50 +431,6 @@ const runningPrompt =
 export function buildMockRunRecords(): AgentRunRecord[] {
   eventCounter = 0;
 
-  // 0. SKUNK READY — hand-authored equal-weight portfolio, queued to submit.
-  // Sits at the top of the list so it's immediately actionable when demoing.
-  const skunkEvents = buildRunEvents({
-    startMinutesAgo: 2,
-    runId: MOCK_RUN_IDS.skunkReady,
-    prompt: runningPrompt,
-    stepCount: 3,
-    toolCalls: 6,
-    finished: "ok",
-  });
-  const skunkReport = `## Thesis
-
-Equal-weight 50-ticker NASDAQ basket. Hand-authored fixture — not Cala-backed — intended as a smoke-test payload for the submit pipeline.
-
-## Portfolio Decisions
-
-Fifty positions at $20,000 each, totalling $1,000,000. No conviction tiering; every name gets the same weight so we can isolate plumbing issues from allocation logic.
-
-## Time Cutoff Audit
-
-No external data consulted. No prices, no returns, no post-cutoff events.
-
-## Open Gaps
-
-This is a fixture, not a research run — don't read anything into the selections.`;
-  const skunkReady: AgentRunRecord = {
-    id: MOCK_RUN_IDS.skunkReady,
-    requestId: MOCK_RUN_IDS.skunkReady + "-req",
-    prompt: runningPrompt,
-    agentName: MOCK_AGENT_NAME,
-    agentVersion: MOCK_AGENT_VERSION,
-    status: "completed",
-    startedAt: minutesAgo(2),
-    finishedAt: secondsAgo(90),
-    durationMs: 30_000,
-    model: MOCK_MODEL,
-    eventCount: skunkEvents.length,
-    stepCount: 3,
-    toolCallCount: 6,
-    result: buildResult(buildSkunkPortfolio(), skunkReport),
-    events: skunkEvents,
-  };
-
-  // 1. RUNNING — active, events so far, no result yet
   const runningEvents = buildRunEvents({
     startMinutesAgo: 0.5,
     runId: MOCK_RUN_IDS.running,
@@ -563,7 +453,6 @@ This is a fixture, not a research run — don't read anything into the selection
     events: runningEvents,
   };
 
-  // 2. DONE (alt portfolio — will serve as a diff baseline for #3)
   const altReport = BASE_REPORT.replace(
     "## Thesis",
     "## Thesis\n\n_Prior iteration: uses INTC / WDAY / PYPL as satellite positions and weights NVDA heavier at $55k._",
@@ -594,7 +483,6 @@ This is a fixture, not a research run — don't read anything into the selection
     events: altEvents,
   };
 
-  // 3. DONE (strong portfolio, not yet submitted)
   const doneEvents = buildRunEvents({
     startMinutesAgo: 15,
     runId: MOCK_RUN_IDS.doneStrong,
@@ -621,7 +509,6 @@ This is a fixture, not a research run — don't read anything into the selection
     events: doneEvents,
   };
 
-  // 4. SUBMITTED (winner — headline return +21.74%)
   const winnerEvents = [
     ...buildRunEvents({
       startMinutesAgo: 25,
@@ -683,7 +570,6 @@ This is a fixture, not a research run — don't read anything into the selection
     events: winnerEvents,
   };
 
-  // 5. SUBMITTED (loser — headline return -6.12%)
   const loserEvents = [
     ...buildRunEvents({
       startMinutesAgo: 55,
@@ -737,7 +623,6 @@ This is a fixture, not a research run — don't read anything into the selection
     events: loserEvents,
   };
 
-  // 6. SUBMIT-FAILED (agent run was fine, Convex rejected)
   const submitFailedEvents = buildRunEvents({
     startMinutesAgo: 90,
     runId: MOCK_RUN_IDS.submitFailed,
@@ -789,7 +674,6 @@ This is a fixture, not a research run — don't read anything into the selection
     events: submitFailedEvents,
   };
 
-  // 7. FAILED (agent errored before producing a portfolio)
   const failedEvents = buildRunEvents({
     startMinutesAgo: 120,
     runId: MOCK_RUN_IDS.failed,
@@ -820,17 +704,11 @@ This is a fixture, not a research run — don't read anything into the selection
     events: failedEvents,
   };
 
-  // Sorted newest-first to match listRunSummaries() ordering. skunkReady
-  // sits at the very top so the ready-to-submit fixture is the first thing
-  // in the list when mock mode is seeded.
-  return [skunkReady, running, doneStrong, submittedWinner, doneAlt, submittedLoser, submitFailed, failed];
+  return [running, doneStrong, submittedWinner, doneAlt, submittedLoser, submitFailed, failed];
 }
 
-// Convenience: rebuilds only a "fresh running" run — used by the Mission
-// Control "add fake running run" button so Pau can watch the auto-refresh
-// handle new arrivals without reseeding everything.
 export function buildFreshRunningFixture(): AgentRunRecord {
-  eventCounter = 900; // avoid collision with buildMockRunRecords()
+  eventCounter = 900;
   const id = `mock-run-fresh-${Date.now().toString(36)}`;
   const events = buildRunEvents({
     startMinutesAgo: 0.1,

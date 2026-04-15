@@ -1,11 +1,6 @@
 import Link from "next/link";
 import type { RunDiff } from "@/lib/run-diff";
 
-// Diff summary that lives above the portfolio table on the run details
-// page. Shows the three cardinality counts (added / removed / reweighted)
-// and a compact list of the biggest changes, linking back to the baseline
-// run for context.
-
 const money = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",

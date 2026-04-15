@@ -4,10 +4,6 @@ import type { AgentRunSummary } from "@/lib/agent-runs";
 import { deriveSummaryStage, type RunStage } from "@/lib/run-stage";
 import { RunStageBadge } from "./run-stage-badge";
 
-// List card for the Runboard. Layout is stage-aware: running cards show a
-// pulse + "—" for metrics that aren't computed yet; done/submitted cards
-// show the populated numbers.
-
 const dateTime = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
   timeStyle: "short",

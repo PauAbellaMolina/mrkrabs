@@ -1,11 +1,5 @@
-// Convex's /api/submit response shape isn't documented — the persisted record
-// stores it as `unknown`. Rather than guessing a schema, we walk it
-// defensively: pull any number-valued field whose key hints at a return /
-// P&L / score, normalize to a display form, and always keep the raw JSON
-// available for the details panel.
-//
-// Priority order matters because we surface the first match as the headline
-// number. Put the strongest semantic matches first.
+// Convex /api/submit response shape is undocumented — walk any JSON
+// shape and surface the best-matching field as the headline metric.
 
 const HEADLINE_KEY_PRIORITY = [
   // percent / return style
@@ -32,8 +26,6 @@ const HEADLINE_KEY_PRIORITY = [
   "portfolio_value",
 ];
 
-// Any number-valued key that loosely matches one of these substrings becomes
-// a secondary metric. We lowercase keys before matching.
 const METRIC_KEY_HINTS = [
   "return",
   "pnl",
@@ -50,15 +42,12 @@ export type SubmissionMetric = {
   key: string;
   label: string;
   value: number;
-  // "percent" if the key hints at a ratio; "currency" if value looks like a
-  // dollar amount; "number" otherwise. The display layer uses this to format.
   kind: "percent" | "currency" | "number";
 };
 
 export type ParsedSubmissionResponse = {
   headline: SubmissionMetric | null;
   metrics: SubmissionMetric[];
-  // Best-effort human-readable message fields (response.message, status, etc.)
   messages: Array<{ key: string; value: string }>;
   raw: unknown;
 };
@@ -83,9 +72,6 @@ function classifyKind(key: string, value: number): "percent" | "currency" | "num
   ) {
     return "currency";
   }
-  // Fall back: if the number is very small (|x| <= 5) assume percent,
-  // otherwise number. Return deltas from Convex could plausibly come in
-  // either decimal (0.12 = 12%) or percent (12 = 12%).
   if (Math.abs(value) <= 5) return "percent";
   if (Math.abs(value) >= 1000) return "currency";
   return "number";
@@ -179,8 +165,6 @@ export function parseSubmissionResponse(raw: unknown): ParsedSubmissionResponse 
       break;
     }
   }
-  // Fallback: if nothing matched priority keys but we have some metrics,
-  // show the first one as headline so the user sees something meaningful.
   if (!headline && metrics.length > 0) {
     headline = metrics[0];
   }
@@ -193,8 +177,6 @@ export function parseSubmissionResponse(raw: unknown): ParsedSubmissionResponse 
   };
 }
 
-// Display formatters. Kept in this file so the UI never has to decide.
-// All monochrome, no hue; up/down is communicated by leading "+" / "−".
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -207,7 +189,7 @@ const numberFormatter = new Intl.NumberFormat("en-US", {
 
 export function formatSubmissionMetric(metric: SubmissionMetric): string {
   if (metric.kind === "percent") {
-    // If the value is between -5 and 5, treat as decimal ratio (0.12 → 12%).
+    // Values |x| ≤ 5 are treated as decimal ratios (0.12 → 12%).
     const percent = Math.abs(metric.value) <= 5 ? metric.value * 100 : metric.value;
     const sign = percent > 0 ? "+" : percent < 0 ? "−" : "";
     return `${sign}${numberFormatter.format(Math.abs(percent))}%`;

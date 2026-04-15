@@ -17,15 +17,6 @@ import {
   subscribeToMockStore,
 } from "./mock-store";
 
-// React state that tracks:
-//   1. Whether mock mode is currently enabled (toggled by Mission Control)
-//   2. The current snapshot of mock records in localStorage
-//   3. Whether the client has finished hydrating — before that, the hybrid
-//      wrappers render their server fallback to avoid a hydration mismatch.
-//
-// Mutations go through mock-store helpers which emit a change event; the
-// provider re-reads on every change so every consumer stays in sync.
-
 type MockModeState = {
   ready: boolean;
   enabled: boolean;
@@ -78,8 +69,6 @@ export function MockModeProvider({ children }: { children: React.ReactNode }) {
 export function useMockMode(): MockModeContextValue {
   const ctx = useContext(MockModeContext);
   if (!ctx) {
-    // Safe fallback so components don't crash when used outside the provider
-    // (e.g. in a Storybook-style isolated render). Mock mode just reads off.
     return {
       ready: true,
       enabled: false,
@@ -91,8 +80,6 @@ export function useMockMode(): MockModeContextValue {
   return ctx;
 }
 
-// Convenience reader for a single record. The context holds the full
-// records array; this is just sugar over `records.find`.
 export function useMockRun(runId: string): AgentRunRecord | null {
   const { records } = useMockMode();
   return records.find(record => record.id === runId) ?? readMockRunRecord(runId);

@@ -5,11 +5,6 @@ import {
   type AgentRunRecord,
 } from "@/lib/agent-runs";
 
-// Run details page shell. We still load the real run record + baseline
-// on the server so the initial HTML is populated for the common case
-// (mock mode off). The hybrid wrapper takes over when mock mode is on
-// and re-reads from localStorage instead.
-
 export const dynamic = "force-dynamic";
 
 export default async function RunDetailPage({

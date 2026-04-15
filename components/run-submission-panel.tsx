@@ -13,15 +13,6 @@ import {
   type ParsedSubmissionResponse,
 } from "@/lib/submission-result";
 
-// The submission block the run details page shows for "done" runs. Handles
-// all three client-visible states:
-//   1. idle       — big "Submit to leaderboard" call to action
-//   2. submitting — pulsing skeleton with inflight messaging
-//   3. settled    — headline metric + secondary metrics + raw response
-//
-// When the run is already submitted (persisted), we hydrate with the
-// server-side `initialSubmission` so there's no flash of "idle".
-
 type SubmissionState =
   | { kind: "idle" }
   | { kind: "submitting"; startedAt: number }
@@ -39,16 +30,9 @@ type SubmissionState =
 type Props = {
   runId: string;
   initialSubmission: AgentRunRecord["leaderboardSubmission"];
-  /**
-   * When true, the submit button simulates a Convex round-trip instead of
-   * actually hitting /api/runs/[id]/submit. Used by Mission Control so the
-   * UI can iterate on the submitted/failed states without a real backend.
-   */
   isMock?: boolean;
 };
 
-// Fake Convex response shaped exactly like the fixtures so the parser can
-// pull a believable headline return out of it.
 function buildMockSubmissionResponse(): unknown {
   const returnPct = Math.random() * 0.3 - 0.05;
   const excess = returnPct - 0.096;
@@ -91,9 +75,6 @@ export function RunSubmissionPanel({ runId, initialSubmission, isMock = false }:
     setState({ kind: "submitting", startedAt: Date.now() });
 
     if (isMock) {
-      // Simulate the Convex round-trip so Pau can see the pulse skeleton
-      // and the headline return without a real backend. 1.5s feels like a
-      // real submission without being boring.
       window.setTimeout(() => {
         const submittedAt = new Date().toISOString();
         const response = buildMockSubmissionResponse();

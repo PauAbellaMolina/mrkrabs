@@ -1,11 +1,6 @@
 import type { CalaAgentResult } from "@/lib/cala-agent";
 import type { DiffMarker } from "@/lib/run-diff";
 
-// Shared positions table. Accepts a diff-marker map for the "done" /
-// "submitted" details view so reweights and adds show up without color.
-// Markers are rendered as a tight leading glyph column: ↑ / ↓ / + / − / =.
-// Passing an empty map renders a clean table with no marker column.
-
 const money = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",

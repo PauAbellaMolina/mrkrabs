@@ -1,16 +1,9 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+import { api } from "../convex/_generated/api";
+import { getConvexClient } from "./convex-client";
 
-// Read-only view loaders for the autoresearch outer loop. Deliberately
-// decoupled from `lib/autoresearch-ledger.ts` so the web UI can render
-// state without pulling in the mutator / agent import chain (which
-// currently depends on an export that doesn't exist yet).
-
-const AUTORESEARCH_DIR = path.join(process.cwd(), ".data", "autoresearch");
-const CHAMPION_PATH = path.join(AUTORESEARCH_DIR, "champion.md");
-const CHAMPION_SCORE_PATH = path.join(AUTORESEARCH_DIR, "champion-score.json");
-const LEDGER_PATH = path.join(AUTORESEARCH_DIR, "ledger.jsonl");
-const SPENT_PATH = path.join(AUTORESEARCH_DIR, "spent.json");
+// Read-only view loader for the autoresearch UI page. Same shape it
+// used to have when it parsed `.data/autoresearch/*` files directly;
+// now the data comes from Convex queries in a single parallel fetch.
 
 const DEFAULT_BUDGET_USD = 50;
 
@@ -24,6 +17,10 @@ export interface LedgerEntryView {
   kept: boolean;
   skipReason?: string;
   estimatedCostUsd: number;
+  proposedRule?: string;
+  rulesInEffect?: number;
+  // Legacy alias kept so `app/autoresearch/page.tsx` (authored against the
+  // pre-migration ledger shape) still renders. Always mirrors proposedRule.
   mutationSummary?: string;
 }
 
@@ -50,83 +47,46 @@ function getBudgetCapUsd(): number {
   return DEFAULT_BUDGET_USD;
 }
 
-async function readOptional(filePath: string): Promise<string | null> {
-  try {
-    return await readFile(filePath, "utf8");
-  } catch {
-    return null;
-  }
-}
-
-function emptyChampionScore(): ChampionScoreView {
-  return {
-    score: 0,
-    iteration: 0,
-    publicAgentVersion: null,
-    updatedAt: new Date(0).toISOString(),
-  };
-}
-
-function parseChampionScore(raw: string | null): ChampionScoreView {
-  if (!raw) return emptyChampionScore();
-  try {
-    const parsed = JSON.parse(raw) as Partial<ChampionScoreView>;
-    return {
-      score: typeof parsed.score === "number" ? parsed.score : 0,
-      iteration: typeof parsed.iteration === "number" ? parsed.iteration : 0,
-      publicAgentVersion: parsed.publicAgentVersion ?? null,
-      updatedAt: parsed.updatedAt ?? new Date(0).toISOString(),
-    };
-  } catch {
-    return emptyChampionScore();
-  }
-}
-
-function parseLedger(raw: string | null, limit: number): LedgerEntryView[] {
-  if (!raw) return [];
-  const lines = raw.trim().split("\n").filter(Boolean);
-  const recent = lines.slice(-limit);
-  const out: LedgerEntryView[] = [];
-  for (const line of recent) {
-    try {
-      out.push(JSON.parse(line) as LedgerEntryView);
-    } catch {
-      // skip malformed row
-    }
-  }
-  return out;
-}
-
-function parseSpent(raw: string | null): number {
-  if (!raw) return 0;
-  try {
-    const parsed = JSON.parse(raw) as { spentUsd?: number };
-    return typeof parsed.spentUsd === "number" ? parsed.spentUsd : 0;
-  } catch {
-    return 0;
-  }
-}
-
 export async function loadAutoresearchState(
   ledgerLimit = 50,
 ): Promise<AutoresearchState> {
-  const [championRaw, scoreRaw, ledgerRaw, spentRaw] = await Promise.all([
-    readOptional(CHAMPION_PATH),
-    readOptional(CHAMPION_SCORE_PATH),
-    readOptional(LEDGER_PATH),
-    readOptional(SPENT_PATH),
+  const client = getConvexClient();
+  const [champion, ledger, spentUsd] = await Promise.all([
+    client.query(api.autoresearch.getChampion, {}),
+    client.query(api.autoresearch.recentLedger, { limit: ledgerLimit }),
+    client.query(api.autoresearch.getSpent, {}),
   ]);
 
+  const ledgerView = (ledger as unknown as LedgerEntryView[]).map(entry => ({
+    iteration: entry.iteration,
+    ranAt: entry.ranAt,
+    runId: entry.runId,
+    publicAgentVersion: entry.publicAgentVersion,
+    score: entry.score,
+    championScoreAtStart: entry.championScoreAtStart,
+    kept: entry.kept,
+    skipReason: entry.skipReason,
+    estimatedCostUsd: entry.estimatedCostUsd,
+    proposedRule: entry.proposedRule,
+    rulesInEffect: entry.rulesInEffect,
+    mutationSummary: entry.proposedRule,
+  }));
+
+  const championView: ChampionScoreView = {
+    score: (champion as ChampionScoreView)?.score ?? 0,
+    iteration: (champion as ChampionScoreView)?.iteration ?? 0,
+    publicAgentVersion:
+      (champion as ChampionScoreView)?.publicAgentVersion ?? null,
+    updatedAt:
+      (champion as ChampionScoreView)?.updatedAt ?? new Date(0).toISOString(),
+  };
+
   return {
-    championScore: parseChampionScore(scoreRaw),
-    championPrompt: championRaw,
-    ledger: parseLedger(ledgerRaw, ledgerLimit),
-    spentUsd: parseSpent(spentRaw),
+    championScore: championView,
+    championPrompt: null,
+    ledger: ledgerView,
+    spentUsd: typeof spentUsd === "number" ? spentUsd : 0,
     budgetCapUsd: getBudgetCapUsd(),
-    isLive:
-      championRaw !== null ||
-      scoreRaw !== null ||
-      ledgerRaw !== null ||
-      spentRaw !== null,
+    isLive: championView.score > 0 || ledgerView.length > 0,
   };
 }

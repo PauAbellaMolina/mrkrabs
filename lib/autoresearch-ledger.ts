@@ -1,28 +1,17 @@
-import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { api } from "../convex/_generated/api";
+import { getConvexClient } from "./convex-client";
 import { BASE_SYSTEM_PROMPT } from "./cala-agent";
 
-// Autoresearch state lives in .data/autoresearch/:
-//   rules.json          — accumulated strategy rules (append-only playbook,
-//                         capped at MAX_RULES; oldest drop when full)
-//   champion-score.json — the best total_value we've seen so far
-//   ledger.jsonl        — per-experiment outcome log (append-only)
-//   spent.json          — cumulative Anthropic spend for budget enforcement
-//
-// The base system prompt in `lib/cala-agent.ts` never changes — the mutator
-// can only APPEND rules to the end. This makes drift impossible: the hard
-// constraints (≥50 tickers, $5k floor, exactly $1M, no post-cutoff data,
-// structured output schema) are protected regardless of what the mutator
-// says.
+// Autoresearch outer-loop state — backed by Convex. Same exports as before,
+// filesystem-backed internals replaced with mutations/queries. The cap on
+// the rules playbook, the atomic spend increment, and the monotonic version
+// allocator all live server-side now, so two machines running the loop at
+// the same time can't corrupt each other's state.
 
-const AUTORESEARCH_DIR = path.join(process.cwd(), ".data", "autoresearch");
-const RULES_PATH = path.join(AUTORESEARCH_DIR, "rules.json");
-const CHAMPION_SCORE_PATH = path.join(AUTORESEARCH_DIR, "champion-score.json");
-const LEDGER_PATH = path.join(AUTORESEARCH_DIR, "ledger.jsonl");
-const SPENT_PATH = path.join(AUTORESEARCH_DIR, "spent.json");
-
-// Cap on accumulated rules. Kept intentionally small so the system prompt
-// stays focused and tokens stay cheap. Oldest drops when the cap is reached.
+// Cap on accumulated rules. Client-side constant only — the actual cap is
+// enforced by the `appendRule` Convex mutation, which drops the oldest rule
+// when the collection would exceed MAX_RULES. Exposing the constant here
+// lets the UI render "rules=N/8" without a round trip.
 export const MAX_RULES = 8;
 
 export interface RuleEntry {
@@ -36,13 +25,13 @@ export interface LedgerEntry {
   ranAt: string;
   runId: string;
   publicAgentVersion: string | null;
-  score: number | null;              // total_value from the Cala submit response
+  score: number | null;
   championScoreAtStart: number;
-  kept: boolean;                     // true if this variant became the new champion
+  kept: boolean;
   skipReason?: string;
   estimatedCostUsd: number;
-  proposedRule?: string;             // the rule the mutator proposed this iteration
-  rulesInEffect: number;             // how many rules were in play for this run
+  proposedRule?: string;
+  rulesInEffect: number;
 }
 
 export interface ChampionScore {
@@ -52,28 +41,26 @@ export interface ChampionScore {
   updatedAt: string;
 }
 
-async function ensureDir() {
-  await mkdir(AUTORESEARCH_DIR, { recursive: true });
-}
+// ─── Rules ──────────────────────────────────────────────────────────────
 
 export async function loadRules(): Promise<RuleEntry[]> {
-  try {
-    const raw = await readFile(RULES_PATH, "utf8");
-    const parsed = JSON.parse(raw) as { rules?: RuleEntry[] };
-    if (Array.isArray(parsed.rules)) return parsed.rules;
-  } catch {
-    // no rules yet
-  }
-  return [];
+  const rules = await getConvexClient().query(api.autoresearch.loadRules, {});
+  return rules as unknown as RuleEntry[];
 }
 
-export async function writeRules(rules: RuleEntry[]): Promise<void> {
-  await ensureDir();
-  await writeFile(RULES_PATH, JSON.stringify({ rules }, null, 2), "utf8");
+export async function appendRule(
+  rule: Omit<RuleEntry, "addedAt">,
+): Promise<RuleEntry[]> {
+  await getConvexClient().mutation(api.autoresearch.appendRule, {
+    text: rule.text,
+    addedAtIteration: rule.addedAtIteration,
+  });
+  return loadRules();
 }
 
-// Compose the full system prompt: base verbatim, plus accumulated rules if
-// there are any. When `rules` is empty we return the base alone.
+// Compose the full system prompt: base verbatim, plus accumulated rules
+// if there are any. Pure function, no I/O — kept here so the autoresearch
+// loop and the mutator can both reach for it.
 export function composeSystemPrompt(rules: RuleEntry[]): string {
   if (rules.length === 0) return BASE_SYSTEM_PROMPT;
   const rulesBlock = rules
@@ -85,77 +72,63 @@ export function composeSystemPrompt(rules: RuleEntry[]): string {
   );
 }
 
-export async function appendRule(
-  rule: Omit<RuleEntry, "addedAt">,
-): Promise<RuleEntry[]> {
-  const current = await loadRules();
-  const next: RuleEntry = { ...rule, addedAt: new Date().toISOString() };
-  const updated = [...current, next];
-  // Cap: drop oldest when full.
-  const trimmed =
-    updated.length > MAX_RULES ? updated.slice(updated.length - MAX_RULES) : updated;
-  await writeRules(trimmed);
-  return trimmed;
-}
+// ─── Champion ───────────────────────────────────────────────────────────
 
 export async function loadChampionScore(): Promise<ChampionScore> {
-  try {
-    const raw = await readFile(CHAMPION_SCORE_PATH, "utf8");
-    const parsed = JSON.parse(raw) as Partial<ChampionScore>;
-    if (typeof parsed.score === "number") {
-      return {
-        score: parsed.score,
-        iteration: parsed.iteration ?? 0,
-        publicAgentVersion: parsed.publicAgentVersion ?? null,
-        updatedAt: parsed.updatedAt ?? new Date(0).toISOString(),
-      };
-    }
-  } catch {
-    // no champion yet
-  }
-  return {
-    score: 0,
-    iteration: 0,
-    publicAgentVersion: null,
-    updatedAt: new Date(0).toISOString(),
-  };
+  const champion = await getConvexClient().query(
+    api.autoresearch.getChampion,
+    {},
+  );
+  return champion as unknown as ChampionScore;
 }
 
 export async function writeChampionScore(score: ChampionScore): Promise<void> {
-  await ensureDir();
-  await writeFile(CHAMPION_SCORE_PATH, JSON.stringify(score, null, 2), "utf8");
+  await getConvexClient().mutation(api.autoresearch.setChampion, {
+    score: score.score,
+    iteration: score.iteration,
+    publicAgentVersion: score.publicAgentVersion ?? undefined,
+  });
 }
+
+// ─── Ledger ─────────────────────────────────────────────────────────────
 
 export async function appendLedgerEntry(entry: LedgerEntry): Promise<void> {
-  await ensureDir();
-  await appendFile(LEDGER_PATH, JSON.stringify(entry) + "\n", "utf8");
+  await getConvexClient().mutation(api.autoresearch.appendLedger, {
+    iteration: entry.iteration,
+    ranAt: entry.ranAt,
+    runId: entry.runId,
+    publicAgentVersion: entry.publicAgentVersion ?? undefined,
+    score: entry.score ?? undefined,
+    championScoreAtStart: entry.championScoreAtStart,
+    kept: entry.kept,
+    skipReason: entry.skipReason,
+    estimatedCostUsd: entry.estimatedCostUsd,
+    proposedRule: entry.proposedRule,
+    rulesInEffect: entry.rulesInEffect,
+  });
 }
 
-export async function loadRecentLedgerEntries(limit = 5): Promise<LedgerEntry[]> {
-  try {
-    const raw = await readFile(LEDGER_PATH, "utf8");
-    const lines = raw.trim().split("\n").filter(Boolean);
-    const recent = lines.slice(-limit);
-    return recent.map(line => JSON.parse(line) as LedgerEntry);
-  } catch {
-    return [];
-  }
+export async function loadRecentLedgerEntries(
+  limit = 5,
+): Promise<LedgerEntry[]> {
+  const entries = await getConvexClient().query(
+    api.autoresearch.recentLedger,
+    { limit },
+  );
+  return entries as unknown as LedgerEntry[];
 }
+
+// ─── Spend ──────────────────────────────────────────────────────────────
 
 export async function loadSpentUsd(): Promise<number> {
-  try {
-    const raw = await readFile(SPENT_PATH, "utf8");
-    const parsed = JSON.parse(raw) as { spentUsd?: number };
-    return typeof parsed.spentUsd === "number" ? parsed.spentUsd : 0;
-  } catch {
-    return 0;
-  }
+  return getConvexClient().query(api.autoresearch.getSpent, {});
 }
 
 export async function addSpentUsd(delta: number): Promise<number> {
-  const current = await loadSpentUsd();
-  const next = current + delta;
-  await ensureDir();
-  await writeFile(SPENT_PATH, JSON.stringify({ spentUsd: next }, null, 2), "utf8");
-  return next;
+  // Budget cap enforcement is opt-in via the `budgetCapUsd` arg on the
+  // Convex mutation. The legacy callers of this shim don't pass a cap —
+  // they still check the budget locally after this call returns — so
+  // we preserve that behavior here. The CLI can upgrade to server-side
+  // enforcement later by reaching for `getConvexClient()` directly.
+  return getConvexClient().mutation(api.autoresearch.addSpent, { delta });
 }

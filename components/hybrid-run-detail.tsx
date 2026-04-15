@@ -19,11 +19,6 @@ import {
 import { RunStageBadge } from "./run-stage-badge";
 import { RunSubmissionPanel } from "./run-submission-panel";
 
-// Client wrapper for the run detail page. Renders the server-rendered run
-// when mock mode is off. When mock mode is on, re-reads the run from
-// localStorage and computes a mock baseline on the client so the diff
-// panel still lights up.
-
 const money = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -65,7 +60,6 @@ export function HybridRunDetail({ runId, serverRun, serverBaseline }: Props) {
   }
 
   if (!ready) {
-    // First render before provider hydrates: show the server data as-is.
     if (!serverRun) return <NotFoundBody runId={runId} />;
     return (
       <DetailBody
