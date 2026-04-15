@@ -32,6 +32,7 @@ export interface LedgerEntry {
   estimatedCostUsd: number;
   proposedRule?: string;
   rulesInEffect: number;
+  sessionId?: string;
 }
 
 export interface ChampionScore {
@@ -105,6 +106,7 @@ export async function appendLedgerEntry(entry: LedgerEntry): Promise<void> {
     estimatedCostUsd: entry.estimatedCostUsd,
     proposedRule: entry.proposedRule,
     rulesInEffect: entry.rulesInEffect,
+    sessionId: entry.sessionId,
   });
 }
 

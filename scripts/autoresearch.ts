@@ -69,8 +69,17 @@ const RESOLVED_MODEL =
   ALLOWED_MODELS.has(process.env.AUTORESEARCH_MODEL)
     ? process.env.AUTORESEARCH_MODEL
     : CALA_AGENT_MODEL;
+// Set by the spawn route when the outer loop is kicked off from the UI.
+// Manual `pnpm autoresearch` invocations from a terminal leave it unset and
+// the script runs sessionless — iterations still land in runs + ledger,
+// just without a parent session row.
+const SESSION_ID = process.env.AUTORESEARCH_SESSION_ID?.trim() || null;
 import { submitToLeaderboard } from "../lib/leaderboard-submit";
 import { PUBLIC_AUTORESEARCH_AGENT_NAME } from "../lib/agent-version";
+import {
+  finalizeAutoresearchSession,
+  incrementAutoresearchSessionProgress,
+} from "../lib/autoresearch-session";
 
 // Same prompt the UI dispatches.
 const DEFAULT_RUN_PROMPT =
@@ -121,6 +130,7 @@ async function runOneExperiment(
     agentName: PUBLIC_AUTORESEARCH_AGENT_NAME,
     agentVersion: CALA_AGENT_VERSION,
     model: RESOLVED_MODEL,
+    sessionId: SESSION_ID ?? undefined,
   });
 
   let agentCostUsd = 0;
@@ -322,8 +332,18 @@ async function main() {
       estimatedCostUsd: iterationCost,
       proposedRule: proposedRule ?? undefined,
       rulesInEffect: candidateRules.length,
+      sessionId: SESSION_ID ?? undefined,
     };
     await appendLedgerEntry(entry);
+
+    if (SESSION_ID) {
+      await incrementAutoresearchSessionProgress(SESSION_ID).catch(error => {
+        console.warn(
+          "[autoresearch] failed to bump session progress",
+          error instanceof Error ? error.message : error,
+        );
+      });
+    }
 
     const scoreStr =
       outcome.score != null ? `$${outcome.score.toLocaleString()}` : "—";
@@ -351,7 +371,43 @@ async function main() {
   );
 }
 
-main().catch((error) => {
-  console.error("[autoresearch] fatal", error);
-  process.exit(1);
+// Session lifecycle. When the outer loop is spawned by the UI a
+// SESSION_ID is present and we mark the session completed/failed/stopped
+// on exit so the UI can transition it out of the "running" list.
+
+let sessionFinalized = false;
+
+async function markSession(
+  status: "completed" | "stopped" | "failed",
+  errorMessage?: string,
+) {
+  if (!SESSION_ID || sessionFinalized) return;
+  sessionFinalized = true;
+  try {
+    await finalizeAutoresearchSession(SESSION_ID, status, errorMessage);
+  } catch (error) {
+    console.warn(
+      "[autoresearch] failed to finalize session",
+      error instanceof Error ? error.message : error,
+    );
+  }
+}
+
+process.on("SIGTERM", () => {
+  console.info("[autoresearch] SIGTERM received; marking session stopped");
+  // fire-and-forget; the process is about to exit regardless
+  markSession("stopped").finally(() => process.exit(143));
 });
+process.on("SIGINT", () => {
+  console.info("[autoresearch] SIGINT received; marking session stopped");
+  markSession("stopped").finally(() => process.exit(130));
+});
+
+main()
+  .then(() => markSession("completed"))
+  .catch(async (error) => {
+    console.error("[autoresearch] fatal", error);
+    const message = error instanceof Error ? error.message : String(error);
+    await markSession("failed", message);
+    process.exit(1);
+  });

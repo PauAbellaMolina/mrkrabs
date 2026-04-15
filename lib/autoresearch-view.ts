@@ -1,27 +1,11 @@
 import { api } from "../convex/_generated/api";
 import { getConvexClient } from "./convex-client";
+import type { AutoresearchSession } from "./autoresearch-session";
+import { composeSystemPrompt } from "./autoresearch-ledger";
+import type { RuleEntry } from "./autoresearch-ledger";
 
-// Read-only view loader for the autoresearch UI page. Data comes from
+// Read-only view loader for the autoresearch index page. Data comes from
 // Convex queries in a single parallel fetch.
-
-const DEFAULT_BUDGET_USD = 50;
-
-export interface LedgerEntryView {
-  iteration: number;
-  ranAt: string;
-  runId: string;
-  publicAgentVersion: string | null;
-  score: number | null;
-  championScoreAtStart: number;
-  kept: boolean;
-  skipReason?: string;
-  estimatedCostUsd: number;
-  proposedRule?: string;
-  rulesInEffect?: number;
-  // Legacy alias kept so `app/autoresearch/page.tsx` (authored against the
-  // pre-migration ledger shape) still renders. Always mirrors proposedRule.
-  mutationSummary?: string;
-}
 
 export interface ChampionScoreView {
   score: number;
@@ -30,46 +14,28 @@ export interface ChampionScoreView {
   updatedAt: string;
 }
 
-export interface AutoresearchState {
+export interface ChampionPromptView {
+  // Composed system prompt the next iteration would run with — BASE prompt
+  // plus every rule the outer loop has confirmed as an improvement.
+  composed: string;
+  rules: RuleEntry[];
+}
+
+export interface AutoresearchIndexState {
   championScore: ChampionScoreView;
-  championPrompt: string | null;
-  ledger: LedgerEntryView[];
-  spentUsd: number;
-  budgetCapUsd: number;
-  isLive: boolean;
+  championPrompt: ChampionPromptView;
+  sessions: AutoresearchSession[];
 }
 
-function getBudgetCapUsd(): number {
-  const raw = process.env.AUTORESEARCH_BUDGET_USD;
-  const parsed = raw ? Number(raw) : NaN;
-  if (Number.isFinite(parsed) && parsed > 0) return parsed;
-  return DEFAULT_BUDGET_USD;
-}
-
-export async function loadAutoresearchState(
-  ledgerLimit = 50,
-): Promise<AutoresearchState> {
+export async function loadAutoresearchIndexState(): Promise<AutoresearchIndexState> {
   const client = getConvexClient();
-  const [champion, ledger, spentUsd] = await Promise.all([
+  const [champion, sessions, rules] = await Promise.all([
     client.query(api.autoresearch.getChampion, {}),
-    client.query(api.autoresearch.recentLedger, { limit: ledgerLimit }),
-    client.query(api.autoresearch.getSpent, {}),
+    client.query(api.autoresearch.listSessions, {}),
+    client.query(api.autoresearch.loadRules, {}),
   ]);
 
-  const ledgerView = (ledger as unknown as LedgerEntryView[]).map(entry => ({
-    iteration: entry.iteration,
-    ranAt: entry.ranAt,
-    runId: entry.runId,
-    publicAgentVersion: entry.publicAgentVersion,
-    score: entry.score,
-    championScoreAtStart: entry.championScoreAtStart,
-    kept: entry.kept,
-    skipReason: entry.skipReason,
-    estimatedCostUsd: entry.estimatedCostUsd,
-    proposedRule: entry.proposedRule,
-    rulesInEffect: entry.rulesInEffect,
-    mutationSummary: entry.proposedRule,
-  }));
+  const sessionsView = sessions as unknown as AutoresearchSession[];
 
   const championView: ChampionScoreView = {
     score: (champion as ChampionScoreView)?.score ?? 0,
@@ -80,12 +46,14 @@ export async function loadAutoresearchState(
       (champion as ChampionScoreView)?.updatedAt ?? new Date(0).toISOString(),
   };
 
+  const rulesTyped = rules as unknown as RuleEntry[];
+
   return {
     championScore: championView,
-    championPrompt: null,
-    ledger: ledgerView,
-    spentUsd: typeof spentUsd === "number" ? spentUsd : 0,
-    budgetCapUsd: getBudgetCapUsd(),
-    isLive: championView.score > 0 || ledgerView.length > 0,
+    championPrompt: {
+      composed: composeSystemPrompt(rulesTyped),
+      rules: rulesTyped,
+    },
+    sessions: sessionsView,
   };
 }

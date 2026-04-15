@@ -34,9 +34,24 @@ type Props = {
   runId: string;
   serverRun: AgentRunRecord | null;
   serverBaseline: AgentRunRecord | null;
+  // Optional chrome overrides so the same renderer can back both
+  // `/runs/[id]` (manual) and `/autoresearch/runs/[id]` (iteration).
+  backHref?: string;
+  backLabel?: string;
+  contextPanel?: React.ReactNode;
 };
 
-export function HybridRunDetail({ runId, serverRun, serverBaseline }: Props) {
+const DEFAULT_BACK_HREF = "/";
+const DEFAULT_BACK_LABEL = "← Back to runs";
+
+export function HybridRunDetail({
+  runId,
+  serverRun,
+  serverBaseline,
+  backHref = DEFAULT_BACK_HREF,
+  backLabel = DEFAULT_BACK_LABEL,
+  contextPanel,
+}: Props) {
   const { ready, enabled } = useMockMode();
 
   let run: AgentRunRecord | null = serverRun;
@@ -60,29 +75,65 @@ export function HybridRunDetail({ runId, serverRun, serverBaseline }: Props) {
   }
 
   if (!ready) {
-    if (!serverRun) return <NotFoundBody runId={runId} />;
+    if (!serverRun) {
+      return (
+        <NotFoundBody
+          runId={runId}
+          backHref={backHref}
+          backLabel={backLabel}
+        />
+      );
+    }
     return (
       <DetailBody
         run={serverRun}
         baseline={serverBaseline}
         isMock={false}
+        backHref={backHref}
+        backLabel={backLabel}
+        contextPanel={contextPanel}
       />
     );
   }
 
-  if (!run) return <NotFoundBody runId={runId} />;
+  if (!run) {
+    return (
+      <NotFoundBody
+        runId={runId}
+        backHref={backHref}
+        backLabel={backLabel}
+      />
+    );
+  }
 
-  return <DetailBody run={run} baseline={baseline} isMock={enabled} />;
+  return (
+    <DetailBody
+      run={run}
+      baseline={baseline}
+      isMock={enabled}
+      backHref={backHref}
+      backLabel={backLabel}
+      contextPanel={contextPanel}
+    />
+  );
 }
 
-function NotFoundBody({ runId }: { runId: string }) {
+function NotFoundBody({
+  runId,
+  backHref,
+  backLabel,
+}: {
+  runId: string;
+  backHref: string;
+  backLabel: string;
+}) {
   return (
     <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col gap-8 px-6 py-10">
       <Link
-        href="/"
+        href={backHref}
         className="self-start border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--foreground)] transition hover:border-[color:var(--foreground)]"
       >
-        ← Back to runs
+        {backLabel}
       </Link>
       <section className="border border-dashed border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-16 text-center">
         <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
@@ -100,10 +151,16 @@ function DetailBody({
   run,
   baseline,
   isMock,
+  backHref,
+  backLabel,
+  contextPanel,
 }: {
   run: AgentRunRecord;
   baseline: AgentRunRecord | null;
   isMock: boolean;
+  backHref: string;
+  backLabel: string;
+  contextPanel?: React.ReactNode;
 }) {
   const stage = deriveRunStage(run);
   const isRunning = stage === "running";
@@ -128,23 +185,30 @@ function DetailBody({
 
       <nav className="flex flex-wrap items-center justify-between gap-3">
         <Link
-          href="/"
+          href={backHref}
           className="inline-flex items-center border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--foreground)] transition hover:border-[color:var(--foreground)]"
         >
-          ← Back to runs
+          {backLabel}
         </Link>
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
           Request {run.requestId}
         </p>
       </nav>
 
+      {contextPanel ?? null}
+
       <ViewTransition name={`run-card-${run.id}`}>
         <section className="border border-[color:var(--border)] bg-[color:var(--surface)]">
           <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[color:var(--border)] px-6 py-5">
             <div className="max-w-3xl">
-              <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[color:var(--muted-foreground)]">
-                {run.agentName} · {run.agentVersion}
-              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[color:var(--muted-foreground)]">
+                  {run.agentName} · {run.agentVersion}
+                </p>
+                {run.systemPromptMode ? (
+                  <SystemPromptBadge mode={run.systemPromptMode} />
+                ) : null}
+              </div>
               <h1 className="mt-3 font-sans text-2xl font-semibold tracking-tight text-[color:var(--foreground)] sm:text-3xl">
                 {truncate(run.prompt, 160)}
               </h1>
@@ -486,4 +550,25 @@ function CodeBlock({ value }: { value: unknown }) {
 function truncate(value: string, maxLength: number) {
   if (value.length <= maxLength) return value;
   return `${value.slice(0, maxLength - 1)}…`;
+}
+
+function SystemPromptBadge({ mode }: { mode: "base" | "champion" }) {
+  const isChampion = mode === "champion";
+  return (
+    <span
+      className={
+        "inline-flex items-center border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.22em] " +
+        (isChampion
+          ? "border-[color:var(--foreground)] bg-[color:var(--foreground)] text-[color:var(--background)]"
+          : "border-[color:var(--border)] text-[color:var(--muted-foreground)]")
+      }
+      title={
+        isChampion
+          ? "Used the autoresearch champion prompt (BASE + accumulated rules)."
+          : "Used the BASE system prompt verbatim."
+      }
+    >
+      prompt: {mode}
+    </span>
+  );
 }

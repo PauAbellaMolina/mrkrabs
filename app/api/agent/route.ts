@@ -16,13 +16,16 @@ import {
   createRunRecord,
   failRunRecord,
 } from "@/lib/agent-runs";
+import { composeSystemPrompt, loadRules } from "@/lib/autoresearch-ledger";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
 export type AgentBackend = "anthropic" | "codex-cli";
+export type SystemPromptMode = "base" | "champion";
 
 const DEFAULT_BACKEND: AgentBackend = "codex-cli";
+const DEFAULT_PROMPT_MODE: SystemPromptMode = "base";
 
 interface AgentRequestBody {
   prompt?: string;
@@ -30,6 +33,11 @@ interface AgentRequestBody {
   // Anthropic-only: pick a specific model ID (e.g. "claude-sonnet-4-6",
   // "claude-haiku-4-5", "claude-opus-4-6"). Ignored by Codex CLI.
   model?: string;
+  // Anthropic-only: "base" uses the trunk prompt verbatim; "champion"
+  // composes BASE + the accumulated autoresearch rules from Convex so the
+  // manual run benefits from whatever the outer loop has learned so far.
+  // Ignored by Codex CLI (its prompt pipeline is a separate compilation).
+  systemPromptMode?: SystemPromptMode;
 }
 
 // Anthropic model IDs we accept from clients. Includes base IDs, the `[1m]`
@@ -120,10 +128,26 @@ export async function POST(request: Request) {
         ? body.model
         : agent.model;
 
+    const promptMode: SystemPromptMode =
+      body.systemPromptMode === "champion" || body.systemPromptMode === "base"
+        ? body.systemPromptMode
+        : DEFAULT_PROMPT_MODE;
+
+    // Only Anthropic honors the system-prompt override. The Codex CLI flow
+    // compiles its own buildCodexPrompt() and doesn't accept a trunk swap.
+    let systemPromptOverride: string | undefined;
+    if (backend === "anthropic" && promptMode === "champion") {
+      const rules = await loadRules();
+      systemPromptOverride = composeSystemPrompt(rules);
+    }
+
     console.info("[agent][start]", {
       requestId,
       backend,
       model: resolvedModel,
+      promptMode,
+      systemPromptSource:
+        systemPromptOverride ? "champion (base + rules)" : "base",
       promptLength: prompt.length,
       promptPreview: prompt.slice(0, 240),
     });
@@ -137,10 +161,14 @@ export async function POST(request: Request) {
       agentName: agent.name,
       agentVersion: agent.version,
       model: resolvedModel,
+      // Only meaningful for Anthropic — the Codex CLI backend compiles its
+      // own prompt and ignores this field.
+      systemPromptMode: backend === "anthropic" ? promptMode : undefined,
     });
 
     const result = await agent.run(prompt, {
       ...(backend === "anthropic" ? { model: resolvedModel } : {}),
+      ...(systemPromptOverride ? { systemPromptOverride } : {}),
       onTelemetryEvent: (event) => appendRunEvent(runId!, event),
       onFinish: (event) =>
         completeRunRecord(runId!, {

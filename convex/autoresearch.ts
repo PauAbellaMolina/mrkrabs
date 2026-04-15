@@ -157,6 +157,34 @@ export const recentLedger = query({
   },
 });
 
+// Used by the autoresearch run detail page. The ledger is bounded by the
+// total number of iterations we ever run (capped well under 10k for the
+// hackathon), so a linear scan is fine and avoids adding a new index.
+export const getLedgerByRunId = query({
+  args: { runId: v.string() },
+  handler: async (ctx, { runId }) => {
+    const matches = await ctx.db
+      .query("autoresearchLedger")
+      .filter(q => q.eq(q.field("runId"), runId))
+      .collect();
+    const entry = matches[0];
+    if (!entry) return null;
+    return {
+      iteration: entry.iteration,
+      ranAt: entry.ranAt,
+      runId: entry.runId,
+      publicAgentVersion: entry.publicAgentVersion ?? null,
+      score: entry.score ?? null,
+      championScoreAtStart: entry.championScoreAtStart,
+      kept: entry.kept,
+      skipReason: entry.skipReason,
+      estimatedCostUsd: entry.estimatedCostUsd,
+      proposedRule: entry.proposedRule,
+      rulesInEffect: entry.rulesInEffect,
+    };
+  },
+});
+
 export const appendLedger = mutation({
   args: {
     iteration: v.number(),
@@ -170,9 +198,161 @@ export const appendLedger = mutation({
     estimatedCostUsd: v.number(),
     proposedRule: v.optional(v.string()),
     rulesInEffect: v.number(),
+    sessionId: v.optional(v.string()),
   },
   handler: async (ctx, entry) => {
     await ctx.db.insert("autoresearchLedger", entry);
+  },
+});
+
+// ─── Sessions ───────────────────────────────────────────────────────────
+
+export const createSession = mutation({
+  args: {
+    sessionId: v.string(),
+    startedAt: v.string(),
+    model: v.string(),
+    plannedIterations: v.number(),
+    host: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("autoresearchSessions", {
+      sessionId: args.sessionId,
+      status: "running" as const,
+      startedAt: args.startedAt,
+      model: args.model,
+      plannedIterations: args.plannedIterations,
+      completedIterations: 0,
+      host: args.host,
+    });
+  },
+});
+
+export const attachSessionPid = mutation({
+  args: { sessionId: v.string(), pid: v.number() },
+  handler: async (ctx, { sessionId, pid }) => {
+    const row = await ctx.db
+      .query("autoresearchSessions")
+      .withIndex("by_sessionId", q => q.eq("sessionId", sessionId))
+      .first();
+    if (!row) throw new Error(`session ${sessionId} not found`);
+    await ctx.db.patch(row._id, { pid });
+  },
+});
+
+export const incrementSessionProgress = mutation({
+  args: { sessionId: v.string() },
+  handler: async (ctx, { sessionId }) => {
+    const row = await ctx.db
+      .query("autoresearchSessions")
+      .withIndex("by_sessionId", q => q.eq("sessionId", sessionId))
+      .first();
+    if (!row) return;
+    await ctx.db.patch(row._id, {
+      completedIterations: row.completedIterations + 1,
+    });
+  },
+});
+
+export const finalizeSession = mutation({
+  args: {
+    sessionId: v.string(),
+    status: v.union(
+      v.literal("completed"),
+      v.literal("stopped"),
+      v.literal("failed"),
+    ),
+    errorMessage: v.optional(v.string()),
+  },
+  handler: async (ctx, { sessionId, status, errorMessage }) => {
+    const row = await ctx.db
+      .query("autoresearchSessions")
+      .withIndex("by_sessionId", q => q.eq("sessionId", sessionId))
+      .first();
+    if (!row) return;
+    // Don't overwrite a terminal status — once stopped/completed/failed, the
+    // first caller wins. This matters when /api/autoresearch/stop and the
+    // script's own SIGTERM handler both try to finalize the same session.
+    if (row.status !== "running") return;
+    await ctx.db.patch(row._id, {
+      status,
+      errorMessage,
+      finishedAt: new Date().toISOString(),
+    });
+  },
+});
+
+export const listSessions = query({
+  args: {},
+  handler: async ctx => {
+    const all = await ctx.db
+      .query("autoresearchSessions")
+      .withIndex("by_startedAt")
+      .collect();
+    return all
+      .slice()
+      .sort((a, b) => (a.startedAt < b.startedAt ? 1 : -1))
+      .map(s => ({
+        sessionId: s.sessionId,
+        status: s.status,
+        startedAt: s.startedAt,
+        finishedAt: s.finishedAt,
+        pid: s.pid ?? null,
+        host: s.host ?? null,
+        model: s.model,
+        plannedIterations: s.plannedIterations,
+        completedIterations: s.completedIterations,
+        errorMessage: s.errorMessage,
+      }));
+  },
+});
+
+export const getSession = query({
+  args: { sessionId: v.string() },
+  handler: async (ctx, { sessionId }) => {
+    const row = await ctx.db
+      .query("autoresearchSessions")
+      .withIndex("by_sessionId", q => q.eq("sessionId", sessionId))
+      .first();
+    if (!row) return null;
+    return {
+      sessionId: row.sessionId,
+      status: row.status,
+      startedAt: row.startedAt,
+      finishedAt: row.finishedAt,
+      pid: row.pid ?? null,
+      host: row.host ?? null,
+      model: row.model,
+      plannedIterations: row.plannedIterations,
+      completedIterations: row.completedIterations,
+      errorMessage: row.errorMessage,
+    };
+  },
+});
+
+export const getLedgerBySession = query({
+  args: { sessionId: v.string() },
+  handler: async (ctx, { sessionId }) => {
+    const rows = await ctx.db
+      .query("autoresearchLedger")
+      .withIndex("by_sessionId", q => q.eq("sessionId", sessionId))
+      .collect();
+    return rows
+      .slice()
+      .sort((a, b) => a.iteration - b.iteration)
+      .map(row => ({
+        iteration: row.iteration,
+        ranAt: row.ranAt,
+        runId: row.runId,
+        publicAgentVersion: row.publicAgentVersion ?? null,
+        score: row.score ?? null,
+        championScoreAtStart: row.championScoreAtStart,
+        kept: row.kept,
+        skipReason: row.skipReason,
+        estimatedCostUsd: row.estimatedCostUsd,
+        proposedRule: row.proposedRule,
+        rulesInEffect: row.rulesInEffect,
+      }));
   },
 });
 

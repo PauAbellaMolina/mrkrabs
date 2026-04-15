@@ -71,6 +71,8 @@ export const listSummaries = query({
           leaderboardUpstreamStatus:
             submission?.status === "failed" ? submission.upstreamStatus : undefined,
           errorMessage: (run.error as { message?: string } | undefined)?.message,
+          sessionId: run.sessionId,
+          systemPromptMode: run.systemPromptMode,
         };
       });
   },
@@ -102,6 +104,10 @@ export const create = mutation({
     agentName: v.string(),
     agentVersion: v.string(),
     model: v.optional(v.string()),
+    sessionId: v.optional(v.string()),
+    systemPromptMode: v.optional(
+      v.union(v.literal("base"), v.literal("champion")),
+    ),
   },
   handler: async (ctx, args) => {
     const now = new Date().toISOString();
@@ -113,6 +119,8 @@ export const create = mutation({
       agentName: args.agentName,
       agentVersion: args.agentVersion,
       model: args.model,
+      sessionId: args.sessionId,
+      systemPromptMode: args.systemPromptMode,
       status: "running" as const,
       startedAt: now,
       eventCount: 1,

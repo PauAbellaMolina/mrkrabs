@@ -101,6 +101,13 @@ export interface AgentRunRecord {
     details?: unknown;
   };
   events: AgentRunEvent[];
+  // Set only on runs spawned by an autoresearch session. Lets the UI nav
+  // back to /autoresearch/runs/[sessionId] from per-iteration pages.
+  sessionId?: string;
+  // Which prompt trunk the run used. Manual runs stamp "base" or
+  // "champion"; autoresearch iterations use a composed prompt implicitly
+  // and leave this unset.
+  systemPromptMode?: "base" | "champion";
 }
 
 export interface AgentRunSummary {
@@ -136,6 +143,8 @@ export async function createRunRecord(input: {
   agentName: string;
   agentVersion: string;
   model?: string;
+  sessionId?: string;
+  systemPromptMode?: "base" | "champion";
 }) {
   await getConvexClient().mutation(api.runs.create, {
     runId: input.id,
@@ -144,6 +153,8 @@ export async function createRunRecord(input: {
     agentName: input.agentName,
     agentVersion: input.agentVersion,
     model: input.model,
+    sessionId: input.sessionId,
+    systemPromptMode: input.systemPromptMode,
   });
 }
 

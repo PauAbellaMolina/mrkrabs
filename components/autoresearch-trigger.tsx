@@ -13,7 +13,7 @@ import {
 
 type Status =
   | { kind: "idle" }
-  | { kind: "queued"; iterations: number; modelId: string; at: number }
+  | { kind: "queued"; iterations: number; modelId: string; sessionId: string; at: number }
   | { kind: "error"; message: string };
 
 const DEFAULT_ITERATIONS = 5;
@@ -28,6 +28,7 @@ export function AutoresearchTrigger() {
   const [variantId, setVariantId] = useState<string>(DEFAULT_ANTHROPIC_VARIANT);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [isPending, startTransition] = useTransition();
+  const [expanded, setExpanded] = useState(false);
 
   const family = useMemo(() => findAnthropicFamily(familyId), [familyId]);
   const modelId = resolveAnthropicModelId(familyId, variantId);
@@ -57,19 +58,21 @@ export function AutoresearchTrigger() {
         const data = (await response.json()) as {
           ok?: boolean;
           error?: string;
+          sessionId?: string;
         };
-        if (!response.ok || data.ok === false) {
+        if (!response.ok || data.ok === false || !data.sessionId) {
           throw new Error(data.error ?? "Failed to spawn autoresearch");
         }
         setStatus({
           kind: "queued",
           iterations: clamped,
           modelId,
+          sessionId: data.sessionId,
           at: Date.now(),
         });
-        // Give the child process a moment to write its first ledger row,
-        // then refresh the page so the timeline picks it up.
-        window.setTimeout(() => router.refresh(), 1200);
+        setExpanded(false);
+        // Refresh so the new session row appears in the list immediately.
+        window.setTimeout(() => router.refresh(), 400);
       } catch (error) {
         setStatus({
           kind: "error",
@@ -80,6 +83,26 @@ export function AutoresearchTrigger() {
     });
   };
 
+  if (!expanded) {
+    return (
+      <section className="flex flex-wrap items-center justify-between gap-4 border border-[color:var(--border)] px-5 py-4">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="inline-flex min-w-[220px] items-center justify-center gap-3 border border-[color:var(--foreground)] bg-[color:var(--foreground)] px-6 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--background)] transition hover:bg-transparent hover:text-[color:var(--foreground)]"
+          >
+            New session
+          </button>
+          <StatusLine status={status} />
+        </div>
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
+          local dev only
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section className="flex flex-col gap-4 border border-[color:var(--border)] px-5 py-5">
       <div className="flex items-baseline justify-between gap-4">
@@ -88,12 +111,17 @@ export function AutoresearchTrigger() {
             Trigger
           </p>
           <h2 className="mt-1 font-sans text-lg font-semibold tracking-tight text-[color:var(--foreground)]">
-            Run research iterations
+            Configure new session
           </h2>
         </div>
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
-          local dev only
-        </p>
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          disabled={isPending}
+          className="border border-[color:var(--border)] bg-transparent px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-[color:var(--muted-foreground)] transition hover:border-[color:var(--foreground)] hover:text-[color:var(--foreground)] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Cancel
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -170,11 +198,8 @@ export function AutoresearchTrigger() {
       </form>
 
       <p className="font-mono text-[10px] leading-relaxed text-[color:var(--muted-foreground)]">
-        Spawns <span className="text-[color:var(--foreground)]">pnpm autoresearch N</span>{" "}
-        as a detached child process with{" "}
-        <span className="text-[color:var(--foreground)]">AUTORESEARCH_MODEL</span>
-        {" "}set to the chosen ID. Iterations land in Convex as they finish and
-        appear in the timeline below without reload.
+        Each click spawns one autoresearch session on this machine. Sessions
+        show up in the list below and can be stopped individually.
       </p>
     </section>
   );
@@ -236,7 +261,8 @@ function StatusLine({ status }: { status: Status }) {
     return (
       <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--foreground)]">
         queued {status.iterations} iteration
-        {status.iterations === 1 ? "" : "s"} · {status.modelId} — watch the timeline
+        {status.iterations === 1 ? "" : "s"} · {status.modelId} — session{" "}
+        {status.sessionId.slice(0, 8)}
       </span>
     );
   }

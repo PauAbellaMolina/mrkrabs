@@ -1,15 +1,17 @@
 import { spawn } from "node:child_process";
+import os from "node:os";
 import path from "node:path";
+import {
+  attachAutoresearchSessionPid,
+  createAutoresearchSession,
+} from "@/lib/autoresearch-session";
 
-// Kicks off the autoresearch CLI as a detached child process so the caller
-// (the dashboard "Run iterations" button) doesn't have to wait for the
-// whole multi-minute loop to finish. The child runs the same entry point
-// that `pnpm autoresearch` runs, inherits env from the parent, and writes
-// results straight into Convex — where the autoresearch page already reads
-// from, so progress shows up live via the existing poller.
+// Creates an autoresearch session row in Convex, then spawns the outer-loop
+// script as a detached child process. The child's PID is written back onto
+// the session so /api/autoresearch/stop can SIGTERM exactly one session.
 //
-// This is a local-dev facility. The child process model relies on the
-// parent process staying alive, which only holds under `next dev`.
+// This is local-dev-only: the child lives in the same host as the Next dev
+// server, and the PID is only meaningful on that machine.
 
 export const runtime = "nodejs";
 export const maxDuration = 10;
@@ -28,9 +30,11 @@ const ALLOWED_MODELS = new Set([
   "claude-opus-4-6[1m]",
 ]);
 
+const DEFAULT_MODEL = "claude-sonnet-4-6";
+
 export async function POST(request: Request) {
   let iterations = 5;
-  let model: string | undefined;
+  let model = DEFAULT_MODEL;
   try {
     const body = (await request.json()) as RunRequestBody;
     if (typeof body.iterations === "number" && Number.isFinite(body.iterations)) {
@@ -40,7 +44,25 @@ export async function POST(request: Request) {
       model = body.model;
     }
   } catch {
-    // empty body is fine — we'll use the default
+    // empty body is fine — defaults apply
+  }
+
+  const sessionId = crypto.randomUUID();
+  const startedAt = new Date().toISOString();
+
+  try {
+    await createAutoresearchSession({
+      sessionId,
+      startedAt,
+      model,
+      plannedIterations: iterations,
+      host: os.hostname(),
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown session-create error";
+    console.error("[autoresearch][session-create-error]", { message });
+    return Response.json({ ok: false, error: message }, { status: 500 });
   }
 
   const scriptPath = path.join("scripts", "autoresearch.ts");
@@ -61,23 +83,39 @@ export async function POST(request: Request) {
         stdio: "ignore",
         env: {
           ...process.env,
-          ...(model ? { AUTORESEARCH_MODEL: model } : {}),
+          AUTORESEARCH_SESSION_ID: sessionId,
+          AUTORESEARCH_MODEL: model,
         },
       },
     );
     child.unref();
 
+    if (typeof child.pid === "number") {
+      // Best effort: if this mutation fails we still return success because
+      // the child is already running — the Stop button will just be disabled
+      // until the session reloads enough to learn the pid some other way.
+      attachAutoresearchSessionPid(sessionId, child.pid).catch(error => {
+        console.warn("[autoresearch][attach-pid-failed]", {
+          sessionId,
+          pid: child.pid,
+          error: error instanceof Error ? error.message : error,
+        });
+      });
+    }
+
     console.info("[autoresearch][spawn]", {
-      pid: child.pid,
+      sessionId,
+      pid: child.pid ?? null,
       iterations,
-      model: model ?? "default",
+      model,
     });
 
     return Response.json(
       {
         ok: true,
+        sessionId,
         iterations,
-        model: model ?? null,
+        model,
         pid: child.pid ?? null,
       },
       { status: 202 },
@@ -86,6 +124,7 @@ export async function POST(request: Request) {
     const message =
       error instanceof Error ? error.message : "Unknown spawn error";
     console.error("[autoresearch][spawn-error]", {
+      sessionId,
       message,
       iterations,
     });

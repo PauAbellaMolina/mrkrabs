@@ -16,6 +16,8 @@ import {
 
 const CODEX_PREVIEW_ID = "codex-cli (bundled)";
 
+type SystemPromptMode = "base" | "champion";
+
 export function NewRunForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +27,7 @@ export function NewRunForm() {
     DEFAULT_ANTHROPIC_FAMILY,
   );
   const [variantId, setVariantId] = useState<string>(DEFAULT_ANTHROPIC_VARIANT);
+  const [promptMode, setPromptMode] = useState<SystemPromptMode>("base");
 
   const family = useMemo(() => findAnthropicFamily(familyId), [familyId]);
   const resolvedModelId =
@@ -63,6 +66,9 @@ export function NewRunForm() {
         backend,
         ...(backend === "anthropic" && resolvedModelId
           ? { model: resolvedModelId }
+          : {}),
+        ...(backend === "anthropic"
+          ? { systemPromptMode: promptMode }
           : {}),
       }),
     })
@@ -123,6 +129,15 @@ export function NewRunForm() {
                   selected={variantId}
                   onSelect={setVariantId}
                 />
+                <SegmentedRow
+                  label="Prompt"
+                  options={[
+                    { value: "base", label: "Base" },
+                    { value: "champion", label: "Autoresearch champion" },
+                  ]}
+                  selected={promptMode}
+                  onSelect={v => setPromptMode(v as SystemPromptMode)}
+                />
               </>
             ) : null}
 
@@ -134,6 +149,14 @@ export function NewRunForm() {
                 {previewId}
               </code>
             </div>
+            {backend === "anthropic" && promptMode === "champion" ? (
+              <p className="font-mono text-[10px] leading-relaxed text-[color:var(--muted-foreground)]">
+                Composes{" "}
+                <span className="text-[color:var(--foreground)]">BASE</span> +
+                every rule autoresearch has accepted so far (loaded from
+                Convex at request time).
+              </p>
+            ) : null}
 
             <div className="flex gap-3">
               <button

@@ -5,11 +5,17 @@ import {
   HybridRunsList,
 } from "@/components/hybrid-runs-list";
 import { listRunSummaries } from "@/lib/agent-runs";
+import { PUBLIC_AUTORESEARCH_AGENT_NAME } from "@/lib/agent-version";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const serverRuns = await listRunSummaries();
+  // Autoresearch iterations live on their own page — the home list only
+  // surfaces manual "Run agent" executions so the two flows don't tangle.
+  const allRuns = await listRunSummaries();
+  const serverRuns = allRuns.filter(
+    run => run.agentName !== PUBLIC_AUTORESEARCH_AGENT_NAME,
+  );
 
   return (
     <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col gap-10 px-6 py-10">
