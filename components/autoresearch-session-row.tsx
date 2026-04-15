@@ -2,8 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import type { AutoresearchSession } from "@/lib/autoresearch-session";
+
+// Fixed locale + style so the server-rendered timestamp matches the client
+// render and doesn't trigger a hydration mismatch.
+const startedAtFormatter = new Intl.DateTimeFormat("en-US", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
 
 type Props = {
   session: AutoresearchSession;
@@ -24,9 +31,9 @@ export function AutoresearchSessionRow({ session, isLast }: Props) {
       : 0;
 
   const isRunning = session.status === "running";
-  const elapsed = formatElapsed(
-    new Date().getTime() - new Date(session.startedAt).getTime(),
-  );
+  // Elapsed-time ticker is client-only — SSR would compute Date.now() on the
+  // server and fight the browser's value on hydrate.
+  const elapsed = useRunningElapsed(session.startedAt, isRunning);
 
   const handleStop = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -78,7 +85,9 @@ export function AutoresearchSessionRow({ session, isLast }: Props) {
               </span>
             </div>
             <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)] tabular-nums">
-              {isRunning ? elapsed : new Date(session.startedAt).toLocaleString()}
+              {isRunning
+                ? (elapsed ?? "…")
+                : startedAtFormatter.format(new Date(session.startedAt))}
             </span>
           </div>
 
@@ -215,4 +224,32 @@ function formatElapsed(ms: number) {
   const s = seconds % 60;
   if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+// Returns null on the server + first client render so the SSR markup and
+// the hydrated markup match; then ticks once per second on the client.
+// State transitions only happen inside the timer callback (not the effect
+// body) so the react-hooks/set-state-in-effect lint stays satisfied.
+function useRunningElapsed(startedAt: string, isRunning: boolean): string | null {
+  const [elapsed, setElapsed] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isRunning) return;
+    const tick = () => {
+      setElapsed(formatElapsed(Date.now() - new Date(startedAt).getTime()));
+    };
+    const kickoff = window.setTimeout(tick, 0);
+    const interval = window.setInterval(tick, 1000);
+    return () => {
+      window.clearTimeout(kickoff);
+      window.clearInterval(interval);
+    };
+  }, [startedAt, isRunning]);
+  useEffect(() => {
+    if (isRunning) return;
+    // Reset via effect so the clear runs outside render and the lint is
+    // happy; async-by-scheduling (setTimeout) for the same reason.
+    const handle = window.setTimeout(() => setElapsed(null), 0);
+    return () => window.clearTimeout(handle);
+  }, [isRunning]);
+  return elapsed;
 }
