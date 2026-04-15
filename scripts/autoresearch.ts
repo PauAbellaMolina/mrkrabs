@@ -85,10 +85,13 @@ import {
 const DEFAULT_RUN_PROMPT =
   "Build the first full challenge submission using one thesis only: favor NASDAQ companies with low or improving legal-entity complexity from filing-linked subsidiary/control graphs available on or before 2025-04-15. Use 50 equal $20,000 positions and explain the picks with Cala-backed evidence only.";
 
-// Bigger step budget than manual UI runs. Haiku needs room to research and
-// compose a 50-position portfolio; 6 steps is too tight. Autoresearch spend
-// is capped by AUTORESEARCH_BUDGET_USD so this is safe to crank.
-const AUTORESEARCH_STEP_BUDGET = 20;
+// Bigger step budget than manual UI runs. Research + validation retries
+// under a strict schema need room; 20 was getting blown through on Sonnet
+// before the agent emitted the final portfolio. Autoresearch spend is
+// capped by AUTORESEARCH_BUDGET_USD so this is safe to crank. The
+// submit_portfolio tool lets the agent stop as soon as it commits, so the
+// budget is a ceiling, not a target.
+const AUTORESEARCH_STEP_BUDGET = 40;
 
 interface IterationOutcome {
   runId: string;

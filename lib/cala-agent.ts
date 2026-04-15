@@ -22,7 +22,11 @@ const CALA_MCP_URL =
 const CODE_EXEC_MAX_STDOUT_CHARS = 12_000;
 const CODE_EXEC_MAX_STDERR_CHARS = 12_000;
 const CODE_EXEC_DEFAULT_TIMEOUT_MS = 15_000;
-const DEFAULT_STEP_BUDGET = 50;
+// Step budget. Raised from 50 → 80 because Sonnet was hitting the ceiling
+// researching 50 candidates without leaving room for the final emit, and
+// the submit_portfolio tool now lets us stop early when the agent commits
+// (via `hasToolCall("submit_portfolio")`), so a larger headroom is cheap.
+const DEFAULT_STEP_BUDGET = 80;
 const CONTEXT_CLEAR_TOOL_TRIGGER_TOKENS = 30_000;
 const CONTEXT_CLEAR_TOOL_KEEP_COUNT = 8;
 const CONTEXT_CLEAR_TOOL_MIN_TOKENS = 4_000;
@@ -409,6 +413,57 @@ export const runCalaAgent = async (
   };
 
   let previousIssues: string[] = [];
+  // Populated when the model invokes submit_portfolio with an input that
+  // passes validatePortfolioOutput. Preferred over extractJsonObject when
+  // both paths produce output on the same attempt.
+  let capturedOutput: PortfolioOutput | null = null;
+
+  const submitPortfolioTool = tool({
+    description:
+      "Submit your final challenge-ready portfolio. The input schema matches " +
+      "the leaderboard JSON exactly. This is your FINAL action — after you " +
+      "call this with an accepted portfolio, stop immediately. If the " +
+      "response comes back with errors, fix them and call submit_portfolio " +
+      "again. Do not return a text answer alongside this call.",
+    inputSchema: portfolioOutputSchemaForAnthropic,
+    execute: async (input) => {
+      try {
+        const validated = portfolioOutputSchema.parse(input);
+        validatePortfolioOutput(validated);
+        capturedOutput = validated;
+        const txs = validated.submissionPayload.transactions;
+        const total = txs.reduce((sum, t) => sum + t.amount, 0);
+        return {
+          accepted: true as const,
+          positions: validated.positions.length,
+          transactions: txs.length,
+          total_usd: total,
+          unique_tickers: new Set(
+            txs.map((t) => t.nasdaq_code.trim().toUpperCase()),
+          ).size,
+        };
+      } catch (error) {
+        const issues =
+          error instanceof PortfolioValidationError
+            ? error.issues
+            : error &&
+                typeof error === "object" &&
+                "issues" in error &&
+                Array.isArray((error as { issues: unknown }).issues)
+              ? (error as { issues: Array<{ path?: unknown[]; message: string }> })
+                  .issues.map((i) =>
+                    Array.isArray(i.path) && i.path.length > 0
+                      ? `${i.path.join(".")}: ${i.message}`
+                      : i.message,
+                  )
+              : [error instanceof Error ? error.message : String(error)];
+        return {
+          accepted: false as const,
+          errors: issues,
+        };
+      }
+    },
+  });
 
   try {
     for (let attempt = 0; attempt <= MAX_VALIDATION_RETRIES; attempt++) {
@@ -418,7 +473,7 @@ export const runCalaAgent = async (
         await options?.onTelemetryEvent?.({
           level: "info",
           type: "step-finished",
-          title: `Validation retry ${attempt}/${MAX_VALIDATION_RETRIES}`,
+          title: `Retry ${attempt}/${MAX_VALIDATION_RETRIES}`,
           data: {
             attempt,
             issues: previousIssues,
@@ -426,17 +481,20 @@ export const runCalaAgent = async (
         });
       }
 
+      // Reset the capture for this attempt — every retry gets a fresh shot
+      // at the tool.
+      capturedOutput = null;
+
       const retryAddendum = isRetry
         ? [
             "",
-            "=== VALIDATION REPAIR ===",
-            "Your previous attempt failed these leaderboard checks:",
+            "=== REPAIR ATTEMPT ===",
+            "Your previous attempt failed with these issues:",
             ...previousIssues.map((issue) => `- ${issue}`),
-            "Produce a new portfolio that fixes every issue above. Keep the",
-            "same schema shape; adjust allocations, add missing tickers, or",
-            "rebalance so the total equals exactly $1,000,000 USD, every",
-            "amount is a positive integer >= $5,000, and there are at least",
-            "50 unique NASDAQ tickers.",
+            "Call submit_portfolio again with a corrected portfolio. Adjust",
+            "allocations, add missing tickers, or rebalance so the total equals",
+            "exactly $1,000,000 USD, every amount is a positive integer >= $5,000,",
+            "and there are at least 50 unique NASDAQ tickers.",
           ].join("\n")
         : "";
 
@@ -445,9 +503,14 @@ export const runCalaAgent = async (
         `MODEL_AGENT_NAME: ${DEFAULT_AGENT_NAME}`,
         `MODEL_AGENT_VERSION: ${DEFAULT_AGENT_VERSION}`,
         "",
-        "Return a challenge-ready structured portfolio response.",
-        "The output must satisfy the schema exactly.",
-        "The portfolio must be submission-ready for the leaderboard endpoint.",
+        "Research Cala's entity graph, then submit the final portfolio by",
+        "calling the submit_portfolio tool exactly once. The tool's input",
+        "schema matches the leaderboard exactly. Do NOT return a JSON blob",
+        "in text — the submit_portfolio tool call IS the output.",
+        "",
+        "When you have 3 or fewer steps remaining, stop researching and",
+        "call submit_portfolio with whatever you've verified so far —",
+        "failing to commit at all is worse than committing an imperfect list.",
         "",
         prompt,
         retryAddendum,
@@ -459,8 +522,17 @@ export const runCalaAgent = async (
         model: anthropic(effectiveModel),
         system: effectiveSystemPrompt,
         prompt: userPrompt,
-        stopWhen: stepCountIs(stepBudget),
-        tools: calaTools,
+        // Stop on the step budget OR when the tool's execute set
+        // capturedOutput (i.e. submit_portfolio ran AND the portfolio
+        // passed validation). Using the captured flag instead of
+        // hasToolCall lets the agent retry submit_portfolio in-loop when
+        // its first attempt fails validation — the tool result tells it
+        // what to fix, and the next step can try again.
+        stopWhen: [
+          stepCountIs(stepBudget),
+          () => capturedOutput !== null,
+        ],
+        tools: { ...calaTools, submit_portfolio: submitPortfolioTool },
         toolChoice: "auto",
         ...(modelSupportsContextManagement
           ? {
@@ -521,11 +593,123 @@ export const runCalaAgent = async (
         })),
       );
 
-      try {
-        const parsedOutput = portfolioOutputSchemaForAnthropic.parse(
-          extractJsonObject(result.text),
+      // Two-phase commit. The research pass above includes submit_portfolio
+      // in its toolbox so the model *can* commit naturally — but we keep
+      // hitting the failure mode where it burns the step budget on research
+      // and never calls it. When that happens, capturedOutput is still null
+      // and result.text has no JSON either. Run a short, forced commit pass
+      // with ONLY submit_portfolio available and toolChoice="required" so
+      // the SDK won't let the step end until the tool is called. The model
+      // receives the entire research transcript as context, so no Cala
+      // research is wasted.
+      let outputPhase: "research" | "commit" = "research";
+      if (!capturedOutput) {
+        outputPhase = "commit";
+        await options?.onTelemetryEvent?.({
+          level: "info",
+          type: "step-started",
+          title: "Commit pass starting",
+          data: {
+            attempt,
+            researchSteps: result.steps.length,
+            reason:
+              "research-pass-ended-without-submit_portfolio",
+          },
+        });
+
+        const commitResult = await generateText({
+          model: anthropic(effectiveModel),
+          system: effectiveSystemPrompt,
+          messages: [
+            { role: "user", content: userPrompt },
+            ...result.response.messages,
+            {
+              role: "user",
+              content:
+                "Your research budget is exhausted. Call submit_portfolio NOW " +
+                "with the best portfolio you can assemble from the research above. " +
+                "Requirements: at least 50 unique NASDAQ tickers, every amount a " +
+                "positive integer >= $5,000, total equals exactly $1,000,000. " +
+                "Do not call any other tool. Do not return any text — the " +
+                "submit_portfolio tool call IS the final answer.",
+            },
+          ],
+          // Same capturedOutput-based stop as the research pass, so the
+          // model can retry submit_portfolio up to 4 times within this
+          // pass if the first attempt fails validation.
+          stopWhen: [stepCountIs(4), () => capturedOutput !== null],
+          tools: { submit_portfolio: submitPortfolioTool },
+          toolChoice: "required",
+          ...(modelSupportsContextManagement
+            ? {
+                providerOptions: {
+                  anthropic: {
+                    contextManagement: anthropicContextManagement,
+                  } satisfies AnthropicLanguageModelOptions,
+                },
+              }
+            : {}),
+          // Commit pass outputs a full 50-position JSON blob via the tool
+          // call — give it headroom beyond the research pass's 8000.
+          maxOutputTokens: 16000,
+          maxRetries: 2,
+          onStepFinish: async (event: {
+            stepNumber: number;
+            finishReason: string;
+            toolCalls: unknown[];
+            text: string;
+            usage: unknown;
+          }) => {
+            await options?.onTelemetryEvent?.({
+              level: "info",
+              type: "step-finished",
+              title: `Commit step ${event.stepNumber + 1} finished${isRetry ? ` (retry ${attempt})` : ""}`,
+              data: {
+                stepNumber: event.stepNumber,
+                finishReason: event.finishReason,
+                toolCallCount: event.toolCalls.length,
+                text: event.text,
+                usage: event.usage,
+                attempt,
+                phase: "commit",
+              },
+            });
+          },
+        });
+
+        mergeUsage(commitResult.totalUsage);
+        aggregatedSteps.push(
+          ...commitResult.steps.map((step) => ({
+            text: step.text,
+            finishReason: step.finishReason,
+            toolCalls: step.toolCalls,
+            toolResults: step.toolResults,
+          })),
         );
-        const validatedOutput = portfolioOutputSchema.parse(parsedOutput);
+      }
+
+      try {
+        // Preferred path: submit_portfolio tool was invoked (either
+        // naturally in the research pass or forcibly in the commit pass)
+        // and its execute() validated the payload. Falls back to text
+        // extraction only when BOTH passes failed to commit — which is
+        // extremely rare with toolChoice="required" on the commit pass.
+        let validatedOutput: PortfolioOutput;
+        let outputSource:
+          | "research-pass"
+          | "commit-pass"
+          | "text-extraction";
+        if (capturedOutput) {
+          validatedOutput = capturedOutput;
+          outputSource = outputPhase === "commit" ? "commit-pass" : "research-pass";
+        } else {
+          const parsedOutput = portfolioOutputSchemaForAnthropic.parse(
+            extractJsonObject(result.text),
+          );
+          validatedOutput = portfolioOutputSchema.parse(parsedOutput);
+          validatePortfolioOutput(validatedOutput);
+          outputSource = "text-extraction";
+        }
 
         const response = {
           model: effectiveModel,
@@ -533,17 +717,13 @@ export const runCalaAgent = async (
           steps: aggregatedSteps,
         };
 
-        // Post-generation leaderboard checks — throws if count, total,
-        // duplicates, or cutoff flags are wrong. Caught below so we can
-        // retry with the specific issues fed back into the prompt.
-        validatePortfolioOutput(response.output);
-
         console.info("[cala-agent][generateText][success]", {
           model: effectiveModel,
           attempt,
           steps: aggregatedSteps.length,
-          positions: parsedOutput.positions.length,
-          transactions: parsedOutput.submissionPayload.transactions.length,
+          positions: validatedOutput.positions.length,
+          transactions: validatedOutput.submissionPayload.transactions.length,
+          outputSource,
         });
 
         await options?.onFinish?.({
@@ -555,10 +735,17 @@ export const runCalaAgent = async (
 
         return response;
       } catch (error) {
-        if (
-          error instanceof PortfolioValidationError &&
-          attempt < MAX_VALIDATION_RETRIES
-        ) {
+        if (attempt >= MAX_VALIDATION_RETRIES) throw error;
+
+        // Three recoverable error shapes, all fed back into the prompt:
+        //   1. PortfolioValidationError — our own post-generation checks
+        //      (wrong total, <50 tickers, duplicates, etc).
+        //   2. extractJsonObject() — model ended without a JSON block
+        //      (ran out of steps, replied with prose only).
+        //   3. zod parse failure — JSON was present but didn't match the
+        //      lax Anthropic schema (missing field, wrong type).
+        // Everything else (API errors, MCP client failures) propagates.
+        if (error instanceof PortfolioValidationError) {
           previousIssues = error.issues;
           console.warn("[cala-agent][validation][retrying]", {
             attempt: attempt + 1,
@@ -567,7 +754,55 @@ export const runCalaAgent = async (
           });
           continue;
         }
-        throw error;
+
+        const message = error instanceof Error ? error.message : String(error);
+        const isExtractFailure = message.includes(
+          "did not contain a JSON object",
+        );
+        // z.ZodError has .issues on it; check duck-typed so we don't have
+        // to import zod's error class.
+        const zodIssues =
+          error &&
+          typeof error === "object" &&
+          "issues" in error &&
+          Array.isArray((error as { issues: unknown }).issues)
+            ? ((error as { issues: Array<{ path?: unknown[]; message: string }> }).issues
+                .map(i =>
+                  Array.isArray(i.path) && i.path.length > 0
+                    ? `${i.path.join(".")}: ${i.message}`
+                    : i.message,
+                )
+                .slice(0, 10))
+            : null;
+
+        if (isExtractFailure) {
+          previousIssues = [
+            "Previous attempt ended without emitting a JSON object. You MUST finish your response with a single fenced ```json ... ``` block containing the full portfolio matching the schema — do not end with narration or a tool call.",
+          ];
+        } else if (zodIssues && zodIssues.length > 0) {
+          previousIssues = [
+            "Previous attempt's JSON did not parse against the schema. Specific issues:",
+            ...zodIssues.map(issue => `- ${issue}`),
+            "Emit a corrected JSON object that matches every field's type exactly.",
+          ];
+        } else {
+          previousIssues = [
+            `Previous attempt failed: ${message}`,
+            "Re-emit the full portfolio JSON from scratch.",
+          ];
+        }
+
+        console.warn("[cala-agent][parse][retrying]", {
+          attempt: attempt + 1,
+          max: MAX_VALIDATION_RETRIES,
+          reason: isExtractFailure
+            ? "no-json"
+            : zodIssues
+              ? "schema-mismatch"
+              : "unknown",
+          message,
+        });
+        continue;
       }
     }
 
