@@ -43,3 +43,7 @@ next-env.d.ts
 # saved agent runs (Phase 1: keep out of git; demo.json is an opt-in exception)
 /.runs/
 !/.runs/demo.json
+
+# Local agent state (run records, autoresearch ledger, version counter) —
+# never commit; regenerated per machine.
+/.data/

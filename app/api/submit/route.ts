@@ -1,46 +1,14 @@
 export const runtime = "nodejs"
 export const maxDuration = 30
 
-const SUBMIT_URL = "https://different-cormorant-663.convex.site/api/submit"
-
-interface SubmissionPayload {
-  team_id: string
-  model_agent_name: string
-  model_agent_version: string
-  transactions: Array<{
-    nasdaq_code: string
-    amount: number
-  }>
-}
-
 interface SubmitRequestBody {
-  submissionPayload?: SubmissionPayload
+  submissionPayload?: import("@/lib/leaderboard-submit").SubmissionPayload
 }
 
-const serializeError = (error: unknown) => {
-  if (!(error instanceof Error)) {
-    return {
-      message: "Unknown submit error",
-      raw: error,
-    }
-  }
-
-  const errorWithCause = error as Error & { cause?: unknown }
-
-  return {
-    name: error.name,
-    message: error.message,
-    stack: error.stack,
-    cause:
-      errorWithCause.cause instanceof Error
-        ? {
-            name: errorWithCause.cause.name,
-            message: errorWithCause.cause.message,
-            stack: errorWithCause.cause.stack,
-          }
-        : errorWithCause.cause,
-  }
-}
+import {
+  serializeSubmitError,
+  submitToLeaderboard,
+} from "@/lib/leaderboard-submit"
 
 export async function POST(request: Request) {
   const requestId = crypto.randomUUID()
@@ -59,68 +27,31 @@ export async function POST(request: Request) {
       )
     }
 
-    console.info("[submit][start]", {
-      requestId,
-      teamId: submissionPayload.team_id,
-      modelAgentName: submissionPayload.model_agent_name,
-      modelAgentVersion: submissionPayload.model_agent_version,
-      transactionCount: submissionPayload.transactions.length,
-      totalAllocated: submissionPayload.transactions.reduce(
-        (sum, transaction) => sum + transaction.amount,
-        0,
-      ),
-    })
+    const result = await submitToLeaderboard(submissionPayload)
 
-    const response = await fetch(SUBMIT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(submissionPayload),
-    })
-
-    const rawText = await response.text()
-    let parsedBody: unknown = null
-
-    if (rawText) {
-      try {
-        parsedBody = JSON.parse(rawText)
-      } catch {
-        parsedBody = { rawText }
-      }
-    }
-
-    if (!response.ok) {
-      console.error("[submit][upstream-error]", {
-        requestId,
-        status: response.status,
-        statusText: response.statusText,
-        body: parsedBody,
-      })
-
+    if (!result.ok) {
       return Response.json(
         {
           error: "Submission endpoint rejected the payload.",
-          requestId,
-          upstreamStatus: response.status,
-          upstreamStatusText: response.statusText,
-          details: parsedBody,
+          requestId: result.requestId,
+          publicAgentName: result.agentName,
+          publicAgentVersion: result.agentVersion,
+          upstreamStatus: result.upstreamStatus,
+          upstreamStatusText: result.upstreamStatusText,
+          details: result.details,
         },
-        { status: response.status },
+        { status: result.upstreamStatus },
       )
     }
 
-    console.info("[submit][success]", {
-      requestId,
-      response: parsedBody,
-    })
-
     return Response.json({
-      requestId,
-      response: parsedBody,
+      requestId: result.requestId,
+      publicAgentName: result.agentName,
+      publicAgentVersion: result.agentVersion,
+      response: result.response,
     })
   } catch (error) {
-    const details = serializeError(error)
+    const details = serializeSubmitError(error)
 
     console.error("[submit][error]", {
       requestId,

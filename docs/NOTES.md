@@ -5,8 +5,79 @@
 
 ## 2026-04-15
 
+### Mission Control — localStorage mock runs for UI iteration
+
+Added an always-visible status strip in the top-right corner that expands on hover into a dev panel. Lets Pau (and future Claudes) populate the list/detail pages with fake `AgentRunRecord[]` data without touching the real agent or the Convex submit endpoint. Everything persists in `localStorage` under `mrkrabs.mockMode.*` so toggling mock mode survives refreshes.
+
+**Seven fixture runs cover every stage** (`lib/mock-fixtures.ts`):
+
+1. Running — active, live events, skeleton blocks in the detail view
+2. Done (alt portfolio) — completed, serves as diff baseline for the next one
+3. Done (strong portfolio) — completed, diff markers vs #2
+4. Submitted winner — headline return **+21.74%** vs SPX +9.60%, sharpe 1.82
+5. Submitted loser — headline return **−6.12%** vs SPX +9.60%, sharpe −0.41
+6. Submit-failed — agent succeeded, Convex rejected with a fake 422
+7. Agent failed — errored with `ANTHROPIC_API_KEY is not set.`
+
+Every fixture portfolio has 50 NASDAQ positions summing to exactly $1,000,000 (10 high-conviction × $40k + 20 core × $20k + 20 satellite × $10k), with realistic-sounding graph-shaped theses per position.
+
+**Mock-aware submission.** When mock mode is on and you click "Submit to leaderboard" on a done fixture, `RunSubmissionPanel` simulates a 1.5 s round-trip and writes a fake Convex response (random return in the −5% to +25% range with matching sharpe/drawdown/excess metrics) back to localStorage. The same `parseSubmissionResponse` that handles real Convex output renders the headline — so testing the submission UI is exactly the same code path.
+
+**Architecture** (all frontend, no backend touches):
+
+- `lib/mock-fixtures.ts` — fixtures + builders
+- `lib/mock-store.ts` — SSR-safe localStorage CRUD + change-event channel
+- `lib/mock-mode.tsx` — `<MockModeProvider>` + `useMockMode()` hook
+- `components/mission-control.tsx` — top-right hover-to-expand dev panel
+- `components/hybrid-runs-list.tsx` — swaps server summaries for mock summaries when enabled
+- `components/hybrid-run-detail.tsx` — swaps server run + baseline for mock equivalents
+- `app/layout.tsx` — wraps in `<MockModeProvider>` + mounts `<MissionControl>`
+- `app/page.tsx` + `app/runs/[id]/page.tsx` — server components still fetch real data for first paint, hand off to the hybrid wrappers for rendering
+- `components/run-submission-panel.tsx` — gains an `isMock` prop that simulates the Convex round-trip locally
+
+**Interaction model for the peek bar:**
+
+- Always-visible: a thin monochrome strip in the top-right showing `● mock · N` or `◦ live`. Sticks to the edge, flush with the corner.
+- Hover anywhere inside the strip or its expanded panel → full controls slide down with a 150 ms transition.
+- Leave the combined hover zone → 180 ms delay, then collapse back to the strip (delay prevents flicker from cursor wobble between the strip and the expanded buttons).
+- Click the strip → also toggles (keyboard / touch friendly).
+- Controls: Enable/Disable toggle, "Seed 7 fixture runs", "Add fresh running run" (useful for testing auto-refresh with brand-new records), "Clear mock store". Metadata footer shows record count, last action, storage backend.
+
+**Safe coexistence with real runs.** Mock mode only hides real runs from the UI — it never writes to `.data/agent-runs/`. Disabling mock mode instantly restores the real run list. The server still loads real data on every request even when mock mode is on (cheap read, irrelevant for hackathon latency), so there's no flash of "empty" when toggling off.
+
+### Frontend rebuild around agent-run lifecycle (stage-driven UI)
+
+Restructured the UI so every run walks five observable stages and the layout adapts to each one:
+
+- **running** — live activity feed + pulsing skeleton blocks for portfolio/report/metrics; page auto-refreshes every 1s via `<AutoRefresh>` calling `router.refresh()`
+- **failed** — error message + details + full event log; prompt panel for context
+- **done** — result summary, report, timeline, portfolio table with diff markers vs baseline, diff panel, **prominent submit CTA**
+- **submit-failed** — same as done but with submission-error banner and a retry button
+- **submitted** — headline return % (pulled defensively from Convex's `response`) at the top, secondary metrics grid, raw JSON collapse, plus the full done-view content underneath
+
+Stage is derived from `(status, result, leaderboardSubmission)` in `lib/run-stage.ts`. Portfolio diffs live in `lib/run-diff.ts`; the Convex submission-response parser is in `lib/submission-result.ts`.
+
+**Design discipline:** strict monochrome throughout — only `oklch(0.14..0.96)` surfaces with `--radius-base: 0px`. State carried by glyphs (`◦ ● ✓ × + − ↑ ↓`), weight, surface elevation, and pulse animations — never hue. No more radial gradients, no cyan/emerald/rose, no mixed border-radii.
+
+**Files touched (frontend only — no backend changes):**
+
+- New libs: `lib/run-stage.ts`, `lib/run-diff.ts`, `lib/submission-result.ts`
+- New components: `components/auto-refresh.tsx`, `run-stage-badge.tsx`, `run-skeleton-blocks.tsx`, `run-activity-feed.tsx`, `run-portfolio-table.tsx`, `run-diff-panel.tsx`, `run-submission-panel.tsx`, `run-list-card.tsx`
+- Rewritten: `app/page.tsx`, `app/runs/[id]/page.tsx`
+- Deleted: `components/submit-run-button.tsx` (superseded by `run-submission-panel.tsx`)
+- Untouched: `components/new-run-form.tsx`, all `lib/cala-*.ts`, all `app/api/*` routes, `lib/agent-runs.ts`, `lib/leaderboard-submit.ts` (Anton's territory)
+
+**Defensive submission parsing:** since Convex's `/api/submit` response shape isn't documented, `parseSubmissionResponse` walks the JSON, extracts number-valued fields whose key hints at return/pnl/score/value, classifies each as percent/currency/number, and surfaces the first priority match as the headline metric. If the upstream changes shape or adds fields we didn't anticipate, they still appear in the raw-response collapse — nothing is silently dropped.
+
+**Baseline diff:** a "done" or "submitted" run compares its portfolio against the most recent _other_ completed run. Positions table gains a marker column (`+ − ↑ ↓ =`) and a diff panel summarizes added/removed/reweighted counts with links to the biggest changes. First completed run shows an empty-baseline state.
+
+**Auto-refresh policy:** Home page polls every 1s while any run is running, 4s otherwise (so new runs started in other tabs still surface). Details page polls every 1s while `stage === "running"`, stops polling the moment the run reaches a terminal state.
+
 ### Implementation notes
 
+- ✅ Reworked the frontend into a simple run-inspection dashboard: homepage lists persisted agent runs, `app/runs/[id]/page.tsx` shows prompt, timeline logs, model steps, report, payload, and positions.
+- ✅ Added file-backed run persistence in `lib/agent-runs.ts` under `.data/agent-runs/`, with AI SDK telemetry callbacks captured from `runCalaAgent()` for step/tool logging.
+- ✅ Repointed `lib/cala-agent.ts` to the existing REST-backed Cala AI SDK tools (`lib/cala-tools.ts`) instead of the missing `@ai-sdk/mcp` package, preserving the structured output contract and adding telemetry metadata.
 - ✅ Added `lib/cala.ts` with REST client wrappers for: `GET /v1/entities?name=...`, `GET /v1/entities/{id}/introspection`, and `POST /v1/entities/{id}` using typed responses, endpoint-specific normalization, and Cala API error handling.
 - ✅ Added an Anthropic-backed Cala MCP agent path: `lib/cala-agent.ts` + `app/api/agent/route.ts` + homepage playground UI. Current test model is `claude-haiku-4-5`, talking to Cala over remote HTTP MCP with `X-API-KEY`.
 - ✅ Tightened the agent output contract: report-first markdown with buy recommendations and `<entity UUID="...">...</entity>` tags for Cala-backed company citations.

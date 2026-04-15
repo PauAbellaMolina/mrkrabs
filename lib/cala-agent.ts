@@ -1,12 +1,18 @@
 import { anthropic } from "@ai-sdk/anthropic"
-import { createMCPClient } from "@ai-sdk/mcp"
 import { generateText, Output, stepCountIs } from "ai"
 import { z } from "zod"
+import { createCalaTools } from "./cala-tools"
 
 const DEFAULT_MODEL = "claude-haiku-4-5"
-const DEFAULT_CALA_MCP_URL = "https://api.cala.ai/mcp/"
-const DEFAULT_AGENT_NAME = "mrkrabs-anthropic-cala"
-const DEFAULT_AGENT_VERSION = "v0.1"
+// Public brand for every submission. These flow into submissionPayload.model_agent_*
+// but are unconditionally overridden by `submitToLeaderboard` with a fresh
+// `vN` each call, so the final public values are allocated in one place.
+const DEFAULT_AGENT_NAME = "Mr. Krabs Autoresearch"
+const DEFAULT_AGENT_VERSION = "—"
+
+export const CALA_AGENT_NAME = DEFAULT_AGENT_NAME
+export const CALA_AGENT_VERSION = DEFAULT_AGENT_VERSION
+export const CALA_AGENT_MODEL = DEFAULT_MODEL
 
 export interface CalaAgentStep {
   text: string
@@ -48,6 +54,33 @@ export interface CalaAgentResult {
   steps: CalaAgentStep[]
 }
 
+interface RunCalaAgentOptions {
+  // Autoresearch hook. When provided, the outer loop's variant prompt is
+  // used instead of BASE_SYSTEM_PROMPT. Manual runs from the UI leave this
+  // unset and get the baseline prompt.
+  systemPromptOverride?: string
+  // Override the default step budget. Autoresearch uses a higher cap so the
+  // agent can research more candidates per run; manual UI runs keep the
+  // default.
+  stepBudget?: number
+  onTelemetryEvent?: (event: {
+    level: "info" | "error"
+    type:
+      | "step-started"
+      | "tool-started"
+      | "tool-finished"
+      | "step-finished"
+    title: string
+    data?: unknown
+  }) => Promise<void> | void
+  onFinish?: (event: {
+    functionId?: string
+    metadata?: Record<string, unknown>
+    totalUsage: unknown
+    result: CalaAgentResult
+  }) => Promise<void> | void
+}
+
 const portfolioOutputSchema = z.object({
   submissionPayload: z.object({
     team_id: z.string(),
@@ -81,12 +114,14 @@ const portfolioOutputSchema = z.object({
   reportMarkdown: z.string(),
 })
 
-const systemPrompt = `
+// Exported so the autoresearch script can bootstrap `.data/autoresearch/champion.md`
+// from the baseline and measure mutation drift against it.
+export const BASE_SYSTEM_PROMPT = `
 You are a financial research agent building a NASDAQ portfolio report for Cala's
-"Lobster of Wall Street" challenge through Cala's MCP server.
+"Lobster of Wall Street" challenge using Cala's verified entity graph tools.
 
 Rules:
-- Use Cala MCP tools for factual claims about companies, entities, or relationships.
+- Use Cala tools for factual claims about companies, entities, or relationships.
 - Prefer the entity workflow when possible: entity_search -> entity_introspection -> retrieve_entity.
 - Do not present unsupported facts from memory when Cala tools can verify them.
 - If Cala does not contain the requested data, say that clearly.
@@ -129,40 +164,32 @@ Explain why the reasoning avoided post-2025-04-15 information.
 Missing data, point-in-time caveats, or reasons confidence is limited.
 `.trim()
 
-export async function runCalaAgent(prompt: string): Promise<CalaAgentResult> {
+// Internal alias kept for the existing generateText call site below.
+const systemPrompt = BASE_SYSTEM_PROMPT
+
+export async function runCalaAgent(
+  prompt: string,
+  options?: RunCalaAgentOptions,
+): Promise<CalaAgentResult> {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY is required")
-  }
-
-  if (!process.env.CALA_API_KEY) {
-    throw new Error("CALA_API_KEY is required")
   }
 
   if (!process.env.TEAM_ID) {
     throw new Error("TEAM_ID is required")
   }
+  const tools = createCalaTools()
 
-  const mcpClient = await createMCPClient({
-    transport: {
-      type: "http",
-      url: process.env.CALA_MCP_URL ?? DEFAULT_CALA_MCP_URL,
-      headers: {
-        "X-API-KEY": process.env.CALA_API_KEY,
-      },
-    },
+  console.info("[cala-agent][tools]", {
+    toolCount: Object.keys(tools).length,
+    toolNames: Object.keys(tools),
   })
 
   try {
-    const tools = await mcpClient.tools()
-
-    console.info("[cala-agent][mcp-tools]", {
-      toolCount: Object.keys(tools).length,
-      toolNames: Object.keys(tools),
-    })
-
+    const effectiveSystemPrompt = options?.systemPromptOverride ?? systemPrompt
     const result = await generateText({
       model: anthropic(DEFAULT_MODEL),
-      system: systemPrompt,
+      system: effectiveSystemPrompt,
       prompt: [
         `TEAM_ID: ${process.env.TEAM_ID}`,
         `MODEL_AGENT_NAME: ${DEFAULT_AGENT_NAME}`,
@@ -175,13 +202,83 @@ export async function runCalaAgent(prompt: string): Promise<CalaAgentResult> {
         prompt,
       ].join("\n"),
       tools,
-      stopWhen: stepCountIs(6),
+      stopWhen: stepCountIs(options?.stepBudget ?? 6),
       output: Output.object({
         schema: portfolioOutputSchema,
         name: "portfolio_report",
         description:
           "A submission-ready NASDAQ portfolio, a cutoff audit, and a markdown report with Cala entity citations.",
       }),
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: "mrkrabs.cala-agent.run",
+        metadata: {
+          agentName: DEFAULT_AGENT_NAME,
+          agentVersion: DEFAULT_AGENT_VERSION,
+        },
+        integrations: {
+          onStepStart: async (event) => {
+            await options?.onTelemetryEvent?.({
+              level: "info",
+              type: "step-started",
+              title: `Step ${event.stepNumber + 1} started`,
+              data: {
+                stepNumber: event.stepNumber,
+                model: event.model,
+              },
+            })
+          },
+          onToolCallStart: async (event) => {
+            await options?.onTelemetryEvent?.({
+              level: "info",
+              type: "tool-started",
+              title: `Tool ${event.toolCall.toolName} started`,
+              data: {
+                stepNumber: event.stepNumber,
+                toolCallId: event.toolCall.toolCallId,
+                toolName: event.toolCall.toolName,
+                input: event.toolCall.input,
+              },
+            })
+          },
+          onToolCallFinish: async (event) => {
+            await options?.onTelemetryEvent?.({
+              level: event.success ? "info" : "error",
+              type: "tool-finished",
+              title: `Tool ${event.toolCall.toolName} ${event.success ? "finished" : "failed"}`,
+              data: event.success
+                ? {
+                    stepNumber: event.stepNumber,
+                    toolCallId: event.toolCall.toolCallId,
+                    toolName: event.toolCall.toolName,
+                    durationMs: event.durationMs,
+                    output: event.output,
+                  }
+                : {
+                    stepNumber: event.stepNumber,
+                    toolCallId: event.toolCall.toolCallId,
+                    toolName: event.toolCall.toolName,
+                    durationMs: event.durationMs,
+                    error: event.error,
+                  },
+            })
+          },
+          onStepFinish: async (event) => {
+            await options?.onTelemetryEvent?.({
+              level: "info",
+              type: "step-finished",
+              title: `Step ${event.stepNumber + 1} finished`,
+              data: {
+                stepNumber: event.stepNumber,
+                finishReason: event.finishReason,
+                toolCallCount: event.toolCalls.length,
+                text: event.text,
+                usage: event.usage,
+              },
+            })
+          },
+        },
+      },
     })
 
     console.info("[cala-agent][generateText][success]", {
@@ -191,7 +288,7 @@ export async function runCalaAgent(prompt: string): Promise<CalaAgentResult> {
       transactions: result.output.submissionPayload.transactions.length,
     })
 
-    return {
+    const response = {
       model: DEFAULT_MODEL,
       output: result.output,
       steps: result.steps.map((step) => ({
@@ -201,6 +298,15 @@ export async function runCalaAgent(prompt: string): Promise<CalaAgentResult> {
         toolResults: step.toolResults,
       })),
     }
+
+    await options?.onFinish?.({
+      functionId: result.functionId,
+      metadata: result.metadata,
+      totalUsage: result.totalUsage,
+      result: response,
+    })
+
+    return response
   } catch (error) {
     console.error("[cala-agent][generateText][error]", {
       model: DEFAULT_MODEL,
@@ -214,7 +320,5 @@ export async function runCalaAgent(prompt: string): Promise<CalaAgentResult> {
           : error,
     })
     throw error
-  } finally {
-    await mcpClient.close()
   }
 }

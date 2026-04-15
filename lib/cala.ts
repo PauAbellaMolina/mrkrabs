@@ -1,5 +1,15 @@
 const DEFAULT_BASE_URL = "https://api.cala.ai"
 
+export const CALA_ENTITY_TYPES = [
+  "Company",
+  "Person",
+  "Product",
+  "Industry",
+  "Law",
+  "GPE",
+  "CorporateEvent",
+] as const
+
 export type CalaRecord = Record<string, unknown>
 
 export interface CalaClientConfig {

@@ -1,4 +1,15 @@
-import { runCalaAgent } from "@/lib/cala-agent"
+import {
+  CALA_AGENT_MODEL,
+  CALA_AGENT_NAME,
+  CALA_AGENT_VERSION,
+  runCalaAgent,
+} from "@/lib/cala-agent"
+import {
+  appendRunEvent,
+  completeRunRecord,
+  createRunRecord,
+  failRunRecord,
+} from "@/lib/agent-runs"
 
 export const runtime = "nodejs"
 export const maxDuration = 30
@@ -34,6 +45,7 @@ const serializeError = (error: unknown) => {
 
 export async function POST(request: Request) {
   const requestId = crypto.randomUUID()
+  let runId: string | null = null
 
   try {
     const body = (await request.json()) as AgentRequestBody
@@ -55,22 +67,57 @@ export async function POST(request: Request) {
       promptPreview: prompt.slice(0, 240),
     })
 
-    const result = await runCalaAgent(prompt)
+    runId = crypto.randomUUID()
+
+    await createRunRecord({
+      id: runId,
+      requestId,
+      prompt,
+      agentName: CALA_AGENT_NAME,
+      agentVersion: CALA_AGENT_VERSION,
+      model: CALA_AGENT_MODEL,
+    })
+
+    const result = await runCalaAgent(prompt, {
+      onTelemetryEvent: (event) => appendRunEvent(runId, event),
+      onFinish: (event) =>
+        completeRunRecord(runId, {
+          model: CALA_AGENT_MODEL,
+          result: event.result,
+          telemetry: {
+            functionId: event.functionId,
+            metadata: event.metadata,
+            totalUsage: event.totalUsage,
+          },
+        }),
+    })
 
     console.info("[agent][success]", {
       requestId,
+      runId,
       model: result.model,
       positions: result.output.positions.length,
       transactions: result.output.submissionPayload.transactions.length,
       usedPostCutoffData: result.output.cutoffAudit.postCutoffDataUsed,
     })
 
-    return Response.json(result)
+    return Response.json({
+      runId,
+      ...result,
+    })
   } catch (error) {
     const details = serializeError(error)
 
+    if (runId) {
+      await failRunRecord(runId, {
+        message: details.message,
+        details,
+      })
+    }
+
     console.error("[agent][error]", {
       requestId,
+      runId,
       ...details,
     })
 
