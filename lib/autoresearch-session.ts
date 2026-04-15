@@ -23,6 +23,12 @@ export interface AutoresearchSession {
   plannedIterations: number;
   completedIterations: number;
   errorMessage?: string;
+  // Ledger-derived stats. Populated by listSessions; unset on
+  // getSession (which doesn't walk the ledger on read for a single row).
+  keptCount?: number;
+  discardedCount?: number;
+  skippedCount?: number;
+  bestScore?: number | null;
 }
 
 export async function createAutoresearchSession(input: {

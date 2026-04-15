@@ -90,6 +90,8 @@ export function AutoresearchSessionRow({ session, isLast }: Props) {
             />
           </div>
 
+          <SessionStats session={session} />
+
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-mono text-[10px] text-[color:var(--muted-foreground)]">
               {session.model}
@@ -127,6 +129,58 @@ export function AutoresearchSessionRow({ session, isLast }: Props) {
         ) : null}
       </div>
     </li>
+  );
+}
+
+function SessionStats({ session }: { session: AutoresearchSession }) {
+  const kept = session.keptCount ?? 0;
+  const discarded = session.discardedCount ?? 0;
+  const skipped = session.skippedCount ?? 0;
+  const total = kept + discarded + skipped;
+  const best = session.bestScore ?? null;
+
+  // No ledger entries yet (fresh session with zero settled iterations).
+  if (total === 0 && best == null) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {kept > 0 ? (
+        <StatChip label={`${kept} kept`} filled />
+      ) : null}
+      {discarded > 0 ? <StatChip label={`${discarded} discarded`} /> : null}
+      {skipped > 0 ? <StatChip label={`${skipped} skipped`} /> : null}
+      {best != null ? (
+        <StatChip label={`best $${best.toLocaleString()}`} filled />
+      ) : total > 0 ? (
+        <StatChip label="no score" muted />
+      ) : null}
+    </div>
+  );
+}
+
+function StatChip({
+  label,
+  filled = false,
+  muted = false,
+}: {
+  label: string;
+  filled?: boolean;
+  muted?: boolean;
+}) {
+  const className = filled
+    ? "border-[color:var(--foreground)] bg-[color:var(--foreground)] text-[color:var(--background)]"
+    : muted
+      ? "border-[color:var(--border)] text-[color:var(--muted-foreground)]"
+      : "border-[color:var(--border)] text-[color:var(--foreground)]";
+  return (
+    <span
+      className={
+        "inline-flex items-center border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.22em] " +
+        className
+      }
+    >
+      {label}
+    </span>
   );
 }
 

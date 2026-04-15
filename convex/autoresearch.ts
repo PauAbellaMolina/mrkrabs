@@ -285,25 +285,72 @@ export const finalizeSession = mutation({
 export const listSessions = query({
   args: {},
   handler: async ctx => {
-    const all = await ctx.db
-      .query("autoresearchSessions")
-      .withIndex("by_startedAt")
-      .collect();
-    return all
+    // Load sessions + ledger in parallel and fold ledger stats by sessionId
+    // so every row in the list can show kept/discarded/skipped/best-score
+    // at a glance — the raw N/M progress bar alone doesn't say whether any
+    // iteration actually produced a leaderboard score.
+    const [sessionsRaw, ledgerRaw] = await Promise.all([
+      ctx.db
+        .query("autoresearchSessions")
+        .withIndex("by_startedAt")
+        .collect(),
+      ctx.db.query("autoresearchLedger").collect(),
+    ]);
+
+    type Stats = {
+      kept: number;
+      discarded: number;
+      skipped: number;
+      bestScore: number | null;
+    };
+    const statsBySession = new Map<string, Stats>();
+
+    for (const entry of ledgerRaw) {
+      if (!entry.sessionId) continue;
+      const current: Stats = statsBySession.get(entry.sessionId) ?? {
+        kept: 0,
+        discarded: 0,
+        skipped: 0,
+        bestScore: null,
+      };
+      if (entry.skipReason) {
+        current.skipped += 1;
+      } else if (entry.kept) {
+        current.kept += 1;
+      } else {
+        current.discarded += 1;
+      }
+      if (
+        typeof entry.score === "number" &&
+        (current.bestScore == null || entry.score > current.bestScore)
+      ) {
+        current.bestScore = entry.score;
+      }
+      statsBySession.set(entry.sessionId, current);
+    }
+
+    return sessionsRaw
       .slice()
       .sort((a, b) => (a.startedAt < b.startedAt ? 1 : -1))
-      .map(s => ({
-        sessionId: s.sessionId,
-        status: s.status,
-        startedAt: s.startedAt,
-        finishedAt: s.finishedAt,
-        pid: s.pid ?? null,
-        host: s.host ?? null,
-        model: s.model,
-        plannedIterations: s.plannedIterations,
-        completedIterations: s.completedIterations,
-        errorMessage: s.errorMessage,
-      }));
+      .map(s => {
+        const stats = statsBySession.get(s.sessionId);
+        return {
+          sessionId: s.sessionId,
+          status: s.status,
+          startedAt: s.startedAt,
+          finishedAt: s.finishedAt,
+          pid: s.pid ?? null,
+          host: s.host ?? null,
+          model: s.model,
+          plannedIterations: s.plannedIterations,
+          completedIterations: s.completedIterations,
+          errorMessage: s.errorMessage,
+          keptCount: stats?.kept ?? 0,
+          discardedCount: stats?.discarded ?? 0,
+          skippedCount: stats?.skipped ?? 0,
+          bestScore: stats?.bestScore ?? null,
+        };
+      });
   },
 });
 
