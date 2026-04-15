@@ -52,6 +52,14 @@ Tool restrictions (DO NOT VIOLATE).
   → retrieve_entity → submit_portfolio. Plus run_code for numerical sanity
   checks (totals, dedupe, integer constraints).
 
+entity_search hygiene (IMPORTANT FOR CONTEXT SIZE). The default Cala limit
+returns 20 entities per call. At 12 parallel searches that's 240 entity
+records per step and most are irrelevant namesakes ("LATTICE CONSULTING",
+"LATTICE GROUP HOLDINGS", etc.) polluting context. When you know the
+company you're looking for (which is almost always — you supplied the
+name), pass `limit: 3` explicitly. Only raise the limit when the first
+round comes back ambiguous.
+
 Tool call batching (IMPORTANT FOR LATENCY). Anthropic's API supports parallel
 tool calls — you can emit many tool_use blocks in a SINGLE assistant turn and
 the runtime will execute them concurrently. Use this aggressively: every tool
