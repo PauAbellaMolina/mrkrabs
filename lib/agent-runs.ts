@@ -2,6 +2,43 @@ import { api } from "../convex/_generated/api";
 import { getConvexClient } from "./convex-client";
 import type { CalaAgentResult } from "./cala-agent";
 
+// Convex rejects values of type `undefined` — an object key either exists
+// with a valid value or it's omitted entirely. Our upstream data (Error
+// instances, AI SDK telemetry, tool-call results) is full of optional
+// fields that frequently come through as `undefined`, so every blob we
+// hand to a Convex mutation goes through this first.
+//
+// Also normalizes Error instances (which have non-enumerable fields and
+// don't survive JSON.stringify round-trips) into plain objects so stack
+// traces make it to the dashboard.
+function sanitizeForConvex<T>(value: T): T {
+  if (value === null || value === undefined) return value;
+  if (value instanceof Error) {
+    const cause = (value as Error & { cause?: unknown }).cause;
+    const normalized: Record<string, unknown> = {
+      name: value.name,
+      message: value.message,
+      stack: value.stack,
+    };
+    if (cause !== undefined) {
+      normalized.cause = sanitizeForConvex(cause);
+    }
+    return normalized as unknown as T;
+  }
+  if (Array.isArray(value)) {
+    return value
+      .filter(item => item !== undefined)
+      .map(item => sanitizeForConvex(item)) as unknown as T;
+  }
+  if (typeof value !== "object") return value;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (v === undefined) continue;
+    out[k] = sanitizeForConvex(v);
+  }
+  return out as unknown as T;
+}
+
 // Shared run state — backed by Convex. Previously this file owned a
 // filesystem-backed store with a per-runId mutex and atomic temp-file
 // writes; all of that is gone now because Convex mutations are already
@@ -116,13 +153,13 @@ export async function appendRunEvent(
 ) {
   await getConvexClient().mutation(api.runs.appendEvent, {
     runId,
-    event: {
+    event: sanitizeForConvex({
       level: event.level,
       type: event.type,
       title: event.title,
       at: event.at,
       data: event.data,
-    },
+    }),
   });
 }
 
@@ -137,8 +174,8 @@ export async function completeRunRecord(
   await getConvexClient().mutation(api.runs.complete, {
     runId,
     model: input.model,
-    result: input.result,
-    telemetry: input.telemetry,
+    result: sanitizeForConvex(input.result),
+    telemetry: sanitizeForConvex(input.telemetry),
   });
 }
 
@@ -152,7 +189,7 @@ export async function failRunRecord(
   await getConvexClient().mutation(api.runs.fail, {
     runId,
     message: input.message,
-    details: input.details,
+    details: sanitizeForConvex(input.details),
   });
 }
 
@@ -167,6 +204,6 @@ export async function recordRunSubmission(
 ) {
   await getConvexClient().mutation(api.runs.recordSubmission, {
     runId,
-    submission,
+    submission: sanitizeForConvex(submission),
   });
 }
