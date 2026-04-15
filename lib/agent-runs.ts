@@ -119,6 +119,14 @@ export interface AgentRunSummary {
   positionCount: number;
   requestId: string;
   leaderboardStatus?: "submitted" | "failed";
+  // Cala submit API response when leaderboardStatus === "submitted". Shape
+  // is undocumented; parseSubmissionResponse() walks it to surface metrics.
+  leaderboardResponse?: unknown;
+  // Cala submit error details when leaderboardStatus === "failed".
+  leaderboardDetails?: unknown;
+  leaderboardUpstreamStatus?: number;
+  // Top-line error.message for status === "failed" runs.
+  errorMessage?: string;
 }
 
 export async function createRunRecord(input: {

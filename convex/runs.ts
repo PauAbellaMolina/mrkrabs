@@ -29,27 +29,41 @@ export const listSummaries = query({
     return all
       .slice()
       .sort((a, b) => (a.startedAt < b.startedAt ? 1 : -1))
-      .map(run => ({
-        id: run.runId,
-        prompt: run.prompt,
-        agentName: run.agentName,
-        agentVersion: run.agentVersion,
-        status: run.status,
-        startedAt: run.startedAt,
-        finishedAt: run.finishedAt,
-        durationMs: run.durationMs,
-        model: run.model,
-        eventCount: run.eventCount,
-        stepCount: run.stepCount,
-        toolCallCount: run.toolCallCount,
-        positionCount:
-          (run.result as any)?.output?.positions?.length ?? 0,
-        requestId: run.requestId,
-        leaderboardStatus: (run.leaderboardSubmission as any)?.status as
-          | "submitted"
-          | "failed"
-          | undefined,
-      }));
+      .map(run => {
+        const submission = run.leaderboardSubmission as
+          | {
+              status?: "submitted" | "failed";
+              response?: unknown;
+              details?: unknown;
+              upstreamStatus?: number;
+            }
+          | undefined;
+        return {
+          id: run.runId,
+          prompt: run.prompt,
+          agentName: run.agentName,
+          agentVersion: run.agentVersion,
+          status: run.status,
+          startedAt: run.startedAt,
+          finishedAt: run.finishedAt,
+          durationMs: run.durationMs,
+          model: run.model,
+          eventCount: run.eventCount,
+          stepCount: run.stepCount,
+          toolCallCount: run.toolCallCount,
+          positionCount:
+            (run.result as any)?.output?.positions?.length ?? 0,
+          requestId: run.requestId,
+          leaderboardStatus: submission?.status,
+          leaderboardResponse:
+            submission?.status === "submitted" ? submission.response : undefined,
+          leaderboardDetails:
+            submission?.status === "failed" ? submission.details : undefined,
+          leaderboardUpstreamStatus:
+            submission?.status === "failed" ? submission.upstreamStatus : undefined,
+          errorMessage: (run.error as { message?: string } | undefined)?.message,
+        };
+      });
   },
 });
 

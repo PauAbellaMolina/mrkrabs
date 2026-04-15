@@ -8,6 +8,15 @@
   --muted-foreground: oklch(0.62 0 0);
   --foreground: oklch(0.96 0 0);
 
+  /* Stage accent colors. Tuned for legibility against the dark surface;
+     applied to run-stage badges via inline style. The light-theme block
+     below overrides with lower-lightness values for contrast on white. */
+  --stage-running: oklch(0.82 0.19 80);
+  --stage-done: oklch(0.74 0.18 245);
+  --stage-submitted: oklch(0.80 0.24 150);
+  --stage-submit-failed: oklch(0.75 0.21 45);
+  --stage-failed: oklch(0.70 0.24 25);
+
   --radius-base: 0px;
   --radius-pad: 0px;
 }
@@ -19,6 +28,12 @@
   --border: oklch(0.80 0 0);
   --muted-foreground: oklch(0.45 0 0);
   --foreground: oklch(0.18 0 0);
+
+  --stage-running: oklch(0.55 0.14 80);
+  --stage-done: oklch(0.48 0.15 245);
+  --stage-submitted: oklch(0.50 0.15 150);
+  --stage-submit-failed: oklch(0.52 0.16 45);
+  --stage-failed: oklch(0.52 0.18 25);
 }
 
 @theme inline {

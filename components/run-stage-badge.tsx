@@ -6,6 +6,14 @@ type Props = {
   pulse?: boolean;
 };
 
+const STAGE_COLOR_VAR: Record<RunStage, string> = {
+  running: "var(--stage-running)",
+  done: "var(--stage-done)",
+  submitted: "var(--stage-submitted)",
+  "submit-failed": "var(--stage-submit-failed)",
+  failed: "var(--stage-failed)",
+};
+
 export function RunStageBadge({ stage, size = "md", pulse = false }: Props) {
   const isActive = stage === "running";
   const shouldPulse = pulse || isActive;
@@ -14,13 +22,19 @@ export function RunStageBadge({ stage, size = "md", pulse = false }: Props) {
   const fontSize = size === "sm" ? "text-[9px]" : "text-[10px]";
   const tracking = size === "sm" ? "tracking-[0.18em]" : "tracking-[0.2em]";
 
+  const color = STAGE_COLOR_VAR[stage];
+
   return (
     <span
       className={
-        "inline-flex items-center gap-2 border border-[color:var(--border)] " +
-        `bg-[color:var(--background)] font-mono uppercase ${padding} ${fontSize} ${tracking} ` +
-        "text-[color:var(--foreground)]"
+        "inline-flex items-center gap-2 border font-mono uppercase " +
+        `${padding} ${fontSize} ${tracking}`
       }
+      style={{
+        color,
+        borderColor: color,
+        backgroundColor: `color-mix(in oklab, ${color} 22%, var(--background))`,
+      }}
       data-stage={stage}
     >
       <span aria-hidden className={shouldPulse ? "animate-pulse" : undefined}>

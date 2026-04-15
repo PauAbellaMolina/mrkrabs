@@ -84,6 +84,7 @@ export function readMockRunRecord(runId: string): AgentRunRecord | null {
 }
 
 function toRunSummary(record: AgentRunRecord): AgentRunSummary {
+  const submission = record.leaderboardSubmission;
   return {
     id: record.id,
     prompt: record.prompt,
@@ -99,7 +100,14 @@ function toRunSummary(record: AgentRunRecord): AgentRunSummary {
     toolCallCount: record.toolCallCount,
     positionCount: record.result?.output.positions.length ?? 0,
     requestId: record.requestId,
-    leaderboardStatus: record.leaderboardSubmission?.status,
+    leaderboardStatus: submission?.status,
+    leaderboardResponse:
+      submission?.status === "submitted" ? submission.response : undefined,
+    leaderboardDetails:
+      submission?.status === "failed" ? submission.details : undefined,
+    leaderboardUpstreamStatus:
+      submission?.status === "failed" ? submission.upstreamStatus : undefined,
+    errorMessage: record.error?.message,
   };
 }
 
