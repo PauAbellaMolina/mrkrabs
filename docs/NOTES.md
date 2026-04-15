@@ -10,6 +10,8 @@
 - ✅ Added `lib/cala.ts` with REST client wrappers for: `GET /v1/entities?name=...`, `GET /v1/entities/{id}/introspection`, and `POST /v1/entities/{id}` using typed responses, endpoint-specific normalization, and Cala API error handling.
 - ✅ Added an Anthropic-backed Cala MCP agent path: `lib/cala-agent.ts` + `app/api/agent/route.ts` + homepage playground UI. Current test model is `claude-haiku-4-5`, talking to Cala over remote HTTP MCP with `X-API-KEY`.
 - ✅ Tightened the agent output contract: report-first markdown with buy recommendations and `<entity UUID="...">...</entity>` tags for Cala-backed company citations.
+- ✅ Switched the agent contract to validated structured output: submission payload + per-position records + cutoff audit + markdown report. `TEAM_ID` is now required server-side.
+- ✅ Added `/api/submit` plus a UI submit button. The app can now POST the generated `submissionPayload` to the hackathon Convex endpoint and show the raw submission response in-page.
 
 ## 2026-04-15
 

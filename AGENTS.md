@@ -11,9 +11,10 @@ Cala "Lobster of Wall Street" hackathon. See [`README.md`](./README.md) for the 
 - [`docs/VISION.md`](./docs/VISION.md) — what we're building and why
 - [`docs/PRD.md`](./docs/PRD.md) — requirements / shipping scope
 - [`docs/STRATEGY.md`](./docs/STRATEGY.md) — trading thesis + signals
+- [`docs/LEADERBOARD.md`](./docs/LEADERBOARD.md) — hackathon submission API, scoring, and evaluation rules ([live guide](https://cala-leaderboard.apps.rebolt.ai/guide))
 - [`docs/NOTES.md`](./docs/NOTES.md) — running decisions + scratchpad
 
-Read `docs/NOTES.md` first — it's the fastest way to catch up on what we've already decided and ruled out.
+Read `docs/NOTES.md` first — it's the fastest way to catch up on what we've already decided and ruled out. Read `docs/LEADERBOARD.md` before building submit flows or claiming score semantics.
 
 # Implementations
 
