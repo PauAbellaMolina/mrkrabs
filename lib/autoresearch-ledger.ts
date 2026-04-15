@@ -1,6 +1,6 @@
 import { api } from "../convex/_generated/api";
 import { getConvexClient } from "./convex-client";
-import { BASE_SYSTEM_PROMPT } from "./cala-agent";
+import { BASE_SYSTEM_PROMPT_FOR_RESEARCH } from "./system-prompt";
 
 // Autoresearch outer-loop state — backed by Convex. Same exports as before,
 // filesystem-backed internals replaced with mutations/queries. The cap on
@@ -62,12 +62,12 @@ export async function appendRule(
 // if there are any. Pure function, no I/O — kept here so the autoresearch
 // loop and the mutator can both reach for it.
 export function composeSystemPrompt(rules: RuleEntry[]): string {
-  if (rules.length === 0) return BASE_SYSTEM_PROMPT;
+  if (rules.length === 0) return BASE_SYSTEM_PROMPT_FOR_RESEARCH;
   const rulesBlock = rules
     .map((rule, i) => `  ${i + 1}. ${rule.text}`)
     .join("\n");
   return (
-    BASE_SYSTEM_PROMPT +
+    BASE_SYSTEM_PROMPT_FOR_RESEARCH +
     `\n\n## Accumulated strategy rules (from autoresearch)\n${rulesBlock}`
   );
 }
