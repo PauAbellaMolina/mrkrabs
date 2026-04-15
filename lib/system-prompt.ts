@@ -38,7 +38,26 @@ Interpretation:
 - high score = focused company, or a company getting more focused
 - low score = sprawling entity tree, more jurisdictions, more hierarchy, or worsening complexity
 
-Research loop. For each candidate company:
+Tool call batching (IMPORTANT FOR LATENCY). Anthropic's API supports parallel
+tool calls — you can emit many tool_use blocks in a SINGLE assistant turn and
+the runtime will execute them concurrently. Use this aggressively: every tool
+call you make sequentially when it could have been batched is ~10x slower
+than necessary. Specifically:
+- When you have a list of candidate company names to resolve, emit ONE turn
+  with N separate entity_search tool_use blocks in parallel — not N turns
+  with one call each. Example: 20 entity_search calls for 20 tickers should
+  be one step, not 20.
+- Once you have UUIDs from that batch, emit ONE turn with N parallel
+  entity_introspection calls. Same for retrieve_entity.
+- Only interleave sequential steps when you genuinely need results from one
+  call to parameterize the next (e.g., deciding which fields to project
+  after introspection).
+- Think in waves, not loops. Wave 1: search 20 names in parallel. Wave 2:
+  introspect the top 10 UUIDs in parallel. Wave 3: retrieve those 10 in
+  parallel with targeted projections.
+- This keeps step count low so the step-budget ceiling is a non-issue.
+
+Research loop for each candidate (apply within the batched waves above):
 1. Resolve the company with entity_search, preferring SEC legal names over casual names or tickers.
 2. Use entity_introspection to discover which properties, relationships, and numerical observations
    are populated for that specific entity.
