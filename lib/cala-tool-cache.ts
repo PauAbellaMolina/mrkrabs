@@ -19,6 +19,14 @@ const CACHED_TOOLS = new Set([
   "retrieve_entity",
 ]);
 
+// Tools whose results we cap in size before feeding back to the model.
+// knowledge_search / knowledge_query return 20-50 KB of unstructured prose
+// per call — each one in context costs multi-second inference delays on
+// every subsequent step. We truncate aggressively with a trailing marker
+// so the model can see it was cut and learn to avoid the tool next time.
+const TRUNCATED_TOOLS = new Set(["knowledge_search", "knowledge_query"]);
+const TRUNCATE_BUDGET_CHARS = 2000;
+
 const CACHE_DIR = path.join(process.cwd(), "data");
 const CACHE_FILE = path.join(CACHE_DIR, "cala-tool-cache.json");
 
@@ -107,9 +115,57 @@ type MinimalTool = {
   execute?: (...args: unknown[]) => Promise<unknown> | unknown;
 };
 
-// Wraps an MCP tool set in-place, patching .execute on cached tools to
-// short-circuit on hits and memoize on misses. Non-cached tools pass
-// through unchanged.
+function truncateResultForContext(result: unknown): unknown {
+  // Stringify → slice → replace the top-level text shape with the capped
+  // version. MCP tool responses are wrapped as `{content: [{type: "text",
+  // text: "..."}], ...}`, so we walk that shape and cap each text block.
+  if (!result || typeof result !== "object") return result;
+  const record = result as {
+    content?: Array<{ type?: string; text?: string }>;
+    structuredContent?: unknown;
+    isError?: boolean;
+  };
+  if (!Array.isArray(record.content)) return result;
+
+  let totalText = 0;
+  const capped = record.content.map((block) => {
+    if (block?.type !== "text" || typeof block.text !== "string") return block;
+    const remaining = TRUNCATE_BUDGET_CHARS - totalText;
+    if (remaining <= 0) {
+      return {
+        ...block,
+        text: "[truncated — knowledge_search/knowledge_query results are capped at " +
+          TRUNCATE_BUDGET_CHARS +
+          " chars. Use entity_search / entity_introspection / retrieve_entity instead.]",
+      };
+    }
+    if (block.text.length <= remaining) {
+      totalText += block.text.length;
+      return block;
+    }
+    const head = block.text.slice(0, remaining);
+    totalText += remaining;
+    return {
+      ...block,
+      text: head +
+        "\n…[truncated, result was " + block.text.length + " chars; knowledge_* tools are banned — switch to entity_* tools.]",
+    };
+  });
+
+  return {
+    ...record,
+    content: capped,
+    // Drop structuredContent entirely — it duplicates the text content.
+    structuredContent: undefined,
+  };
+}
+
+// Wraps an MCP tool set in-place:
+//   - Cached tools short-circuit on hits and memoize on misses.
+//   - Truncated tools (knowledge_search / knowledge_query) have their
+//     results clipped to TRUNCATE_BUDGET_CHARS with a visible banner
+//     telling the model to stop calling them.
+// Non-matching tools pass through unchanged.
 export function wrapToolsWithCache<T extends Record<string, MinimalTool>>(
   tools: T,
 ): T {
@@ -122,7 +178,9 @@ export function wrapToolsWithCache<T extends Record<string, MinimalTool>>(
   };
 
   for (const [name, toolDef] of Object.entries(tools)) {
-    if (!CACHED_TOOLS.has(name)) continue;
+    const shouldCache = CACHED_TOOLS.has(name);
+    const shouldTruncate = TRUNCATED_TOOLS.has(name);
+    if (!shouldCache && !shouldTruncate) continue;
     const originalExecute = toolDef.execute;
     if (typeof originalExecute !== "function") continue;
 
@@ -130,26 +188,36 @@ export function wrapToolsWithCache<T extends Record<string, MinimalTool>>(
       input: unknown,
       ...rest: unknown[]
     ): Promise<unknown> => {
-      const key = keyFor(name, input);
-      const hit = memoryCache.get(key);
-      if (hit) {
-        hits += 1;
-        // Announce periodically so log isn't spammy on long runs.
+      if (shouldCache) {
+        const key = keyFor(name, input);
+        const hit = memoryCache.get(key);
+        if (hit) {
+          hits += 1;
+          if ((hits + misses) % 10 === 1) report();
+          return hit.result;
+        }
+        const result = await originalExecute(input, ...rest);
+        memoryCache.set(key, {
+          toolName: name,
+          argsHash: key.split(":")[1],
+          args: input,
+          result,
+          cachedAt: new Date().toISOString(),
+        });
+        dirty = true;
+        misses += 1;
         if ((hits + misses) % 10 === 1) report();
-        return hit.result;
+        return result;
       }
+
+      // Truncate-only path (knowledge_*). Not cached because we're
+      // actively discouraging their use — no point growing the cache.
       const result = await originalExecute(input, ...rest);
-      memoryCache.set(key, {
-        toolName: name,
-        argsHash: key.split(":")[1],
-        args: input,
-        result,
-        cachedAt: new Date().toISOString(),
-      });
-      dirty = true;
-      misses += 1;
-      if ((hits + misses) % 10 === 1) report();
-      return result;
+      const clipped = truncateResultForContext(result);
+      console.info(
+        `[cala-cache][truncated] ${name} (banned tool; result capped to ${TRUNCATE_BUDGET_CHARS} chars)`,
+      );
+      return clipped;
     };
   }
 

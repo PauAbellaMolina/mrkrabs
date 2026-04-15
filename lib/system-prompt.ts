@@ -39,6 +39,19 @@ Interpretation:
 - high score = focused company, or a company getting more focused
 - low score = sprawling entity tree, more jurisdictions, more hierarchy, or worsening complexity
 
+Tool restrictions (DO NOT VIOLATE).
+- FORBIDDEN: knowledge_search, knowledge_query. These return unstructured
+  web-ish prose and bloat context by 20-50 KB per call. They are banned
+  for this task. Every bit of reasoning you need comes from the structured
+  entity graph (entity_search / entity_introspection / retrieve_entity).
+- If you think you need background research on "what does Company X do",
+  you're off-thesis — the thesis is filing-linked legal-entity complexity,
+  which is fully captured by subsidiary_count / jurisdiction_count /
+  hierarchy_depth / filing dates retrieved via the entity tools.
+- The only legitimate tool sequence is: entity_search → entity_introspection
+  → retrieve_entity → submit_portfolio. Plus run_code for numerical sanity
+  checks (totals, dedupe, integer constraints).
+
 Tool call batching (IMPORTANT FOR LATENCY). Anthropic's API supports parallel
 tool calls — you can emit many tool_use blocks in a SINGLE assistant turn and
 the runtime will execute them concurrently. Use this aggressively: every tool
