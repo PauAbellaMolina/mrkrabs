@@ -188,7 +188,7 @@ function IterationTimeline({ entries }: { entries: LedgerEntryView[] }) {
   const ordered = [...entries].reverse();
 
   return (
-    <ol className="flex flex-col border border-[color:var(--border)]">
+    <ol className="flex max-h-[60vh] flex-col overflow-y-auto overscroll-contain border border-[color:var(--border)]">
       {ordered.map((entry, idx) => (
         <IterationRow
           key={`${entry.iteration}-${entry.runId}`}

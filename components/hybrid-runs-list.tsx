@@ -31,7 +31,7 @@ export function HybridRunsList({ serverRuns, emptyState }: Props) {
       {runs.length === 0 ? (
         emptyState
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex max-h-[65vh] flex-col gap-4 overflow-y-auto overscroll-contain pr-1">
           {runs.map((run, i) => (
             <RunListCard key={run.id} run={run} index={i} />
           ))}

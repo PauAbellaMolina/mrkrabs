@@ -30,7 +30,7 @@ export function RunActivityFeed({
 }) {
   const reversed = [...events].reverse();
   return (
-    <div className="flex flex-col border border-[color:var(--border)]">
+    <div className="flex max-h-[55vh] flex-col overflow-y-auto overscroll-contain border border-[color:var(--border)]">
       {reversed.length === 0 ? (
         <div className="bg-[color:var(--background)] px-5 py-6 font-mono text-[11px] text-[color:var(--muted-foreground)]">
           No events yet.

@@ -31,7 +31,7 @@ export function RunPortfolioTable({
   const showMarkers = !!markers && markers.size > 0;
 
   return (
-    <div className="overflow-x-auto">
+    <div className="max-h-[70vh] overflow-auto overscroll-contain">
       <table className="w-full border-collapse font-mono text-xs">
         <thead>
           <tr className="border-b border-[color:var(--border)] text-[9px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
