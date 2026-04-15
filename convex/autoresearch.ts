@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import type { Doc, Id } from "./_generated/dataModel";
+import { mutation, query, type MutationCtx } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
 
 // Convex mirror of lib/autoresearch-ledger.ts + lib/agent-version.ts
 // counter. All three previously-racy operations (version allocation,
@@ -14,18 +14,12 @@ const DEFAULT_NEXT_VERSION = 1;
 
 // Load the singleton state row, creating it on first read. Every mutation
 // that touches the counter / champion / spend goes through this.
-async function getOrCreateState(ctx: {
-  db: {
-    query: (table: "autoresearchState") => any;
-    insert: (table: "autoresearchState", doc: any) => Promise<Id<"autoresearchState">>;
-    get: (id: Id<"autoresearchState">) => Promise<Doc<"autoresearchState"> | null>;
-  };
-}): Promise<Doc<"autoresearchState">> {
+async function getOrCreateState(ctx: MutationCtx): Promise<Doc<"autoresearchState">> {
   const existing = await ctx.db
     .query("autoresearchState")
-    .withIndex("by_key", (q: any) => q.eq("key", "default"))
+    .withIndex("by_key", (q) => q.eq("key", "default"))
     .first();
-  if (existing) return existing as Doc<"autoresearchState">;
+  if (existing) return existing;
 
   const id = await ctx.db.insert("autoresearchState", {
     key: "default" as const,

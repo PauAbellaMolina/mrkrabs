@@ -3,33 +3,33 @@ import {
   CALA_AGENT_NAME as CODEX_AGENT_NAME,
   CALA_AGENT_VERSION as CODEX_AGENT_VERSION,
   runCalaAgent as runCodexAgent,
-} from "@/lib/codex-agent"
+} from "@/lib/codex-agent";
 import {
   CALA_AGENT_MODEL as ANTHROPIC_AGENT_MODEL,
   CALA_AGENT_NAME as ANTHROPIC_AGENT_NAME,
   CALA_AGENT_VERSION as ANTHROPIC_AGENT_VERSION,
   runCalaAgent as runAnthropicAgent,
-} from "@/lib/cala-agent"
+} from "@/lib/cala-agent";
 import {
   appendRunEvent,
   completeRunRecord,
   createRunRecord,
   failRunRecord,
-} from "@/lib/agent-runs"
+} from "@/lib/agent-runs";
 
-export const runtime = "nodejs"
-export const maxDuration = 300
+export const runtime = "nodejs";
+export const maxDuration = 300;
 
-export type AgentBackend = "anthropic" | "codex-cli"
+export type AgentBackend = "anthropic" | "codex-cli";
 
-const DEFAULT_BACKEND: AgentBackend = "codex-cli"
+const DEFAULT_BACKEND: AgentBackend = "codex-cli";
 
 interface AgentRequestBody {
-  prompt?: string
-  backend?: AgentBackend
+  prompt?: string;
+  backend?: AgentBackend;
   // Anthropic-only: pick a specific model ID (e.g. "claude-sonnet-4-6",
   // "claude-haiku-4-5", "claude-opus-4-6"). Ignored by Codex CLI.
-  model?: string
+  model?: string;
 }
 
 // Anthropic model IDs we accept from clients. Includes base IDs, the `[1m]`
@@ -43,7 +43,7 @@ const ALLOWED_ANTHROPIC_MODELS = new Set([
   "claude-sonnet-4-6[1m]",
   "claude-opus-4-6",
   "claude-opus-4-6[1m]",
-])
+]);
 
 const AGENT_BACKENDS = {
   "codex-cli": {
@@ -58,21 +58,21 @@ const AGENT_BACKENDS = {
     version: ANTHROPIC_AGENT_VERSION,
     model: ANTHROPIC_AGENT_MODEL,
   },
-} as const
+} as const;
 
 const serializeError = (error: unknown) => {
   if (!(error instanceof Error)) {
     return {
       message: "Unknown agent error",
       raw: error,
-    }
+    };
   }
 
-  const errorWithCause = error as Error & { cause?: unknown }
+  const errorWithCause = error as Error & { cause?: unknown };
   const errorWithStreams = error as Error & {
-    stdout?: string
-    stderr?: string
-  }
+    stdout?: string;
+    stderr?: string;
+  };
 
   return {
     name: error.name,
@@ -83,21 +83,21 @@ const serializeError = (error: unknown) => {
     cause:
       errorWithCause.cause instanceof Error
         ? {
-          name: errorWithCause.cause.name,
-          message: errorWithCause.cause.message,
-          stack: errorWithCause.cause.stack,
-        }
+            name: errorWithCause.cause.name,
+            message: errorWithCause.cause.message,
+            stack: errorWithCause.cause.stack,
+          }
         : errorWithCause.cause,
-  }
-}
+  };
+};
 
 export async function POST(request: Request) {
-  const requestId = crypto.randomUUID()
-  let runId: string | null = null
+  const requestId = crypto.randomUUID();
+  let runId: string | null = null;
 
   try {
-    const body = (await request.json()) as AgentRequestBody
-    const prompt = body.prompt?.trim()
+    const body = (await request.json()) as AgentRequestBody;
+    const prompt = body.prompt?.trim();
 
     if (!prompt) {
       return Response.json(
@@ -106,19 +106,19 @@ export async function POST(request: Request) {
           requestId,
         },
         { status: 400 },
-      )
+      );
     }
 
     const backend: AgentBackend =
       body.backend && body.backend in AGENT_BACKENDS
         ? body.backend
-        : DEFAULT_BACKEND
-    const agent = AGENT_BACKENDS[backend]
+        : DEFAULT_BACKEND;
+    const agent = AGENT_BACKENDS[backend];
 
     const resolvedModel =
       backend === "anthropic" && body.model && ALLOWED_ANTHROPIC_MODELS.has(body.model)
         ? body.model
-        : agent.model
+        : agent.model;
 
     console.info("[agent][start]", {
       requestId,
@@ -126,9 +126,9 @@ export async function POST(request: Request) {
       model: resolvedModel,
       promptLength: prompt.length,
       promptPreview: prompt.slice(0, 240),
-    })
+    });
 
-    runId = crypto.randomUUID()
+    runId = crypto.randomUUID();
 
     await createRunRecord({
       id: runId,
@@ -137,13 +137,13 @@ export async function POST(request: Request) {
       agentName: agent.name,
       agentVersion: agent.version,
       model: resolvedModel,
-    })
+    });
 
     const result = await agent.run(prompt, {
       ...(backend === "anthropic" ? { model: resolvedModel } : {}),
-      onTelemetryEvent: (event) => appendRunEvent(runId, event),
+      onTelemetryEvent: (event) => appendRunEvent(runId!, event),
       onFinish: (event) =>
-        completeRunRecord(runId, {
+        completeRunRecord(runId!, {
           model: resolvedModel,
           result: event.result,
           telemetry: {
@@ -152,7 +152,7 @@ export async function POST(request: Request) {
             totalUsage: event.totalUsage,
           },
         }),
-    })
+    });
 
     console.info("[agent][success]", {
       requestId,
@@ -161,27 +161,27 @@ export async function POST(request: Request) {
       positions: result.output.positions.length,
       transactions: result.output.submissionPayload.transactions.length,
       usedPostCutoffData: result.output.cutoffAudit.postCutoffDataUsed,
-    })
+    });
 
     return Response.json({
       runId,
       ...result,
-    })
+    });
   } catch (error) {
-    const details = serializeError(error)
+    const details = serializeError(error);
 
     if (runId) {
       await failRunRecord(runId, {
         message: details.message,
         details,
-      })
+      });
     }
 
     console.error("[agent][error]", {
       requestId,
       runId,
       ...details,
-    })
+    });
 
     return Response.json(
       {
@@ -190,6 +190,6 @@ export async function POST(request: Request) {
         details,
       },
       { status: 500 },
-    )
+    );
   }
 }

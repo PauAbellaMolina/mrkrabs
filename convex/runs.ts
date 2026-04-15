@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 
 // Convex mirror of lib/agent-runs.ts. Every mutation/query here is called
@@ -7,17 +7,17 @@ import type { Doc } from "./_generated/dataModel";
 // the library shim can stay a thin wrapper.
 
 async function getByRunIdOrThrow(
-  ctx: { db: { query: (table: "runs") => any } },
+  ctx: MutationCtx,
   runId: string,
 ): Promise<Doc<"runs">> {
   const record = await ctx.db
     .query("runs")
-    .withIndex("by_runId", (q: any) => q.eq("runId", runId))
+    .withIndex("by_runId", (q) => q.eq("runId", runId))
     .first();
   if (!record) {
     throw new Error(`run ${runId} not found`);
   }
-  return record as Doc<"runs">;
+  return record;
 }
 
 // ─── Queries ────────────────────────────────────────────────────────────
@@ -30,6 +30,13 @@ export const listSummaries = query({
       .slice()
       .sort((a, b) => (a.startedAt < b.startedAt ? 1 : -1))
       .map(run => {
+        const resultOutput = run.result as
+          | {
+              output?: {
+                positions?: unknown[];
+              };
+            }
+          | undefined;
         const submission = run.leaderboardSubmission as
           | {
               status?: "submitted" | "failed";
@@ -52,7 +59,9 @@ export const listSummaries = query({
           stepCount: run.stepCount,
           toolCallCount: run.toolCallCount,
           positionCount:
-            (run.result as any)?.output?.positions?.length ?? 0,
+            Array.isArray(resultOutput?.output?.positions)
+              ? resultOutput.output.positions.length
+              : 0,
           requestId: run.requestId,
           leaderboardStatus: submission?.status,
           leaderboardResponse:
@@ -176,9 +185,23 @@ export const complete = mutation({
   handler: async (ctx, { runId, model, result, telemetry }) => {
     const record = await getByRunIdOrThrow(ctx, runId);
     const finishedAt = new Date().toISOString();
-    const steps = (result as any)?.steps ?? [];
+    const typedResult = result as
+      | {
+          steps?: unknown[];
+          output?: {
+            positions?: unknown[];
+            submissionPayload?: {
+              transactions?: unknown[];
+            };
+          };
+        }
+      | undefined;
+    const steps = Array.isArray(typedResult?.steps)
+      ? (typedResult.steps as Array<{ toolCalls?: unknown[] }>)
+      : [];
     const toolCallCount = steps.reduce(
-      (total: number, step: any) => total + (step?.toolCalls?.length ?? 0),
+      (total: number, step) =>
+        total + (Array.isArray(step.toolCalls) ? step.toolCalls.length : 0),
       0,
     );
     const finishEvent = {
@@ -188,10 +211,15 @@ export const complete = mutation({
       type: "run-finished" as const,
       title: "Run finished",
       data: {
-        positions: (result as any)?.output?.positions?.length ?? 0,
+        positions: Array.isArray(typedResult?.output?.positions)
+          ? typedResult.output.positions.length
+          : 0,
         transactions:
-          (result as any)?.output?.submissionPayload?.transactions?.length ??
-          0,
+          Array.isArray(
+            typedResult?.output?.submissionPayload?.transactions,
+          )
+            ? typedResult.output.submissionPayload.transactions.length
+            : 0,
       },
     };
     await ctx.db.patch(record._id, {

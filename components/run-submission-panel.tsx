@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import type { AgentRunRecord } from "@/lib/agent-runs";
 import {
   emitMockStoreChanged,
@@ -194,7 +194,20 @@ function IdleView({
 }
 
 function SubmittingView({ startedAt }: { startedAt: number }) {
-  const elapsedSeconds = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+  const [elapsedSeconds, setElapsedSeconds] = useState(() =>
+    Math.max(0, Math.round((Date.now() - startedAt) / 1000)),
+  );
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setElapsedSeconds(Math.max(0, Math.round((Date.now() - startedAt) / 1000)));
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [startedAt]);
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-3">

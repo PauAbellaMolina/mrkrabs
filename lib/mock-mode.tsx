@@ -4,8 +4,8 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
-  useState,
+  useRef,
+  useSyncExternalStore,
 } from "react";
 import type { AgentRunRecord } from "./agent-runs";
 import {
@@ -30,34 +30,55 @@ type MockModeContextValue = MockModeState & {
 
 const MockModeContext = createContext<MockModeContextValue | null>(null);
 
+const SERVER_MOCK_MODE_SNAPSHOT: MockModeState = Object.freeze({
+  ready: false,
+  enabled: false,
+  records: [],
+});
+
+const readClientSnapshot = (records: AgentRunRecord[]): string =>
+  JSON.stringify(records);
+
 export function MockModeProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<MockModeState>({
-    ready: false,
+  const snapshotRef = useRef<MockModeState>({
+    ready: true,
     enabled: false,
     records: [],
   });
+  const snapshotSignatureRef = useRef<string>("1|false|[]");
+
+  const state = useSyncExternalStore(
+    subscribeToMockStore,
+    () => {
+      const records = readMockRunRecords();
+      const enabled = isMockModeEnabled();
+      const signature = `${enabled ? 1 : 0}|${readClientSnapshot(records)}`;
+
+      if (snapshotSignatureRef.current === signature) {
+        return snapshotRef.current;
+      }
+
+      const next = {
+        ready: true,
+        enabled,
+        records,
+      };
+
+      snapshotRef.current = next;
+      snapshotSignatureRef.current = signature;
+      return next;
+    },
+    () => SERVER_MOCK_MODE_SNAPSHOT,
+  );
 
   const refresh = useCallback(() => {
-    setState({
-      ready: true,
-      enabled: isMockModeEnabled(),
-      records: readMockRunRecords(),
-    });
+    emitMockStoreChanged();
   }, []);
 
-  useEffect(() => {
-    refresh();
-    const unsubscribe = subscribeToMockStore(refresh);
-    return unsubscribe;
-  }, [refresh]);
-
-  const setEnabled = useCallback(
-    (enabled: boolean) => {
-      setMockModeEnabled(enabled);
-      emitMockStoreChanged();
-    },
-    [],
-  );
+  const setEnabled = useCallback((enabled: boolean) => {
+    setMockModeEnabled(enabled);
+    emitMockStoreChanged();
+  }, []);
 
   return (
     <MockModeContext.Provider value={{ ...state, setEnabled, refresh }}>
