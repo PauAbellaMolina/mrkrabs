@@ -5,6 +5,12 @@
 
 ## 2026-04-15
 
+### Implementation notes
+
+- ✅ Added `lib/cala.ts` with REST client wrappers for: `GET /v1/entities?name=...`, `GET /v1/entities/{id}/introspection`, and `POST /v1/entities/{id}` using typed responses, endpoint-specific normalization, and Cala API error handling.
+
+## 2026-04-15
+
 ### Decisions
 
 - **Stack:** Next.js 16 (App Router, Turbopack) + TypeScript + Vercel AI SDK. Locked in.
