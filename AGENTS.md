@@ -14,3 +14,7 @@ Cala "Lobster of Wall Street" hackathon. See [`README.md`](./README.md) for the 
 - [`docs/NOTES.md`](./docs/NOTES.md) — running decisions + scratchpad
 
 Read `docs/NOTES.md` first — it's the fastest way to catch up on what we've already decided and ruled out.
+
+# Implementations
+
+For every major task, document it under `docs/`. When you need context, read it from there.
