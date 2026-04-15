@@ -49,6 +49,7 @@ export default defineSchema({
     toolCallCount: v.number(),
     events: v.array(runEventValidator),
     result: v.optional(v.any()),
+    checkpoint: v.optional(v.any()),
     telemetry: v.optional(v.any()),
     leaderboardSubmission: v.optional(v.any()),
     error: v.optional(v.any()),

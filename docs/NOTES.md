@@ -3,6 +3,26 @@
 > _Running scratchpad: decisions, open questions, things learned at the booth, commands that worked._
 > _Newest on top. Feel free to be messy here._
 
+## 2026-04-16
+
+### Agent still steered toward cohort research, without custom batch tools
+
+The custom `*_batch` Cala wrappers were removed. Both Claude and OpenAI/Codex should already be able to parallelize tool calls, so we don't need a separate tool surface just to force batching.
+
+**What stays:**
+
+- The shared system prompt still nudges the agent to research companies in cohorts instead of a strict one-by-one loop.
+- Codex now composes from the shared prompt core, so both backends inherit the same research guidance.
+
+**What was removed:**
+
+- `entity_search_batch`
+- `entity_introspection_batch`
+- `retrieve_entity_batch`
+- backend-specific batching glue in the Anthropic runner paths
+
+The intended behavior is now: let the model/runtime parallelize ordinary Cala tool calls on its own, with prompt steering still encouraging cohort-style research.
+
 ## 2026-04-15
 
 ### Agent steering tightened around one thesis

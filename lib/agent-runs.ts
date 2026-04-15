@@ -1,6 +1,7 @@
 import { api } from "../convex/_generated/api";
 import { getConvexClient, hasConvexClientConfig } from "./convex-client";
 import type { CalaAgentResult } from "./cala-agent";
+import type { ResearchCheckpoint } from "./research-checkpoint";
 
 // Convex rejects values of type `undefined` — an object key either exists
 // with a valid value or it's omitted entirely. Our upstream data (Error
@@ -80,6 +81,7 @@ export interface AgentRunRecord {
   stepCount: number;
   toolCallCount: number;
   result?: CalaAgentResult;
+  checkpoint?: ResearchCheckpoint;
   telemetry?: {
     functionId?: string;
     metadata?: Record<string, unknown>;
@@ -231,5 +233,15 @@ export async function recordRunSubmission(
   await getConvexClient().mutation(api.runs.recordSubmission, {
     runId,
     submission: sanitizeForConvex(submission),
+  });
+}
+
+export async function updateRunCheckpoint(
+  runId: string,
+  checkpoint: ResearchCheckpoint,
+) {
+  await getConvexClient().mutation(api.runs.updateCheckpoint, {
+    runId,
+    checkpoint: sanitizeForConvex(checkpoint),
   });
 }

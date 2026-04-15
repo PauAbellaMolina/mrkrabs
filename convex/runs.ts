@@ -285,3 +285,14 @@ export const recordSubmission = mutation({
     await ctx.db.patch(record._id, { leaderboardSubmission: submission });
   },
 });
+
+export const updateCheckpoint = mutation({
+  args: {
+    runId: v.string(),
+    checkpoint: v.any(),
+  },
+  handler: async (ctx, { runId, checkpoint }) => {
+    const record = await getByRunIdOrThrow(ctx, runId);
+    await ctx.db.patch(record._id, { checkpoint });
+  },
+});

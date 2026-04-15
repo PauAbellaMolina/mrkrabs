@@ -8,7 +8,13 @@ import { promisify } from "node:util";
 import { hasToolCall, stepCountIs, ToolLoopAgent, tool } from "ai";
 import { z } from "zod";
 import { finalizePortfolioTool } from "./submit-portfolio-tool";
+import { createResearchCheckpointState } from "./research-checkpoint-state";
+import {
+  createLoadResearchCheckpointTool,
+  createSaveResearchCheckpointTool,
+} from "./research-checkpoint-tools";
 import { SYSTEM_PROMPT } from "./system-prompt";
+import { attachConsoleLoggingToTools } from "./tool-logging";
 
 const execFileAsync = promisify(execFile);
 
@@ -134,8 +140,9 @@ const createCodeExecutionTool = () =>
     },
   });
 
-export async function createTradingAgent() {
+export async function createTradingAgent(options?: { runId?: string }) {
   const calaApiKey = process.env.CALA_API_KEY?.trim();
+  const checkpointState = createResearchCheckpointState(options?.runId);
 
   const calaClient = await createMCPClient({
     transport: {
@@ -156,11 +163,15 @@ export async function createTradingAgent() {
   return new ToolLoopAgent({
     model: anthropic("claude-sonnet-4-5"),
     instructions: SYSTEM_PROMPT,
-    tools: {
+    tools: attachConsoleLoggingToTools("tool-loop-agent", {
       ...calaTools,
       run_code: createCodeExecutionTool(),
+      save_research_checkpoint:
+        createSaveResearchCheckpointTool(checkpointState),
+      load_research_checkpoint:
+        createLoadResearchCheckpointTool(checkpointState),
       finalize_portfolio: finalizePortfolioTool,
-    },
+    }),
     stopWhen: [stepCountIs(80), hasToolCall("finalize_portfolio")],
   });
 }

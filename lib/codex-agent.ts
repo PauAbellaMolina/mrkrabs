@@ -1,36 +1,45 @@
-import { existsSync, readdirSync } from "node:fs"
-import path from "node:path"
-import { generateObject } from "ai"
-import { codexExec } from "ai-sdk-provider-codex-cli"
+import { existsSync, readdirSync } from "node:fs";
+import path from "node:path";
+import { generateObject } from "ai";
+import { codexExec } from "ai-sdk-provider-codex-cli";
 
 import {
   portfolioOutputSchema,
   type PortfolioOutput,
   type PortfolioPosition,
-} from "@/lib/portfolio-schema"
+} from "@/lib/portfolio-schema";
+import {
+  SHARED_SYSTEM_PROMPT,
+  composePromptSections,
+} from "@/lib/system-prompt";
 
-const DEFAULT_MODEL = process.env.CODEX_MODEL?.trim() || "gpt-5.4-mini"
-const DEFAULT_AGENT_NAME = "mrkrabs-codex-cli"
-const DEFAULT_AGENT_VERSION = "v0.1"
-const CALA_MCP_URL = process.env.CALA_MCP_URL?.trim() || "https://api.cala.ai/mcp/"
-const CALA_MCP_PROXY_PATH = path.join(process.cwd(), "scripts", "cala-mcp-proxy.sh")
-const MIN_POSITION_SIZE = 5_000
-const REQUIRED_PORTFOLIO_BUDGET = 1_000_000
-const MIN_POSITION_COUNT = 50
-const TARGET_FILING_CUTOFF = "2025-04-15"
+const DEFAULT_MODEL = process.env.CODEX_MODEL?.trim() || "gpt-5.4-mini";
+const DEFAULT_AGENT_NAME = "mrkrabs-codex-cli";
+const DEFAULT_AGENT_VERSION = "v0.1";
+const CALA_MCP_URL =
+  process.env.CALA_MCP_URL?.trim() || "https://api.cala.ai/mcp/";
+const CALA_MCP_PROXY_PATH = path.join(
+  process.cwd(),
+  "scripts",
+  "cala-mcp-proxy.sh",
+);
+const MIN_POSITION_SIZE = 5_000;
+const REQUIRED_PORTFOLIO_BUDGET = 1_000_000;
+const MIN_POSITION_COUNT = 50;
+const TARGET_FILING_CUTOFF = "2025-04-15";
 const PLACEHOLDER_TICKER_PATTERN =
-  /^(UNVERIFIABLE|UNAVAILABLE|DO-NOT-|INVALID-|PLACEHOLDER|REMOVE_|CALA_|BLOCKED|MISSING|NO_SUBMISSION|OMIT|THIS|PAYLOAD)/i
+  /^(UNVERIFIABLE|UNAVAILABLE|DO-NOT-|INVALID-|PLACEHOLDER|REMOVE_|CALA_|BLOCKED|MISSING|NO_SUBMISSION|OMIT|THIS|PAYLOAD)/i;
 
 const findBundledCodexPath = () => {
-  const pnpmDir = path.join(process.cwd(), "node_modules", ".pnpm")
+  const pnpmDir = path.join(process.cwd(), "node_modules", ".pnpm");
 
   try {
     const match = readdirSync(pnpmDir).find((entry) =>
       entry.startsWith("@openai+codex@"),
-    )
+    );
 
     if (!match) {
-      return undefined
+      return undefined;
     }
 
     const candidate = path.join(
@@ -41,119 +50,120 @@ const findBundledCodexPath = () => {
       "codex",
       "bin",
       "codex.js",
-    )
+    );
 
-    return existsSync(candidate) ? candidate : undefined
+    return existsSync(candidate) ? candidate : undefined;
   } catch {
-    return undefined
+    return undefined;
   }
-}
+};
 
-const BUNDLED_CODEX_PATH = findBundledCodexPath()
+const BUNDLED_CODEX_PATH = findBundledCodexPath();
 
 export interface CalaAgentStep {
-  text: string
-  finishReason: string
-  toolCalls: unknown[]
-  toolResults: unknown[]
+  text: string;
+  finishReason: string;
+  toolCalls: unknown[];
+  toolResults: unknown[];
 }
 
 export interface CalaAgentResult {
-  model: string
-  output: PortfolioOutput
-  steps: CalaAgentStep[]
+  model: string;
+  output: PortfolioOutput;
+  steps: CalaAgentStep[];
 }
 
 interface RunCalaAgentOptions {
   onTelemetryEvent?: (event: {
-    level: "info" | "error"
-    type:
-      | "step-started"
-      | "tool-started"
-      | "tool-finished"
-      | "step-finished"
-    title: string
-    data?: unknown
-  }) => Promise<void> | void
+    level: "info" | "error";
+    type: "step-started" | "tool-started" | "tool-finished" | "step-finished";
+    title: string;
+    data?: unknown;
+  }) => Promise<void> | void;
   onFinish?: (event: {
-    functionId?: string
-    metadata?: Record<string, unknown>
-    totalUsage: unknown
-    result: CalaAgentResult
-  }) => Promise<void> | void
+    functionId?: string;
+    metadata?: Record<string, unknown>;
+    totalUsage: unknown;
+    result: CalaAgentResult;
+  }) => Promise<void> | void;
 }
 
-export const CALA_AGENT_MODEL = DEFAULT_MODEL
-export const CALA_AGENT_NAME = DEFAULT_AGENT_NAME
-export const CALA_AGENT_VERSION = DEFAULT_AGENT_VERSION
+export const CALA_AGENT_MODEL = DEFAULT_MODEL;
+export const CALA_AGENT_NAME = DEFAULT_AGENT_NAME;
+export const CALA_AGENT_VERSION = DEFAULT_AGENT_VERSION;
 
 class PortfolioValidationError extends Error {
-  issues: string[]
+  issues: string[];
 
   constructor(issues: string[]) {
-    super(issues.join(" "))
-    this.name = "PortfolioValidationError"
-    this.issues = issues
+    super(issues.join(" "));
+    this.name = "PortfolioValidationError";
+    this.issues = issues;
   }
 }
 
-const normalizeTicker = (ticker: string) => ticker.trim().toUpperCase()
+const normalizeTicker = (ticker: string) => ticker.trim().toUpperCase();
 
 const dedupeStrings = (values: string[]) =>
   Array.from(
-    new Set(values.map((value) => value.trim()).filter((value) => value.length > 0)),
-  )
+    new Set(
+      values.map((value) => value.trim()).filter((value) => value.length > 0),
+    ),
+  );
 
 const normalizeText = (value: string, fallback: string) => {
-  const normalized = value.trim()
-  return normalized.length > 0 ? normalized : fallback
-}
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : fallback;
+};
 
 const normalizeDateOrNull = (value: string | null | undefined) => {
   if (!value) {
-    return null
+    return null;
   }
 
-  const normalized = value.trim()
-  return normalized.length > 0 ? normalized : null
-}
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
 
 const safeJsonPreview = (value: unknown, maxLength = 800) => {
   try {
-    const serialized = JSON.stringify(value, null, 2)
+    const serialized = JSON.stringify(value, null, 2);
     return serialized.length > maxLength
       ? `${serialized.slice(0, maxLength)}...`
-      : serialized
+      : serialized;
   } catch {
-    return String(value)
+    return String(value);
   }
-}
+};
 
 const mergePositions = (positions: PortfolioPosition[]) => {
-  const merged = new Map<string, PortfolioPosition>()
+  const merged = new Map<string, PortfolioPosition>();
 
   for (const position of positions) {
-    const ticker = normalizeTicker(position.nasdaqCode)
+    const ticker = normalizeTicker(position.nasdaqCode);
     if (!ticker) {
-      continue
+      continue;
     }
 
     const incomingCurrentAnnualFilingDate = normalizeText(
       position.currentAnnualFilingDate,
       TARGET_FILING_CUTOFF,
-    )
+    );
     const incomingPriorAnnualFilingDate = normalizeDateOrNull(
       position.priorAnnualFilingDate,
-    )
+    );
 
-    const existing = merged.get(ticker)
+    const existing = merged.get(ticker);
     if (!existing) {
       merged.set(ticker, {
         ...position,
         nasdaqCode: ticker,
         companyName: normalizeText(position.companyName, ticker),
         companyEntityId: position.companyEntityId.trim(),
-        thesis: normalizeText(position.thesis, `Cala-backed thesis for ${ticker}.`),
+        thesis: normalizeText(
+          position.thesis,
+          `Cala-backed thesis for ${ticker}.`,
+        ),
         currentAnnualFilingDate: incomingCurrentAnnualFilingDate,
         priorAnnualFilingDate: incomingPriorAnnualFilingDate,
         subsidiaryCount: Math.max(position.subsidiaryCount, 0),
@@ -168,12 +178,12 @@ const mergePositions = (positions: PortfolioPosition[]) => {
         calaEvidence: dedupeStrings(position.calaEvidence),
         supportingEntityIds: dedupeStrings(position.supportingEntityIds),
         riskNotes: dedupeStrings(position.riskNotes),
-      })
-      continue
+      });
+      continue;
     }
 
     const useIncomingSignal =
-      incomingCurrentAnnualFilingDate > existing.currentAnnualFilingDate
+      incomingCurrentAnnualFilingDate > existing.currentAnnualFilingDate;
 
     merged.set(ticker, {
       ...existing,
@@ -228,72 +238,74 @@ const mergePositions = (positions: PortfolioPosition[]) => {
         ...position.supportingEntityIds,
       ]),
       riskNotes: dedupeStrings([...existing.riskNotes, ...position.riskNotes]),
-    })
+    });
   }
 
-  return Array.from(merged.values())
-}
+  return Array.from(merged.values());
+};
 
 const allocatePortfolioAmounts = (positions: PortfolioPosition[]) => {
-  const minimumBudget = positions.length * MIN_POSITION_SIZE
+  const minimumBudget = positions.length * MIN_POSITION_SIZE;
 
   if (minimumBudget > REQUIRED_PORTFOLIO_BUDGET) {
     throw new PortfolioValidationError([
       `Portfolio has ${positions.length} positions, which exceeds the maximum supported count for a $${REQUIRED_PORTFOLIO_BUDGET.toLocaleString()} budget with a $${MIN_POSITION_SIZE.toLocaleString()} minimum.`,
-    ])
+    ]);
   }
 
-  const remainingBudget = REQUIRED_PORTFOLIO_BUDGET - minimumBudget
+  const remainingBudget = REQUIRED_PORTFOLIO_BUDGET - minimumBudget;
   const weights = positions.map((position) =>
     Math.max(position.amount - MIN_POSITION_SIZE, 0),
-  )
-  const weightSum = weights.reduce((sum, weight) => sum + weight, 0)
-  const normalizedWeights = weightSum > 0 ? weights : positions.map(() => 1)
+  );
+  const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
+  const normalizedWeights = weightSum > 0 ? weights : positions.map(() => 1);
   const normalizedWeightSum = normalizedWeights.reduce(
     (sum, weight) => sum + weight,
     0,
-  )
+  );
 
   const provisionalExtras = normalizedWeights.map(
     (weight) => (remainingBudget * weight) / normalizedWeightSum,
-  )
-  const flooredExtras = provisionalExtras.map((extra) => Math.floor(extra))
+  );
+  const flooredExtras = provisionalExtras.map((extra) => Math.floor(extra));
   let remainder =
     REQUIRED_PORTFOLIO_BUDGET -
-    (minimumBudget + flooredExtras.reduce((sum, extra) => sum + extra, 0))
+    (minimumBudget + flooredExtras.reduce((sum, extra) => sum + extra, 0));
 
   const fractionalOrder = provisionalExtras
     .map((extra, index) => ({
       index,
       remainder: extra - flooredExtras[index],
     }))
-    .sort((a, b) => b.remainder - a.remainder)
+    .sort((a, b) => b.remainder - a.remainder);
 
-  const extras = [...flooredExtras]
+  const extras = [...flooredExtras];
   for (const entry of fractionalOrder) {
     if (remainder <= 0) {
-      break
+      break;
     }
-    extras[entry.index] += 1
-    remainder -= 1
+    extras[entry.index] += 1;
+    remainder -= 1;
   }
 
   return positions.map((position, index) => ({
     ...position,
     amount: MIN_POSITION_SIZE + extras[index],
-  }))
-}
+  }));
+};
 
-const renderReportMarkdown = (output: Omit<PortfolioOutput, "reportMarkdown">) => {
+const renderReportMarkdown = (
+  output: Omit<PortfolioOutput, "reportMarkdown">,
+) => {
   const portfolioLines = output.positions.flatMap((position) => {
     const evidenceLines =
       position.calaEvidence.length > 0
         ? position.calaEvidence.map((item) => `- ${item}`)
-        : ["- No additional evidence captured."]
+        : ["- No additional evidence captured."];
     const riskLines =
       position.riskNotes.length > 0
         ? position.riskNotes.map((item) => `- ${item}`)
-        : ["- No explicit risks captured."]
+        : ["- No explicit risks captured."];
 
     return [
       `### ${position.companyName} (${position.nasdaqCode})`,
@@ -310,18 +322,18 @@ const renderReportMarkdown = (output: Omit<PortfolioOutput, "reportMarkdown">) =
       "- Risks:",
       ...riskLines,
       "",
-    ]
-  })
+    ];
+  });
 
   const openGapLines =
     output.openGaps.length > 0
       ? output.openGaps.map((gap) => `- ${gap}`)
-      : ["- No additional open gaps recorded."]
+      : ["- No additional open gaps recorded."];
 
   const cutoffLines =
     output.cutoffAudit.bannedDataChecks.length > 0
       ? output.cutoffAudit.bannedDataChecks.map((check) => `- ${check}`)
-      : ["- No explicit banned-data checks recorded."]
+      : ["- No explicit banned-data checks recorded."];
 
   return [
     "# Lobster of Wall Street: NASDAQ Portfolio Challenge Submission",
@@ -341,36 +353,38 @@ const renderReportMarkdown = (output: Omit<PortfolioOutput, "reportMarkdown">) =
     "",
     "## Open Gaps",
     ...openGapLines,
-  ].join("\n")
-}
+  ].join("\n");
+};
 
 const normalizeAndValidateOutput = (
   output: PortfolioOutput,
   teamId: string,
 ): PortfolioOutput => {
-  const issues: string[] = []
+  const issues: string[] = [];
 
   const mergedPositions = mergePositions(output.positions).filter(
     (position) => position.companyEntityId.length > 0,
-  )
+  );
 
   if (mergedPositions.length < MIN_POSITION_COUNT) {
     issues.push(
       `Portfolio has only ${mergedPositions.length} unique positions with Cala UUIDs after deduplication; at least ${MIN_POSITION_COUNT} are required.`,
-    )
+    );
   }
 
   for (const position of mergedPositions) {
     if (!position.nasdaqCode) {
-      issues.push("A position is missing a NASDAQ ticker.")
+      issues.push("A position is missing a NASDAQ ticker.");
     }
     if (!position.companyEntityId) {
-      issues.push(`Position ${position.nasdaqCode} is missing a Cala entity UUID.`)
+      issues.push(
+        `Position ${position.nasdaqCode} is missing a Cala entity UUID.`,
+      );
     }
     if (position.currentAnnualFilingDate > TARGET_FILING_CUTOFF) {
       issues.push(
         `${position.nasdaqCode} uses currentAnnualFilingDate=${position.currentAnnualFilingDate}, which is after the ${TARGET_FILING_CUTOFF} cutoff.`,
-      )
+      );
     }
     if (
       position.priorAnnualFilingDate &&
@@ -378,26 +392,26 @@ const normalizeAndValidateOutput = (
     ) {
       issues.push(
         `${position.nasdaqCode} uses priorAnnualFilingDate=${position.priorAnnualFilingDate}, which is after the ${TARGET_FILING_CUTOFF} cutoff.`,
-      )
+      );
     }
     if (PLACEHOLDER_TICKER_PATTERN.test(position.nasdaqCode)) {
       issues.push(
         `Position ${position.nasdaqCode} looks like a placeholder ticker rather than a real NASDAQ symbol.`,
-      )
+      );
     }
   }
 
   if (output.cutoffAudit.postCutoffDataUsed) {
     issues.push(
       "cutoffAudit.postCutoffDataUsed was true; the portfolio must explicitly avoid post-2025-04-15 data.",
-    )
+    );
   }
 
   if (issues.length > 0) {
-    throw new PortfolioValidationError(issues)
+    throw new PortfolioValidationError(issues);
   }
 
-  const normalizedPositions = allocatePortfolioAmounts(mergedPositions)
+  const normalizedPositions = allocatePortfolioAmounts(mergedPositions);
   const normalizedOutput: PortfolioOutput = {
     portfolioThesis: normalizeText(
       output.portfolioThesis,
@@ -423,7 +437,7 @@ const normalizeAndValidateOutput = (
     },
     openGaps: dedupeStrings(output.openGaps),
     reportMarkdown: "",
-  }
+  };
 
   normalizedOutput.reportMarkdown = renderReportMarkdown({
     portfolioThesis: normalizedOutput.portfolioThesis,
@@ -431,14 +445,12 @@ const normalizeAndValidateOutput = (
     positions: normalizedOutput.positions,
     cutoffAudit: normalizedOutput.cutoffAudit,
     openGaps: normalizedOutput.openGaps,
-  })
+  });
 
-  return normalizedOutput
-}
+  return normalizedOutput;
+};
 
-const buildCodexPrompt = (prompt: string) => `
-You are building a submission-ready portfolio for Cala's "Lobster of Wall Street" challenge.
-
+const CODEX_EXECUTION_APPENDIX = `
 The grading server enforces every rule below. Any violation returns a 400 and the
 entire submission is wasted. Read each rule and the exact server error it produces.
 
@@ -486,10 +498,9 @@ Required identifiers:
 - MODEL_AGENT_NAME: ${DEFAULT_AGENT_NAME}
 - MODEL_AGENT_VERSION: ${DEFAULT_AGENT_VERSION}
 
-Research workflow:
-- Use Cala MCP tools for research. Prefer entity_search → entity_introspection →
-  retrieve_entity for company verification. Use knowledge_search only for broader
-  discovery, then verify every resulting company with the entity tools.
+Additional execution rules for this Codex path:
+- The available Cala tools here are the single-entity MCP tools: entity_search,
+  entity_introspection, and retrieve_entity.
 - For every selected company you must independently verify:
   1. the Cala company UUID (retrieved from Cala, never invented), and
   2. the exact NASDAQ ticker symbol used in submissionPayload.transactions[].nasdaq_code.
@@ -503,17 +514,21 @@ Output:
 - Return ONLY the final JSON object matching the provided schema.
 - submissionPayload.transactions and positions[] must describe the same portfolio,
   same tickers, same amounts, same length.
+`.trim();
 
-User request:
-${prompt}
-`.trim()
+const buildCodexPrompt = (prompt: string) =>
+  composePromptSections(
+    SHARED_SYSTEM_PROMPT,
+    CODEX_EXECUTION_APPENDIX,
+    `User request:\n${prompt}`,
+  );
 
 const createModel = () =>
   codexExec(DEFAULT_MODEL, {
     codexPath: BUNDLED_CODEX_PATH,
     allowNpx: true,
     approvalMode: "never",
-    sandboxMode: "read-only",
+    sandboxMode: "workspace-write",
     skipGitRepoCheck: true,
     cwd: process.cwd(),
     verbose: true,
@@ -538,18 +553,18 @@ const createModel = () =>
         ],
       },
     },
-  })
+  });
 
 export async function runCalaAgent(
   prompt: string,
   options?: RunCalaAgentOptions,
 ): Promise<CalaAgentResult> {
   if (!process.env.TEAM_ID) {
-    throw new Error("TEAM_ID is required")
+    throw new Error("TEAM_ID is required");
   }
 
   if (!process.env.CALA_API_KEY) {
-    throw new Error("CALA_API_KEY is required")
+    throw new Error("CALA_API_KEY is required");
   }
 
   console.info("[codex-agent][start]", {
@@ -558,21 +573,18 @@ export async function runCalaAgent(
     calaMcpUrl: CALA_MCP_URL,
     calaMcpProxyPath: CALA_MCP_PROXY_PATH,
     codexPath: BUNDLED_CODEX_PATH ?? "npx:@openai/codex",
-    enabledTools: [
-      "entity_search",
-      "entity_introspection",
-      "retrieve_entity",
-    ],
-  })
+    enabledTools: ["entity_search", "entity_introspection", "retrieve_entity"],
+  });
 
   const result = await generateObject({
     model: createModel(),
     schema: portfolioOutputSchema,
     prompt: buildCodexPrompt(prompt),
-  })
+  });
 
-  const usage = (result as { usage?: unknown }).usage
-  const providerMetadata = (result as { providerMetadata?: unknown }).providerMetadata
+  const usage = (result as { usage?: unknown }).usage;
+  const providerMetadata = (result as { providerMetadata?: unknown })
+    .providerMetadata;
 
   console.info("[codex-agent][raw-output]", {
     model: DEFAULT_MODEL,
@@ -581,16 +593,22 @@ export async function runCalaAgent(
     preview: safeJsonPreview(
       {
         firstPositions: result.object.positions.slice(0, 3),
-        firstTransactions: result.object.submissionPayload.transactions.slice(0, 3),
+        firstTransactions: result.object.submissionPayload.transactions.slice(
+          0,
+          3,
+        ),
         cutoffAudit: result.object.cutoffAudit,
       },
       2000,
     ),
-  })
+  });
 
-  let normalizedOutput: PortfolioOutput
+  let normalizedOutput: PortfolioOutput;
   try {
-    normalizedOutput = normalizeAndValidateOutput(result.object, process.env.TEAM_ID)
+    normalizedOutput = normalizeAndValidateOutput(
+      result.object,
+      process.env.TEAM_ID,
+    );
   } catch (error) {
     if (error instanceof PortfolioValidationError) {
       console.error("[codex-agent][validation][failed]", {
@@ -598,13 +616,14 @@ export async function runCalaAgent(
         preview: safeJsonPreview(
           {
             firstPositions: result.object.positions.slice(0, 5),
-            firstTransactions: result.object.submissionPayload.transactions.slice(0, 5),
+            firstTransactions:
+              result.object.submissionPayload.transactions.slice(0, 5),
           },
           2000,
         ),
-      })
+      });
     }
-    throw error
+    throw error;
   }
 
   console.info("[codex-agent][success]", {
@@ -614,17 +633,18 @@ export async function runCalaAgent(
     preview: safeJsonPreview(
       {
         portfolioThesis: normalizedOutput.portfolioThesis,
-        firstTransactions: normalizedOutput.submissionPayload.transactions.slice(0, 5),
+        firstTransactions:
+          normalizedOutput.submissionPayload.transactions.slice(0, 5),
       },
       900,
     ),
-  })
+  });
 
   const finalResult = {
     model: DEFAULT_MODEL,
     output: normalizedOutput,
     steps: [],
-  } satisfies CalaAgentResult
+  } satisfies CalaAgentResult;
 
   await options?.onFinish?.({
     totalUsage: usage,
@@ -633,7 +653,7 @@ export async function runCalaAgent(
         ? (providerMetadata as Record<string, unknown>)
         : undefined,
     result: finalResult,
-  })
+  });
 
-  return finalResult
+  return finalResult;
 }

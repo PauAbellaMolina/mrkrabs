@@ -12,7 +12,13 @@ import {
   portfolioOutputSchemaForAnthropic,
   type PortfolioOutput,
 } from "./portfolio-schema";
+import { createResearchCheckpointState } from "./research-checkpoint-state";
+import {
+  createLoadResearchCheckpointTool,
+  createSaveResearchCheckpointTool,
+} from "./research-checkpoint-tools";
 import { BASE_SYSTEM_PROMPT_FOR_RESEARCH } from "./system-prompt";
+import { attachConsoleLoggingToTools, previewForConsole } from "./tool-logging";
 
 const execFileAsync = promisify(execFile);
 
@@ -329,6 +335,7 @@ interface RunCalaAgentOptions {
   // "claude-opus-4-6"). Manual runs from the UI pass the user's picked
   // model here; autoresearch/scripts leave it unset.
   model?: string;
+  runId?: string;
   onTelemetryEvent?: (event: {
     level: "info" | "error";
     type: string;
@@ -371,11 +378,16 @@ export const runCalaAgent = async (
     },
   });
   const tools = await client.tools();
+  const checkpointState = createResearchCheckpointState(options?.runId);
 
-  const calaTools = {
+  const calaTools = attachConsoleLoggingToTools("cala-agent", {
     ...tools,
     run_code: createCodeExecutionTool(),
-  };
+    save_research_checkpoint:
+      createSaveResearchCheckpointTool(checkpointState),
+    load_research_checkpoint:
+      createLoadResearchCheckpointTool(checkpointState),
+  });
 
   const stepBudget = options?.stepBudget ?? DEFAULT_STEP_BUDGET;
 
@@ -584,6 +596,12 @@ export const runCalaAgent = async (
       });
 
       mergeUsage(result.totalUsage);
+      console.info("[cala-agent][result][text]", {
+        model: effectiveModel,
+        attempt,
+        finishReason: result.finishReason,
+        text: previewForConsole(result.text),
+      });
       aggregatedSteps.push(
         ...result.steps.map((step) => ({
           text: step.text,

@@ -6,6 +6,7 @@ import type { AgentRunRecord } from "@/lib/agent-runs";
 import { indexEventsByUuid } from "@/lib/entity-events";
 import { useMockMode } from "@/lib/mock-mode";
 import { readMockRunRecords } from "@/lib/mock-store";
+import { summarizeResearchCheckpoint } from "@/lib/research-checkpoint";
 import { buildDiffMarkerMap, diffRuns, type DiffMarker } from "@/lib/run-diff";
 import { deriveRunStage, type RunStage } from "@/lib/run-stage";
 import { AutoRefresh } from "./auto-refresh";
@@ -225,6 +226,8 @@ function DetailBody({
         </section>
       </ViewTransition>
 
+      {run.checkpoint ? <CheckpointSummaryPanel run={run} /> : null}
+
       {isRunning ? (
         <RunningBody run={run} />
       ) : stage === "failed" ? (
@@ -241,6 +244,44 @@ function DetailBody({
         />
       )}
     </main>
+  );
+}
+
+function CheckpointSummaryPanel({ run }: { run: AgentRunRecord }) {
+  if (!run.checkpoint) return null;
+
+  const summary = summarizeResearchCheckpoint(run.checkpoint);
+  const cells = [
+    { label: "Phase", value: summary.phase },
+    { label: "Candidates", value: `${summary.candidateCount}` },
+    { label: "Draft", value: `${summary.draftCount}` },
+    { label: "Selected", value: `${summary.selectedCount}` },
+    { label: "Open gaps", value: `${summary.openGapCount}` },
+    { label: "Updated step", value: `${summary.lastUpdatedAtStep}` },
+  ];
+
+  return (
+    <Panel eyebrow="Checkpoint" title="Latest research checkpoint">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6">
+        {cells.map((cell, index) => (
+          <div
+            key={cell.label}
+            className={
+              "flex flex-col gap-1 bg-[color:var(--background)] px-4 py-4 " +
+              (index > 0 ? "border-l border-[color:var(--border)]" : "") +
+              " [&:nth-child(n+4)]:border-t [&:nth-child(n+4)]:border-[color:var(--border)] xl:[&:nth-child(n+4)]:border-t-0"
+            }
+          >
+            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[color:var(--muted-foreground)]">
+              {cell.label}
+            </p>
+            <p className="font-mono text-sm font-semibold text-[color:var(--foreground)]">
+              {cell.value}
+            </p>
+          </div>
+        ))}
+      </div>
+    </Panel>
   );
 }
 

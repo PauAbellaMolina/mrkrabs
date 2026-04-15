@@ -16,6 +16,7 @@
     "@ai-sdk/mcp": "^1.0.36",
     "@ai-sdk/openai": "^3.0.53",
     "@ai-sdk/react": "^3.0.163",
+    "@anthropic-ai/claude-agent-sdk": "^0.2.110",
     "ai": "^6.0.161",
     "ai-sdk-provider-codex-cli": "^1.1.0",
     "convex": "^1.35.1",

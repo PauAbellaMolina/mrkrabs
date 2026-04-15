@@ -144,6 +144,7 @@ async function runOneExperiment(
       systemPromptOverride: variantPrompt,
       stepBudget: AUTORESEARCH_STEP_BUDGET,
       model: RESOLVED_MODEL,
+      runId,
       onTelemetryEvent: (event) => appendRunEvent(runId, event),
       onFinish: async (event) => {
         agentCostUsd = estimateAnthropicCostUsd(event.totalUsage, RESOLVED_MODEL);
