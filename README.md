@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# mrkrabs
 
-## Getting Started
+An AI agent that builds a $1M NASDAQ portfolio for Cala's **"Lobster of Wall Street"** hackathon challenge.
 
-First, run the development server:
+## The challenge
+
+Turn the clock back 365 days — it's April 15th 2025. You have $1,000,000 and access to [Cala](https://cala.ai)'s verified-knowledge API. Build an agent that researches NASDAQ-listed companies and allocates that capital across **at least 50 stocks**. One year later (today, 2026-04-15) the portfolio is scored on real market data and ranked on a live leaderboard. Beat the S&P 500 buy-and-hold, win €10k in Cala credits + a travel grant.
+
+**Hard constraints:**
+
+- ≥ 50 distinct NASDAQ tickers (no duplicates)
+- ≥ $5,000 per position
+- $1,000,000 total exactly
+- Resubmit as many times as we want
+
+## Team
+
+- [Pau](https://github.com/) — frontend / infra
+- Anton — agent / AI
+
+## Stack
+
+- **Next.js 16** (App Router, Turbopack) + TypeScript
+- **Vercel AI SDK** (`ai`, `@ai-sdk/anthropic`, `@ai-sdk/openai`) — agent loop with tool-calling
+- **Cala API + MCP** — verified financial knowledge (see [docs](https://docs.cala.ai))
+- **Tailwind v4** for UI
+
+## Knowledge base
+
+We keep living docs in [`docs/`](./docs):
+
+- [`VISION.md`](./docs/VISION.md) — what we're building and why
+- [`PRD.md`](./docs/PRD.md) — product requirements / spec
+- [`STRATEGY.md`](./docs/STRATEGY.md) — trading thesis and the data signals we rely on
+- [`NOTES.md`](./docs/NOTES.md) — running decisions, open questions, scratchpad
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.local.example .env.local   # then fill in CALA_API_KEY + model key
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open http://localhost:3000.
