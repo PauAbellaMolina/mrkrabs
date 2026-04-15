@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# saved agent runs (Phase 1: keep out of git; demo.json is an opt-in exception)
+/.runs/
+!/.runs/demo.json

@@ -24,10 +24,10 @@ const serializeError = (error: unknown) => {
     cause:
       errorWithCause.cause instanceof Error
         ? {
-            name: errorWithCause.cause.name,
-            message: errorWithCause.cause.message,
-            stack: errorWithCause.cause.stack,
-          }
+          name: errorWithCause.cause.name,
+          message: errorWithCause.cause.message,
+          stack: errorWithCause.cause.stack,
+        }
         : errorWithCause.cause,
   }
 }

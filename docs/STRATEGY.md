@@ -2,11 +2,17 @@
 
 > _Our trading thesis and the Cala signals we lean on. Fill in as we learn what data is available._
 
-## Constraint: Cala ≠ market data
+## What Cala actually gives us (verified via live probes — see NOTES.md "Live probes")
 
-Cala is an **entity knowledge graph** (companies, people, filings metadata, corporate events, relationships), sourced from **SEC EDGAR + GLEIF**. It has **no prices, no OHLC, no earnings numbers, no analyst ratings, no insider transactions, no point-in-time queries.** See `NOTES.md` for the full research writeup.
+Cala is an entity knowledge graph over **SEC EDGAR + GLEIF**. Our earlier "no quant data" take was wrong. Confirmed by poking NVIDIA CORP live:
 
-This kills the obvious quant-factor theses we'd normally reach for. Momentum, earnings-surprise, insider-buying-from-Form-4 — none of those can be driven from Cala alone. Our thesis has to leverage what Cala _is_ strong at: **qualitative, structural, relationship-driven reasoning about companies**.
+- **Properties** — `cik`, `lei`, `legal_name`, `headquarters_address`, `employee_count`, `founding_date`, `bics`, `esg_policy`, plus relationships
+- **🔥 `numerical_observations.FinancialMetric`** — XBRL `us-gaap` facts (Cash and Cash Equivalents, Other Assets, etc.). Shape of a _specific_ metric retrieval (scalar vs time-series) is not yet probed — see task #10
+- **Rich relationships** — `LISTED_ON`, `IS_ULTIMATE_PARENT_OF`, `IS_DIRECT_OWNER_OF`, `IS_AFFILIATE_OF`, `PARTICIPATES_IN_CORPORATE_EVENT`, `HAS_PRIVATE_FUND`, more
+
+Cala **still** does not give us prices / returns directly. We need at minimum a reference file for market values on 2025-04-15 and 2026-04-15 to compute P&L. But the signals that _inform_ the buy decision can plausibly live entirely in Cala.
+
+**Constraint:** field population is sparse for smaller / foreign / non-SEC-filer entities. A REIT had 9 properties and zero FinancialMetrics; NVIDIA CORP had 13 and a FinancialMetric list. Our universe should skew toward large SEC-registered US filers — which matches the challenge's "NASDAQ-listed" requirement anyway.
 
 ## Thesis candidates (TBD — after booth chat)
 
@@ -19,6 +25,8 @@ _Pick one and commit, or invent a fifth. All must be explainable with Cala signa
 5. **???** — something weirder the Cala API makes uniquely possible.
 
 **Gut pick to beat:** thesis #4 (supply-chain / subsidiary graph) is the most distinctively Cala-flavored and hardest for a non-graph-based competitor to replicate. It's also the most compatible with a multi-step agentic research loop, which plays to the Vercel AI SDK's strengths.
+
+**Alternative to consider** (pending task #10 probe): if `FinancialMetric` retrieval returns a time series, we could build a **fundamentals-at-reasonable-price** quant screen — rank companies by, e.g., cash growth, low debt, steady employee count, using only Cala's us-gaap facts. Less storytelling, more defensible. Gate this decision on what the FinancialMetric probe actually returns.
 
 ## Why this thesis (TBD)
 

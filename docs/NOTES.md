@@ -21,6 +21,46 @@
 - **OmniGraph: not using it.** Rust-binary graph DB, `curl | bash` install, custom `.pg`/`.gq` query files, no TS SDK. Zero leverage for a one-shot portfolio backtest; pure setup risk. [Landing page](https://www.omnigraph.dev/) · [Starters](https://github.com/ModernRelay/omnigraph-starters)
 - **Scaffold:** `pnpm create next-app` with `--ts --tailwind --app --no-src-dir --turbopack`, then `pnpm add ai @ai-sdk/anthropic @ai-sdk/openai zod`.
 
+### 🔥 Live probes of the Cala graph (2026-04-15, from `pnpm cala:sanity`)
+
+_Much of what the earlier API research agent told us was theoretical. These are what the live endpoints actually return. Trust these over the theory._
+
+**Probe 1 — `entity_search("Apple", entity_types=["Company"])`**
+
+- Top 5 results are Apple Hospitality REIT, Apple Operations Mexico, Apple Canada, Six Apples Finance OÜ, Apple Spire India. **Apple Inc. does not appear.**
+- Lesson: `entity_search` is fuzzy and **not ranked by market cap, centrality, or "how famous"**. Don't rely on "top hit" being the canonical public company.
+
+**Probe 2 — `entity_search("NVIDIA")` and `entity_search("NVIDIA CORP")`**
+
+- For "NVIDIA": top hit is _NVIDIA Brasil Computação Visual Limitada_ (subsidiary). NVIDIA CORP is 3rd. Microsoft Corp inexplicably 4th.
+- For "NVIDIA CORP": top hit IS NVIDIA CORP. Searching with the full SEC legal name works.
+- **Lesson: search with `legal_name`, not with ticker or casual name.**
+
+**Probe 3 — `entity_introspection(NVIDIA_CORP_UUID)` → `5f7ca504-01d8-4aa9-b1ac-889202fd17c9`**
+
+Populated fields on NVIDIA CORP:
+
+- **Properties (13):** `bics`, `aliases`, `cik`, `lei`, `name`, `headquarters_address`, `employee_count`, `founding_date`, `description`, `esg_policy`, `legal_name`, `id`, `registered_address`
+- **Relationships:** outgoing = `[IS_DIRECT_OWNER_OF, IS_ULTIMATE_PARENT_OF, LISTED_ON, IS_REGISTERED_IN, IS_BENEFICIARY_OWNER_OF, IS_AFFILIATE_OF, HAS_HEADQUARTERS_IN, HAS_PRIVATE_FUND, PARTICIPATES_IN_CORPORATE_EVENT, IS_DIRECT_PARENT_OF, ...]`, incoming = similar breadth.
+- **🔥 numerical_observations → FinancialMetric is POPULATED.** Example observations on NVIDIA CORP:
+  - `1d3eae40-0ba8-5baf-9907-6a4823b067bb` — "Cash and Cash Equivalents, at Carrying Value" · taxonomy=`us-gaap` · unit=`USD` · cadence=`i`
+  - `db56d5ab-c493-5600-b0ec-ef5e4beada6b` — "Other Assets" · us-gaap · USD · `i`
+  - ... plus more (list truncated in terminal output, explore more via MCP or a re-run)
+- **Why this matters:** Cala ingests **SEC XBRL facts** (us-gaap taxonomy). That means _numerical, auditable, point-in-time financial data_ for real SEC filers — balance sheet, income statement, cash flow. Our "Cala is only qualitative" assumption was wrong.
+- **Open question — MUST probe:** calling `retrieve_entity` with `numerical_observations: { FinancialMetric: [<uuid>] }` — does it return just the latest value, a full time series of reported values with filing dates, or something else? This determines whether Cala can be our **sole** data source or we still need a market-data API for returns.
+
+**Probe 4 — `entity_introspection(APPLE_HOSPITALITY_REIT_UUID)`**
+
+- Only 9 populated properties (no `cik`, no `numerical_observations`, no `employee_count`, no `esg_policy`). Confirms **field population is highly variable** by entity size/filer status. Smaller/foreign entities are nearly empty.
+- **Lesson:** always introspect before retrieving; never hard-code a property list.
+
+**Probe 5 — `retrieve_entity` response shape**
+
+- By default relationships come back empty — you have to **explicitly request them in the query body** (`relationships: { outgoing: { IS_LISTED_ON: [...] } }`, shape TBD).
+- Sources are rich: each property value carries a `sources[]` array with `name` (e.g. `GLEIF`, `SEC`), `document` (URL or {endpoint, params, response_hash}), and `date` (when Cala scraped it). Example: `"date": "2026-02-26"` — **a month old**, well past our 2025-04-15 start date. Look-ahead bias is real but at least the date is visible so we could filter.
+- The `SEC` source on NVIDIA's `name` property points to `https://www.sec.gov/files/company_tickers.json` — **this is the canonical SEC ticker↔CIK↔name mapping, freely available as JSON.** We can fetch it ourselves and drive our Cala lookups from it: `ticker → CIK → resolve to Cala entity → introspect → retrieve`.
+- Aliases contain ticker symbols! NVIDIA CORP aliases include `"NVDA"`, `"NVIDIA"`, `"NVIDIA Corporation"`, `"Nvidia"`, `"NVIDIA (NVDA)"`, `"NVIA"`. So once we have a Cala entity we can confirm its ticker; the reverse (ticker → entity) is less direct but doable via legal name or CIK.
+
 ### 📌 Cala staff guidance (from booth, 2026-04-15)
 
 A Cala engineer at the booth told us to **focus on these three endpoints** — ignore `knowledge/search` and `knowledge/query` unless we have a reason to reach for them:
