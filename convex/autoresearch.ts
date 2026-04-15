@@ -214,6 +214,7 @@ export const createSession = mutation({
     model: v.string(),
     plannedIterations: v.number(),
     host: v.optional(v.string()),
+    logPath: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await ctx.db.insert("autoresearchSessions", {
@@ -224,6 +225,7 @@ export const createSession = mutation({
       plannedIterations: args.plannedIterations,
       completedIterations: 0,
       host: args.host,
+      logPath: args.logPath,
     });
   },
 });
@@ -345,6 +347,7 @@ export const listSessions = query({
           plannedIterations: s.plannedIterations,
           completedIterations: s.completedIterations,
           errorMessage: s.errorMessage,
+          logPath: s.logPath ?? null,
           keptCount: stats?.kept ?? 0,
           discardedCount: stats?.discarded ?? 0,
           skippedCount: stats?.skipped ?? 0,
@@ -373,6 +376,7 @@ export const getSession = query({
       plannedIterations: row.plannedIterations,
       completedIterations: row.completedIterations,
       errorMessage: row.errorMessage,
+      logPath: row.logPath ?? null,
     };
   },
 });

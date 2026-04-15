@@ -136,6 +136,9 @@ export default defineSchema({
     // Surfaces to the UI for "failed" sessions (e.g. env-var missing,
     // agent crash propagated out of the outer loop).
     errorMessage: v.optional(v.string()),
+    // Absolute path to the tailable stdio log file for this session.
+    // The detail page surfaces it so you can `tail -f` from a terminal.
+    logPath: v.optional(v.string()),
   })
     .index("by_sessionId", ["sessionId"])
     .index("by_startedAt", ["startedAt"]),

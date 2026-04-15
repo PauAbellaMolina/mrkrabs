@@ -218,6 +218,20 @@ export default async function AutoresearchSessionDetailPage({
             </p>
           </div>
         ) : null}
+
+        {session.logPath ? (
+          <div className="border-t border-[color:var(--border)] px-6 py-4">
+            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+              Live logs
+            </p>
+            <p className="mt-2 font-mono text-[10px] text-[color:var(--muted-foreground)]">
+              Tail the child process&rsquo;s stdout/stderr from a terminal:
+            </p>
+            <pre className="mt-2 select-all overflow-x-auto border border-[color:var(--border)] bg-[color:var(--background)] px-4 py-2 font-mono text-[11px] text-[color:var(--foreground)]">
+              tail -f {session.logPath}
+            </pre>
+          </div>
+        ) : null}
       </section>
 
       <section>

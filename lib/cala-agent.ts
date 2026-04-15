@@ -19,6 +19,7 @@ import {
 } from "./research-checkpoint-tools";
 import { BASE_SYSTEM_PROMPT_FOR_RESEARCH } from "./system-prompt";
 import { attachConsoleLoggingToTools, previewForConsole } from "./tool-logging";
+import { persistCacheToDisk, wrapToolsWithCache } from "./cala-tool-cache";
 
 const execFileAsync = promisify(execFile);
 
@@ -380,6 +381,14 @@ export const runCalaAgent = async (
   const tools = await client.tools();
   const checkpointState = createResearchCheckpointState(options?.runId);
 
+  // Memoize read-only Cala tool calls before the logging layer wraps
+  // them. Within-process this speeds up iterations 2+ within the same
+  // autoresearch session (identical entity lookups hit cache). Across-
+  // process it loads whatever the previous session persisted to
+  // data/cala-tool-cache.json — so a fresh machine warms up once, and
+  // every run after that skips the cold start.
+  wrapToolsWithCache(tools);
+
   const calaTools = attachConsoleLoggingToTools("cala-agent", {
     ...tools,
     run_code: createCodeExecutionTool(),
@@ -579,6 +588,17 @@ export const runCalaAgent = async (
           text: string;
           usage: unknown;
         }) => {
+          // Dump a compact per-step line to stdout so the log file shows
+          // which tools were called, how many in parallel, and the finish
+          // reason — without needing to cross-reference telemetry events.
+          const toolNames = (event.toolCalls as Array<{ toolName?: string }>)
+            .map((t) => t?.toolName ?? "?")
+            .join(",");
+          console.info(
+            `[cala-agent][step] n=${event.stepNumber + 1} finish=${event.finishReason} ` +
+              `toolCalls=${event.toolCalls.length} tools=[${toolNames}] ` +
+              `attempt=${attempt} textLen=${event.text.length}`,
+          );
           await options?.onTelemetryEvent?.({
             level: "info",
             type: "step-finished",
@@ -845,5 +865,9 @@ export const runCalaAgent = async (
     await client.close().catch((closeError) => {
       console.warn("[cala-agent][mcp][close-failed]", closeError);
     });
+    // Flush whatever new entities this run fetched so the next process
+    // (next iteration, next autoresearch session, manual run) can reuse
+    // them instead of hitting Cala again.
+    persistCacheToDisk();
   }
 };

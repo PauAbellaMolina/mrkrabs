@@ -23,6 +23,9 @@ export interface AutoresearchSession {
   plannedIterations: number;
   completedIterations: number;
   errorMessage?: string;
+  // Absolute path to the child process's stdio log file. Set by the
+  // spawn route. The detail page surfaces a `tail -f <logPath>` hint.
+  logPath?: string | null;
   // Ledger-derived stats. Populated by listSessions; unset on
   // getSession (which doesn't walk the ledger on read for a single row).
   keptCount?: number;
@@ -37,6 +40,7 @@ export async function createAutoresearchSession(input: {
   model: string;
   plannedIterations: number;
   host?: string;
+  logPath?: string;
 }): Promise<void> {
   await getConvexClient().mutation(api.autoresearch.createSession, input);
 }

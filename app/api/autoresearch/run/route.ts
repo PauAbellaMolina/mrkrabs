@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
@@ -9,6 +10,9 @@ import {
 // Creates an autoresearch session row in Convex, then spawns the outer-loop
 // script as a detached child process. The child's PID is written back onto
 // the session so /api/autoresearch/stop can SIGTERM exactly one session.
+// Child stdio is piped to .mrkrabs-logs/autoresearch-<sessionId>.log so the
+// console.info / console.warn / error stacks from cala-agent + autoresearch
+// are recoverable (previously they were thrown away with stdio: "ignore").
 //
 // This is local-dev-only: the child lives in the same host as the Next dev
 // server, and the PID is only meaningful on that machine.
@@ -32,6 +36,23 @@ const ALLOWED_MODELS = new Set([
 
 const DEFAULT_MODEL = "claude-sonnet-4-6";
 
+const LOG_DIR = path.join(process.cwd(), ".mrkrabs-logs");
+
+function openSessionLogFile(sessionId: string): {
+  logPath: string;
+  fd: number;
+} {
+  if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
+  const logPath = path.join(LOG_DIR, `autoresearch-${sessionId}.log`);
+  const fd = fs.openSync(logPath, "a");
+  // Write a header so the log is self-describing when tailed cold.
+  fs.writeSync(
+    fd,
+    `=== autoresearch session ${sessionId} started ${new Date().toISOString()} ===\n`,
+  );
+  return { logPath, fd };
+}
+
 export async function POST(request: Request) {
   let iterations = 5;
   let model = DEFAULT_MODEL;
@@ -50,6 +71,19 @@ export async function POST(request: Request) {
   const sessionId = crypto.randomUUID();
   const startedAt = new Date().toISOString();
 
+  let logPath: string;
+  let logFd: number;
+  try {
+    const opened = openSessionLogFile(sessionId);
+    logPath = opened.logPath;
+    logFd = opened.fd;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown log-open error";
+    console.error("[autoresearch][log-open-error]", { sessionId, message });
+    return Response.json({ ok: false, error: message }, { status: 500 });
+  }
+
   try {
     await createAutoresearchSession({
       sessionId,
@@ -57,8 +91,14 @@ export async function POST(request: Request) {
       model,
       plannedIterations: iterations,
       host: os.hostname(),
+      logPath,
     });
   } catch (error) {
+    try {
+      fs.closeSync(logFd);
+    } catch {
+      // empty
+    }
     const message =
       error instanceof Error ? error.message : "Unknown session-create error";
     console.error("[autoresearch][session-create-error]", { message });
@@ -80,15 +120,28 @@ export async function POST(request: Request) {
       {
         cwd: process.cwd(),
         detached: true,
-        stdio: "ignore",
+        // stdin=ignore, stdout+stderr → session log file. The fd gets closed
+        // automatically when the child exits; we dup it twice so stdout and
+        // stderr share the same underlying file (append-mode writes are
+        // thread-safe enough for this kind of logging).
+        stdio: ["ignore", logFd, logFd],
         env: {
           ...process.env,
           AUTORESEARCH_SESSION_ID: sessionId,
           AUTORESEARCH_MODEL: model,
+          AUTORESEARCH_LOG_PATH: logPath,
         },
       },
     );
     child.unref();
+
+    // The parent can close its own handle to the fd now that the child
+    // inherited it — otherwise the fd stays open even after the child exits.
+    try {
+      fs.closeSync(logFd);
+    } catch {
+      // swallow — worst case the fd gets closed at process exit
+    }
 
     if (typeof child.pid === "number") {
       // Best effort: if this mutation fails we still return success because
@@ -108,6 +161,7 @@ export async function POST(request: Request) {
       pid: child.pid ?? null,
       iterations,
       model,
+      logPath,
     });
 
     return Response.json(
@@ -117,6 +171,7 @@ export async function POST(request: Request) {
         iterations,
         model,
         pid: child.pid ?? null,
+        logPath,
       },
       { status: 202 },
     );

@@ -52,3 +52,7 @@ next-env.d.ts
 # Convex auto-generated types/runtime. `pnpm convex:dev` regenerates these
 # on each developer's machine.
 /convex/_generated/
+
+# Per-session stdio log files from spawned autoresearch child processes.
+# Tailable from the session detail page; never commit.
+/.mrkrabs-logs/
