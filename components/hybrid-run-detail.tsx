@@ -257,26 +257,22 @@ function HeaderStats({
 
 function RunningBody({ run }: { run: AgentRunRecord }) {
   return (
-    <section className="grid gap-8 xl:grid-cols-[0.95fr_1.35fr]">
-      <div className="flex flex-col gap-6">
-        <Panel eyebrow="Live" title="Activity">
-          <RunActivityFeed events={run.events} pulseLatest />
-        </Panel>
-      </div>
-      <div className="flex flex-col gap-6">
-        <Panel eyebrow="Pending" title="Result summary">
-          <RunSkeletonMetricRow cells={4} />
-          <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
-            Waiting for the agent to finish. This page refreshes every second.
-          </p>
-        </Panel>
-        <Panel eyebrow="Pending" title="Report">
-          <RunSkeletonReport />
-        </Panel>
-        <Panel eyebrow="Pending" title="Portfolio">
-          <RunSkeletonPortfolio rows={6} />
-        </Panel>
-      </div>
+    <section className="flex flex-col gap-6">
+      <Panel eyebrow="Live" title="Activity">
+        <RunActivityFeed events={run.events} pulseLatest />
+      </Panel>
+      <Panel eyebrow="Pending" title="Result summary">
+        <RunSkeletonMetricRow cells={4} />
+        <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
+          Waiting for the agent to finish. This page refreshes every second.
+        </p>
+      </Panel>
+      <Panel eyebrow="Pending" title="Report">
+        <RunSkeletonReport />
+      </Panel>
+      <Panel eyebrow="Pending" title="Portfolio">
+        <RunSkeletonPortfolio rows={6} />
+      </Panel>
     </section>
   );
 }
@@ -286,18 +282,20 @@ function FailedBody({ run }: { run: AgentRunRecord }) {
     <section className="grid gap-8 xl:grid-cols-[0.95fr_1.35fr]">
       <div className="flex flex-col gap-6">
         <Panel eyebrow="Error" title="Agent failed">
-          <div className="flex flex-col gap-3">
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-[color:var(--foreground)]">
-              {run.error?.message ?? "Unknown error"}
-            </p>
-            {run.error?.details ? <CodeBlock value={run.error.details} /> : null}
-          </div>
-        </Panel>
-        <Panel eyebrow="Telemetry" title="Timeline">
-          <RunActivityFeed events={run.events} />
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-[color:var(--foreground)]">
+            {run.error?.message ?? "Unknown error"}
+          </p>
         </Panel>
       </div>
       <div className="flex flex-col gap-6">
+        {run.error?.details ? (
+          <Panel eyebrow="Error" title="Details">
+            <CodeBlock value={run.error.details} />
+          </Panel>
+        ) : null}
+        <Panel eyebrow="Telemetry" title="Timeline">
+          <RunActivityFeed events={run.events} />
+        </Panel>
         <Panel eyebrow="Context" title="Prompt">
           <pre className="whitespace-pre-wrap border border-[color:var(--border)] bg-[color:var(--background)] p-4 font-mono text-xs leading-6 text-[color:var(--foreground)]">
             {run.prompt}
@@ -377,16 +375,6 @@ function SettledBody({
               isMock={isMock}
             />
           ) : null}
-
-          <Panel eyebrow="Narrative" title="Report">
-            <pre className="max-h-[720px] overflow-auto border border-[color:var(--border)] bg-[color:var(--background)] p-5 font-mono text-[11px] leading-6 whitespace-pre-wrap break-words text-[color:var(--foreground)]">
-              {result.output.reportMarkdown || "No report available."}
-            </pre>
-          </Panel>
-
-          <Panel eyebrow="Telemetry" title="Timeline">
-            <RunActivityFeed events={run.events} />
-          </Panel>
         </div>
 
         <div className="flex flex-col gap-6">
@@ -413,6 +401,16 @@ function SettledBody({
             title={`${result.output.positions.length} positions`}
           >
             <RunPortfolioTable result={result} markers={markers} />
+          </Panel>
+
+          <Panel eyebrow="Narrative" title="Report">
+            <pre className="max-h-[720px] overflow-auto border border-[color:var(--border)] bg-[color:var(--background)] p-5 font-mono text-[11px] leading-6 whitespace-pre-wrap break-words text-[color:var(--foreground)]">
+              {result.output.reportMarkdown || "No report available."}
+            </pre>
+          </Panel>
+
+          <Panel eyebrow="Telemetry" title="Timeline">
+            <RunActivityFeed events={run.events} />
           </Panel>
 
           <Panel eyebrow="JSON" title="Submission payload">

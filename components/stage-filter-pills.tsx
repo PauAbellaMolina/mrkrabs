@@ -73,19 +73,13 @@ function Pill({
     ? {
         color: accent,
         borderColor: accent,
-        backgroundColor: `color-mix(in oklab, ${accent} 22%, var(--background))`,
+        backgroundColor: `color-mix(in oklab, ${accent} 28%, var(--background))`,
       }
-    : color
-      ? {
-          color: `color-mix(in oklab, ${color} 75%, var(--muted-foreground))`,
-          borderColor: `color-mix(in oklab, ${color} 45%, var(--border))`,
-          backgroundColor: "transparent",
-        }
-      : {
-          color: "var(--muted-foreground)",
-          borderColor: "var(--border)",
-          backgroundColor: "transparent",
-        };
+    : {
+        color: accent,
+        borderColor: `color-mix(in oklab, ${accent} 70%, var(--border))`,
+        backgroundColor: "transparent",
+      };
 
   return (
     <button

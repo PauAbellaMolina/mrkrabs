@@ -11,6 +11,75 @@ const DEFAULT_MODEL = "claude-haiku-4-5"
 const DEFAULT_AGENT_NAME = "Mr. Krabs"
 const DEFAULT_AGENT_VERSION = "—"
 
+// Leaderboard constraints the server enforces. We re-check them here so a bad
+// generation fails fast with a clear error instead of wasting a submission.
+const MIN_POSITION_COUNT = 50
+const MIN_POSITION_SIZE = 5_000
+const REQUIRED_PORTFOLIO_BUDGET = 1_000_000
+
+class PortfolioValidationError extends Error {
+  issues: string[]
+  constructor(issues: string[]) {
+    super(issues.join(" "))
+    this.name = "PortfolioValidationError"
+    this.issues = issues
+  }
+}
+
+const validatePortfolioOutput = (
+  output: CalaAgentResult["output"],
+): void => {
+  const issues: string[] = []
+  const transactions = output.submissionPayload.transactions
+  const uniqueTickers = new Set(
+    transactions.map(t => t.nasdaq_code.trim().toUpperCase()).filter(Boolean),
+  )
+
+  if (uniqueTickers.size !== transactions.length) {
+    issues.push(
+      `Duplicate tickers in submissionPayload.transactions (${transactions.length} entries, ${uniqueTickers.size} unique).`,
+    )
+  }
+
+  if (uniqueTickers.size < MIN_POSITION_COUNT) {
+    issues.push(
+      `Only ${uniqueTickers.size} unique tickers; leaderboard requires at least ${MIN_POSITION_COUNT}.`,
+    )
+  }
+
+  for (const t of transactions) {
+    if (t.amount < MIN_POSITION_SIZE) {
+      issues.push(
+        `Ticker ${t.nasdaq_code} allocated $${t.amount} — minimum is $${MIN_POSITION_SIZE}.`,
+      )
+    }
+    if (!Number.isInteger(t.amount)) {
+      issues.push(`Ticker ${t.nasdaq_code} amount ${t.amount} is not an integer dollar value.`)
+    }
+  }
+
+  const total = transactions.reduce((sum, t) => sum + t.amount, 0)
+  if (total !== REQUIRED_PORTFOLIO_BUDGET) {
+    issues.push(
+      `Portfolio total is $${total}; leaderboard requires exactly $${REQUIRED_PORTFOLIO_BUDGET}.`,
+    )
+  }
+
+  if (output.cutoffAudit.postCutoffDataUsed) {
+    issues.push(
+      "cutoffAudit.postCutoffDataUsed is true; reasoning must stay before 2025-04-15.",
+    )
+  }
+
+  if (output.positions.length !== transactions.length) {
+    issues.push(
+      `positions (${output.positions.length}) and transactions (${transactions.length}) must describe the same portfolio.`,
+    )
+  }
+
+  if (issues.length > 0) throw new PortfolioValidationError(issues)
+}
+
 export const CALA_AGENT_NAME = DEFAULT_AGENT_NAME;
 export const CALA_AGENT_VERSION = DEFAULT_AGENT_VERSION;
 export const CALA_AGENT_MODEL = DEFAULT_MODEL;
@@ -51,8 +120,8 @@ interface RunCalaAgentOptions {
   }) => Promise<void> | void;
 }
 
-// Exported so the autoresearch script can bootstrap `.data/autoresearch/champion.md`
-// from the baseline and measure mutation drift against it.
+// Exported so the autoresearch script can bootstrap the baseline champion
+// prompt in Convex and measure mutation drift against it.
 export const BASE_SYSTEM_PROMPT = `
 You are a financial research agent building a NASDAQ portfolio report for Cala's
 "Lobster of Wall Street" challenge using Cala's verified entity graph tools.
@@ -263,6 +332,11 @@ export async function runCalaAgent(
         toolResults: step.toolResults,
       })),
     };
+
+    // Schema can no longer encode leaderboard constraints (Anthropic
+    // rejects minItems > 1 and number minimum), so we enforce the same
+    // rules post-generation and fail fast with a clear message.
+    validatePortfolioOutput(response.output);
 
     await options?.onFinish?.({
       totalUsage: result.totalUsage,
