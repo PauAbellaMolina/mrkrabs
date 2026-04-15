@@ -111,8 +111,8 @@ const portfolioOutputSchema = z.object({
   reportMarkdown: z.string(),
 });
 
-// Exported so the autoresearch script can bootstrap `.data/autoresearch/champion.md`
-// from the baseline and measure mutation drift against it.
+// Exported so the autoresearch script can bootstrap the baseline champion
+// prompt in Convex and measure mutation drift against it.
 export const BASE_SYSTEM_PROMPT = `
 You are a financial research agent building a NASDAQ portfolio report for Cala's
 "Lobster of Wall Street" challenge using Cala's verified entity graph tools.

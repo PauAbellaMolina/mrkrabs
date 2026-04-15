@@ -13,8 +13,8 @@
 //      `BASE + current-rules + candidate-rule`, submit, compare to champion.
 //   4. If the candidate rule produced a better score, APPEND it to the
 //      playbook (capped at MAX_RULES; oldest drops).
-//   5. Always append the outcome to `.data/autoresearch/ledger.jsonl` and
-//      increment spend.
+//   5. Always append the outcome to the Convex `ledger` table and increment
+//      accumulated spend.
 //   6. Abort if cumulative spend crosses AUTORESEARCH_BUDGET_USD.
 //
 // Autoresearch runs appear in the dashboard like any other run. The public
@@ -205,7 +205,7 @@ async function main() {
 
   if (spent >= budgetCap) {
     console.error(
-      `[autoresearch] accumulated spend $${spent.toFixed(2)} already at/over cap $${budgetCap.toFixed(2)}. Aborting. Edit .data/autoresearch/spent.json to reset.`,
+      `[autoresearch] accumulated spend $${spent.toFixed(2)} already at/over cap $${budgetCap.toFixed(2)}. Aborting. Reset via the Convex dashboard (spent table) or raise AUTORESEARCH_BUDGET_USD.`,
     );
     process.exit(1);
   }

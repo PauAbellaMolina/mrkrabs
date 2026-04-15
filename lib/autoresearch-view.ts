@@ -1,9 +1,8 @@
 import { api } from "../convex/_generated/api";
 import { getConvexClient } from "./convex-client";
 
-// Read-only view loader for the autoresearch UI page. Same shape it
-// used to have when it parsed `.data/autoresearch/*` files directly;
-// now the data comes from Convex queries in a single parallel fetch.
+// Read-only view loader for the autoresearch UI page. Data comes from
+// Convex queries in a single parallel fetch.
 
 const DEFAULT_BUDGET_USD = 50;
 

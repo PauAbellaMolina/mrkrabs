@@ -31,11 +31,7 @@ export default async function AutoresearchPage() {
             <p className="mt-4 max-w-[64ch] text-sm leading-relaxed text-[color:var(--muted-foreground)]">
               An outer loop mutates the champion system prompt, runs the agent,
               submits to the leaderboard, and only keeps variants whose score
-              beats the incumbent. Reads{" "}
-              <code className="font-mono text-[11px] text-[color:var(--foreground)]">
-                .data/autoresearch/
-              </code>{" "}
-              live — reload-free via polling.
+              beats the incumbent. Reads Convex live — reload-free via polling.
             </p>
           </div>
           <ChampionBadge state={state} />
@@ -358,8 +354,7 @@ function EmptyState() {
         Autoresearch idle
       </p>
       <p className="mt-4 font-sans text-sm text-[color:var(--foreground)]">
-        No state files found under{" "}
-        <code className="font-mono text-[11px]">.data/autoresearch/</code>.
+        No iterations recorded yet.
       </p>
       <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
         pnpm autoresearch
