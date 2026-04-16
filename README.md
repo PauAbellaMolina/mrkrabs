@@ -1,14 +1,8 @@
 # mrkrabs
 
-```
-    🦀
-   /||\
-  / || \
- /  ||  \
-    ||
-   /  \
-  /    \
-```
+<p align="center">
+  <img src="public/mr-krabs.png" alt="Mr. Krabs" width="300" />
+</p>
 
 > *"I like money."* — Mr. Krabs
 
