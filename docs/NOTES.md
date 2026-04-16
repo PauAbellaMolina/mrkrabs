@@ -5,6 +5,91 @@
 
 ## 2026-04-16
 
+### Cala runtime coverage scout now seeds the first research wave
+
+The agent no longer gets a baked-in warm-start stock list.
+
+Instead, each run now tries to build a small Cala-generated coverage memo before
+the LLM starts researching companies:
+
+- run `knowledge_search` for a small set of target sectors
+- take only the returned company entities as schema probes
+- re-resolve and introspect those entities
+- keep a compact summary of the returned narrative / explainability / context as soft hints
+- summarize which properties, relationship keys, and numerical observation labels
+  actually appear in the graph
+- inject that memo into both the Anthropic and Codex system prompts
+
+Current behavior:
+
+- the memo is explicitly framed as graph-surface discovery, not as a stock shortlist
+- it helps the model request fields that are likely to exist instead of guessing
+- it tells the model to drop companies faster when subsidiary/control-style
+  relationships are absent
+- it preserves short narrative hints and follow-up keywords from `knowledge_search`,
+  but only as research steering, never as direct ranking evidence
+- the result is cached under `.data/cala-preanalysis/coverage-scout.json` to avoid
+  repeating the same probe work on every run
+- the bootstrap now removes the preanalysis hard timeout by default, keeps bounded
+  sector concurrency, and falls back to stale cache so Cala search slowness does not
+  leave Codex without any scout memo
+- successful scout runs now log the attempted sectors, seeded company entities, and
+  resolved probe companies so we can see exactly what Cala discovery contributed
+
+Important caveat:
+
+- the target sectors are fixed for now, but the probe companies are chosen live from Cala search results
+- those entities are still not recommendations, not ranking hints, and not portfolio seeds
+- the portfolio thesis remains filing-linked legal-entity complexity only
+
+Practical goal:
+
+- reduce wasted early tool calls
+- make the agent more aware of the actual Cala field surface before ranking candidates
+- remove saved-run bias from the prompt entirely
+
+### Codex runtime clamped to reduce side quests
+
+The Codex CLI model setup no longer runs in `fullAuto` with `danger-full-access`.
+It now uses the normal `workspace-write` sandbox path and explicitly disables
+built-in web search.
+
+The goal is to keep Codex focused on the Cala MCP tools we actually want:
+
+- less opportunistic `exec` / `patch` wandering
+- no Codex-native web-search detours
+- faster, more reproducible runs
+
+This does not change the thesis or output schema. It only tightens the runtime
+surface so the agent spends more of its budget on Cala-backed research.
+
+### Added per-run analysis CLI
+
+There is now a repo-local CLI for diagnosing a saved run by ID:
+
+- `npm run analyze:run -- <run-id>`
+
+It loads the persisted run record from Convex and prints:
+
+- overview / backend / model / timing
+- what went right
+- what went wrong
+- event summary
+- tool summary
+- output summary
+- checkpoint summary when present
+- leaderboard submission outcome when present
+
+The goal is to make postmortems fast without clicking through the UI or hand-reading raw JSON.
+
+### Codex now checkpoints through a run-scoped file
+
+The Codex backend still does not have the same local checkpoint tools as the Anthropic path, but it now gets a writable checkpoint file per run:
+
+- `.data/codex-checkpoints/<runId>.json`
+
+The file is pre-seeded before the run starts, the Codex prompt tells the model to keep it updated with the latest full research state, and the server reads it back after completion and persists it onto the run record when it parses cleanly.
+
 ### Agent still steered toward cohort research, without custom batch tools
 
 The custom `*_batch` Cala wrappers were removed. Both Claude and OpenAI/Codex should already be able to parallelize tool calls, so we don't need a separate tool surface just to force batching.
@@ -353,6 +438,7 @@ print(response.json())
 - Cala is a **reasoning tool**, not a feed. Use it during the agent's _research_ step to pull qualitative verified signals: executives, subsidiaries, corporate events, industry / regulatory context, CIK → SEC filings metadata.
 - Use a **separate market-data source** for: (1) the 2025-04-15 NASDAQ universe, (2) prices to compute portfolio value. See task #8.
 - Our trading thesis has to lean on what Cala is actually strong at: qualitative / structural / relationship-based reasoning. Pure quant factor models are off the table.
+- Codex run persistence should stay compact. We now avoid storing `toolResults` inside `runs.result.steps`; detailed recovery should come from local checkpoint files in `.data/codex-checkpoints/` and terminal logs rather than embedding every tool payload in a single Convex run document.
 
 ### TODO backlog
 

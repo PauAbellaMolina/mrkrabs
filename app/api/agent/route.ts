@@ -167,9 +167,8 @@ export async function POST(request: Request) {
     });
 
     const result = await agent.run(prompt, {
-      ...(backend === "anthropic"
-        ? { model: resolvedModel, runId }
-        : {}),
+      ...(backend === "anthropic" ? { model: resolvedModel } : {}),
+      runId,
       ...(systemPromptOverride ? { systemPromptOverride } : {}),
       onTelemetryEvent: (event) => appendRunEvent(runId!, event),
       onFinish: (event) =>

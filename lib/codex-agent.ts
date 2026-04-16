@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { generateObject } from "ai";
+import { streamText } from "ai";
 import { codexExec } from "ai-sdk-provider-codex-cli";
 
 import {
@@ -8,10 +8,16 @@ import {
   type PortfolioOutput,
   type PortfolioPosition,
 } from "@/lib/portfolio-schema";
+import { updateRunCheckpoint } from "@/lib/agent-runs";
+import {
+  ensureCodexCheckpointFile,
+  readCodexCheckpointFile,
+} from "@/lib/codex-checkpoint-file";
 import {
   SHARED_SYSTEM_PROMPT,
   composePromptSections,
 } from "@/lib/system-prompt";
+import { buildCalaPreanalysisPromptSection } from "@/lib/cala-preanalysis";
 
 const DEFAULT_MODEL = process.env.CODEX_MODEL?.trim() || "gpt-5.4-mini";
 const DEFAULT_AGENT_NAME = "mrkrabs-codex-cli";
@@ -64,7 +70,7 @@ export interface CalaAgentStep {
   text: string;
   finishReason: string;
   toolCalls: unknown[];
-  toolResults: unknown[];
+  toolResults?: unknown[];
 }
 
 export interface CalaAgentResult {
@@ -74,6 +80,7 @@ export interface CalaAgentResult {
 }
 
 interface RunCalaAgentOptions {
+  runId?: string;
   onTelemetryEvent?: (event: {
     level: "info" | "error";
     type: "step-started" | "tool-started" | "tool-finished" | "step-finished";
@@ -134,6 +141,18 @@ const safeJsonPreview = (value: unknown, maxLength = 800) => {
   } catch {
     return String(value);
   }
+};
+
+const extractJsonObject = (text: string) => {
+  const fenced = text.match(/```json([\s\S]*?)```/i)?.[1] ?? text;
+  const start = fenced.indexOf("{");
+  const end = fenced.lastIndexOf("}");
+  if (start < 0 || end <= start) {
+    throw new Error("Model response did not contain a JSON object.");
+  }
+
+  const candidate = fenced.slice(start, end + 1);
+  return JSON.parse(candidate);
 };
 
 const mergePositions = (positions: PortfolioPosition[]) => {
@@ -501,6 +520,24 @@ Required identifiers:
 Additional execution rules for this Codex path:
 - The available Cala tools here are the single-entity MCP tools: entity_search,
   entity_introspection, and retrieve_entity.
+- Use the checkpoint file at CHECKPOINT_FILE_PATH as your scratchpad and source of truth
+  for research progress during the run.
+- After the first useful research batch, after any material ranking change, after any
+  portfolio-draft change, and immediately before final output, overwrite that file with
+  the full latest checkpoint JSON.
+- The checkpoint file must stay valid JSON with this top-level shape:
+  {
+    "phase": "discovery" | "screening" | "ranking" | "drafting" | "finalized",
+    "thesis": "...fixed thesis string...",
+    "cutoffDate": "2025-04-15",
+    "candidateCompanies": [...],
+    "portfolioDraft": [...],
+    "openGaps": [...],
+    "notes": [...],
+    "lastUpdatedAtStep": number
+  }
+- Use the checkpoint file to keep candidate metrics, exclusions, and draft positions
+  outside the active context window.
 - For every selected company you must independently verify:
   1. the Cala company UUID (retrieved from Cala, never invented), and
   2. the exact NASDAQ ticker symbol used in submissionPayload.transactions[].nasdaq_code.
@@ -516,12 +553,24 @@ Output:
   same tickers, same amounts, same length.
 `.trim();
 
-const buildCodexPrompt = (prompt: string) =>
-  composePromptSections(
+const buildCodexPrompt = async (prompt: string, checkpointFilePath: string) => {
+  const preanalysisPromptSection = await buildCalaPreanalysisPromptSection();
+
+  const effectivePrompt = composePromptSections(
     SHARED_SYSTEM_PROMPT,
-    CODEX_EXECUTION_APPENDIX,
+    preanalysisPromptSection,
+    CODEX_EXECUTION_APPENDIX.replace(
+      "CHECKPOINT_FILE_PATH",
+      checkpointFilePath,
+    ),
     `User request:\n${prompt}`,
   );
+
+  return {
+    effectivePrompt,
+    preanalysisPromptSection,
+  };
+};
 
 const createModel = () =>
   codexExec(DEFAULT_MODEL, {
@@ -532,6 +581,11 @@ const createModel = () =>
     skipGitRepoCheck: true,
     cwd: process.cwd(),
     verbose: true,
+    reasoningEffort: "high",
+    // Keep Codex focused on Cala MCP research instead of opportunistic web detours.
+    configOverrides: {
+      "tools.web_search": false,
+    },
     logger: {
       debug: (message) => console.debug("[codex-provider][debug]", message),
       info: (message) => console.info("[codex-provider][info]", message),
@@ -567,24 +621,109 @@ export async function runCalaAgent(
     throw new Error("CALA_API_KEY is required");
   }
 
+  const checkpointFilePath = options?.runId
+    ? await ensureCodexCheckpointFile(options.runId)
+    : path.join(process.cwd(), ".data", "codex-checkpoints", "adhoc.json");
+
   console.info("[codex-agent][start]", {
     model: DEFAULT_MODEL,
     promptLength: prompt.length,
     calaMcpUrl: CALA_MCP_URL,
     calaMcpProxyPath: CALA_MCP_PROXY_PATH,
+    checkpointFilePath,
     codexPath: BUNDLED_CODEX_PATH ?? "npx:@openai/codex",
     enabledTools: ["entity_search", "entity_introspection", "retrieve_entity"],
   });
 
-  const result = await generateObject({
-    model: createModel(),
-    schema: portfolioOutputSchema,
-    prompt: buildCodexPrompt(prompt),
+  const { effectivePrompt, preanalysisPromptSection } = await buildCodexPrompt(
+    prompt,
+    checkpointFilePath,
+  );
+
+  console.info("[codex-agent][prompt]", {
+    model: DEFAULT_MODEL,
+    rawPromptLength: prompt.length,
+    effectivePromptLength: effectivePrompt.length,
+    preanalysisIncluded: Boolean(preanalysisPromptSection),
+    preanalysisLength: preanalysisPromptSection?.length ?? 0,
+    preanalysisPreview: preanalysisPromptSection
+      ? preanalysisPromptSection.slice(0, 240)
+      : null,
   });
 
-  const usage = (result as { usage?: unknown }).usage;
-  const providerMetadata = (result as { providerMetadata?: unknown })
-    .providerMetadata;
+  const result = streamText({
+    model: createModel(),
+    prompt: effectivePrompt,
+  });
+
+  for await (const part of result.fullStream) {
+    if (part.type === "tool-call") {
+      if (part.toolName === "exec") {
+        let input: unknown;
+        try {
+          input = typeof part.input === "string" ? JSON.parse(part.input) : part.input;
+        } catch {
+          input = part.input;
+        }
+
+        console.info("[codex-agent][tool][exec][start]", {
+          toolCallId: part.toolCallId,
+          command:
+            input && typeof input === "object" && "command" in input
+              ? (input as { command?: unknown }).command
+              : undefined,
+          cwd:
+            input && typeof input === "object" && "cwd" in input
+              ? (input as { cwd?: unknown }).cwd
+              : undefined,
+          status:
+            input && typeof input === "object" && "status" in input
+              ? (input as { status?: unknown }).status
+              : undefined,
+        });
+      } else {
+        console.info("[codex-agent][tool][start]", {
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: safeJsonPreview(part.input, 1200),
+        });
+      }
+    }
+
+    if (part.type === "tool-result") {
+      if (part.toolName === "exec") {
+        const resultPayload =
+          part.result && typeof part.result === "object"
+            ? (part.result as {
+                command?: unknown;
+                aggregatedOutput?: unknown;
+                exitCode?: unknown;
+                status?: unknown;
+              })
+            : undefined;
+
+        console.info("[codex-agent][tool][exec][finish]", {
+          toolCallId: part.toolCallId,
+          command: resultPayload?.command,
+          status: resultPayload?.status,
+          exitCode: resultPayload?.exitCode,
+          outputPreview: safeJsonPreview(resultPayload?.aggregatedOutput, 1200),
+        });
+      } else {
+        console.info("[codex-agent][tool][finish]", {
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          result: safeJsonPreview(part.result, 1200),
+        });
+      }
+    }
+  }
+
+  const text = await result.text;
+  const usage = await result.totalUsage;
+  const providerMetadata = await result.providerMetadata;
+  const steps = await result.steps;
+  const parsedObject = portfolioOutputSchema.parse(extractJsonObject(text));
 
   console.info("[codex-agent][raw-output]", {
     model: DEFAULT_MODEL,
@@ -592,12 +731,12 @@ export async function runCalaAgent(
     providerMetadata: safeJsonPreview(providerMetadata, 1200),
     preview: safeJsonPreview(
       {
-        firstPositions: result.object.positions.slice(0, 3),
-        firstTransactions: result.object.submissionPayload.transactions.slice(
+        firstPositions: parsedObject.positions.slice(0, 3),
+        firstTransactions: parsedObject.submissionPayload.transactions.slice(
           0,
           3,
         ),
-        cutoffAudit: result.object.cutoffAudit,
+        cutoffAudit: parsedObject.cutoffAudit,
       },
       2000,
     ),
@@ -606,7 +745,7 @@ export async function runCalaAgent(
   let normalizedOutput: PortfolioOutput;
   try {
     normalizedOutput = normalizeAndValidateOutput(
-      result.object,
+      parsedObject,
       process.env.TEAM_ID,
     );
   } catch (error) {
@@ -615,9 +754,9 @@ export async function runCalaAgent(
         issues: error.issues,
         preview: safeJsonPreview(
           {
-            firstPositions: result.object.positions.slice(0, 5),
+            firstPositions: parsedObject.positions.slice(0, 5),
             firstTransactions:
-              result.object.submissionPayload.transactions.slice(0, 5),
+              parsedObject.submissionPayload.transactions.slice(0, 5),
           },
           2000,
         ),
@@ -643,8 +782,24 @@ export async function runCalaAgent(
   const finalResult = {
     model: DEFAULT_MODEL,
     output: normalizedOutput,
-    steps: [],
+    steps: steps.map((step) => ({
+      text: step.text,
+      finishReason: step.finishReason,
+      toolCalls: step.toolCalls,
+    })),
   } satisfies CalaAgentResult;
+
+  if (options?.runId) {
+    const checkpoint = await readCodexCheckpointFile(options.runId);
+    if (checkpoint) {
+      await updateRunCheckpoint(options.runId, checkpoint);
+    } else {
+      console.warn("[codex-agent][checkpoint][missing-or-invalid]", {
+        runId: options.runId,
+        checkpointFilePath,
+      });
+    }
+  }
 
   await options?.onFinish?.({
     totalUsage: usage,

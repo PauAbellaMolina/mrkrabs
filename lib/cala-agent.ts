@@ -19,6 +19,7 @@ import {
 } from "./research-checkpoint-tools";
 import { BASE_SYSTEM_PROMPT_FOR_RESEARCH } from "./system-prompt";
 import { attachConsoleLoggingToTools, previewForConsole } from "./tool-logging";
+import { buildCalaPreanalysisPromptSection } from "./cala-preanalysis";
 import { persistCacheToDisk, wrapToolsWithCache } from "./cala-tool-cache";
 import {
   buildBaselinePromptBlock,
@@ -435,9 +436,14 @@ export const runCalaAgent = async (
   // so the existing thesis + tool-use guidance still applies; the block
   // just narrows the task scope and lists the forbidden tickers.
   const baselineEnabled = isBaselineMode();
-  const effectiveSystemPrompt = baselineEnabled
-    ? `${baseSystemPrompt}\n\n${buildBaselinePromptBlock()}`
-    : baseSystemPrompt;
+  const preanalysisPromptSection = await buildCalaPreanalysisPromptSection();
+  const effectiveSystemPrompt = [
+    baseSystemPrompt,
+    baselineEnabled ? buildBaselinePromptBlock() : undefined,
+    preanalysisPromptSection,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join("\n\n");
   if (baselineEnabled) {
     console.info("[cala-agent] BASELINE mode on — agent picks 5, 45 locked");
   }

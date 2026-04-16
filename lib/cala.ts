@@ -38,6 +38,23 @@ export interface CalaEntitySearchResponse {
   raw: unknown
 }
 
+export interface CalaKnowledgeSearchEntity {
+  id: string
+  name: string
+  entityType?: string
+  mentions: string[]
+  raw: CalaRecord
+}
+
+export interface CalaKnowledgeSearchResponse {
+  input: string
+  content?: string
+  entities: CalaKnowledgeSearchEntity[]
+  explainability: CalaRecord[]
+  context: CalaRecord[]
+  raw: unknown
+}
+
 export interface CalaEntityIntrospectionResponse {
   id: string
   entityType?: string
@@ -112,6 +129,14 @@ const normalizeSearchHits = (body: unknown): CalaRecord[] => {
   return []
 }
 
+const normalizeKnowledgeSearchEntities = (body: unknown): CalaRecord[] => {
+  if (!isStringRecord(body)) {
+    return []
+  }
+
+  return readArray(body.entities).filter(isStringRecord)
+}
+
 export class CalaClient {
   private readonly apiKey: string
   private readonly baseUrl: string
@@ -132,7 +157,10 @@ export class CalaClient {
   private async request<T>(method: "GET" | "POST", path: string, body?: CalaRecord): Promise<T> {
     const url = new URL(path, this.baseUrl).toString()
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), this.timeoutMs)
+    const timeout =
+      this.timeoutMs > 0
+        ? setTimeout(() => controller.abort(), this.timeoutMs)
+        : null
 
     try {
       const response = await fetch(url, {
@@ -179,7 +207,9 @@ export class CalaClient {
 
       throw new Error(`Cala API request error for ${path}: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
-      clearTimeout(timeout)
+      if (timeout) {
+        clearTimeout(timeout)
+      }
     }
   }
 
@@ -241,6 +271,47 @@ export class CalaClient {
     return {
       query: name,
       entities: rows,
+      raw,
+    }
+  }
+
+  async knowledgeSearch(input: string): Promise<CalaKnowledgeSearchResponse> {
+    if (!input?.trim()) {
+      throw new Error("knowledgeSearch requires a non-empty input")
+    }
+
+    const raw = await this.request<unknown>("POST", "/v1/knowledge/search", {
+      input,
+    })
+
+    const entityRows = normalizeKnowledgeSearchEntities(raw).map((row) => ({
+      id:
+        readString(row.id) ??
+        readString(row.uuid) ??
+        readString(row.entity_id) ??
+        "",
+      name:
+        readString(row.name) ??
+        readString(row.entity_name) ??
+        "",
+      entityType:
+        readString(row.entity_type) ??
+        readString(row.type) ??
+        readString(row.entityType),
+      mentions: readArray(row.mentions).filter((value): value is string => typeof value === "string"),
+      raw: row,
+    }))
+
+    const parsed = isStringRecord(raw) ? raw : {}
+
+    return {
+      input,
+      content: readString(parsed.content),
+      entities: entityRows.filter(
+        (entity) => entity.id.length > 0 && entity.name.length > 0,
+      ),
+      explainability: readArray(parsed.explainability).filter(isStringRecord),
+      context: readArray(parsed.context).filter(isStringRecord),
       raw,
     }
   }

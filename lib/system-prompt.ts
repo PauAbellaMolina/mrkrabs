@@ -172,7 +172,7 @@ export function composePromptSections(...sections: Array<string | undefined>) {
 
 export const SHARED_SYSTEM_PROMPT = COMMON_SYSTEM_PROMPT;
 export const BASE_SYSTEM_PROMPT_FOR_RESEARCH = composePromptSections(
-  COMMON_SYSTEM_PROMPT,
+  SHARED_SYSTEM_PROMPT,
   CHECKPOINTING_SUFFIX,
 );
 export const SYSTEM_PROMPT = composePromptSections(
