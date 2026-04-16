@@ -15,10 +15,12 @@ import {
   completeRunRecord,
   createRunRecord,
   failRunRecord,
+  recordRunSubmission,
 } from "@/lib/agent-runs";
 import { composeSystemPrompt, loadRules } from "@/lib/autoresearch-ledger";
 import { runFastIteration } from "@/lib/fast-ranker";
 import { hasResearchUniverse } from "@/lib/research-universe";
+import { submitToLeaderboard } from "@/lib/leaderboard-submit";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -209,6 +211,7 @@ export async function POST(request: Request) {
     const result = await agent.run(prompt, {
       ...(backend === "anthropic" ? { model: resolvedModel } : {}),
       runId,
+      submitFn: submitToLeaderboard,
       ...(systemPromptOverride ? { systemPromptOverride } : {}),
       onTelemetryEvent: (event) => appendRunEvent(runId!, event),
       onFinish: (event) =>
@@ -222,6 +225,17 @@ export async function POST(request: Request) {
           },
         }),
     });
+
+    if (result.leaderboardSubmission) {
+      await recordRunSubmission(runId, {
+        status: "submitted",
+        submittedAt: new Date().toISOString(),
+        requestId: result.leaderboardSubmission.requestId,
+        publicAgentName: result.leaderboardSubmission.publicAgentName,
+        publicAgentVersion: result.leaderboardSubmission.publicAgentVersion,
+        response: result.leaderboardSubmission.response,
+      });
+    }
 
     console.info("[agent][success]", {
       requestId,
@@ -238,6 +252,37 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const details = serializeError(error);
+    const submissionFailure =
+      error &&
+      typeof error === "object" &&
+      "submissionFailure" in error &&
+      (error as { submissionFailure?: unknown }).submissionFailure &&
+      typeof (error as { submissionFailure?: unknown }).submissionFailure ===
+        "object"
+        ? ((error as {
+            submissionFailure: {
+              requestId: string;
+              agentName: string;
+              agentVersion: string;
+              upstreamStatus: number;
+              upstreamStatusText: string;
+              details: unknown;
+            };
+          }).submissionFailure)
+        : null;
+
+    if (runId && submissionFailure) {
+      await recordRunSubmission(runId, {
+        status: "failed",
+        submittedAt: new Date().toISOString(),
+        requestId: submissionFailure.requestId,
+        publicAgentName: submissionFailure.agentName,
+        publicAgentVersion: submissionFailure.agentVersion,
+        upstreamStatus: submissionFailure.upstreamStatus,
+        upstreamStatusText: submissionFailure.upstreamStatusText,
+        details: submissionFailure.details,
+      }).catch(() => undefined);
+    }
 
     if (runId) {
       await failRunRecord(runId, {

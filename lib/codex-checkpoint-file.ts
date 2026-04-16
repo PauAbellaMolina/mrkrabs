@@ -36,12 +36,26 @@ export async function ensureCodexCheckpointFile(
 ): Promise<string> {
   const filePath = getCodexCheckpointFilePath(runId);
   await mkdir(CODEX_CHECKPOINT_DIR, { recursive: true });
-  await writeFile(
-    filePath,
-    `${JSON.stringify(createInitialCheckpoint(), null, 2)}\n`,
-    "utf8",
-  );
+  await writeCodexCheckpointToPath(filePath, createInitialCheckpoint());
   return filePath;
+}
+
+export async function writeCodexCheckpointToPath(
+  filePath: string,
+  checkpoint: ResearchCheckpoint,
+) {
+  const parsed = researchCheckpointSchema.parse(checkpoint);
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await writeFile(filePath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
+}
+
+export async function writeCodexCheckpointFile(
+  runId: string,
+  checkpoint: ResearchCheckpoint,
+) {
+  const filePath = getCodexCheckpointFilePath(runId);
+  await mkdir(CODEX_CHECKPOINT_DIR, { recursive: true });
+  await writeCodexCheckpointToPath(filePath, checkpoint);
 }
 
 export async function readCodexCheckpointFile(

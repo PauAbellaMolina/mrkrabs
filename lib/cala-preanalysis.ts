@@ -24,13 +24,13 @@ const DEFAULT_TARGET_SECTORS = [
 const THESIS_KEY_PATTERN =
   /(subsidi|parent|control|ownership|jurisdiction|country|state|legal|incorporat|entity|address)/i;
 
-interface CalaPreanalysisCache {
+export interface CalaPreanalysisCache {
   createdAt: string;
   promptSection: string;
   metadata?: CalaPreanalysisMetadata;
 }
 
-interface CalaPreanalysisMetadata {
+export interface CalaPreanalysisMetadata {
   attemptedSectors: string[];
   seedCompanies: Array<{
     sector: string;
@@ -433,7 +433,7 @@ const logPreanalysisSummary = (
   });
 };
 
-const readCachedPromptSection = async (
+export const readCalaPreanalysisCache = async (
   options: { allowStale?: boolean } = {},
 ) => {
   try {
@@ -709,7 +709,7 @@ export async function buildCalaPreanalysisPromptSection(
   }
 
   if (process.env.CALA_PREANALYSIS_FORCE_REFRESH !== "1") {
-    const cached = await readCachedPromptSection();
+    const cached = await readCalaPreanalysisCache();
     if (cached) {
       if (cached.metadata) {
         logPreanalysisSummary("cache", cached.createdAt, cached.metadata);
@@ -724,7 +724,7 @@ export async function buildCalaPreanalysisPromptSection(
     }
   }
 
-  const staleCache = await readCachedPromptSection({ allowStale: true });
+  const staleCache = await readCalaPreanalysisCache({ allowStale: true });
   const targetSectors = getTargetSectors();
   const { seeds, sectorNarratives, failures, attemptedSectors } =
     await bootstrapSeeds(client, targetSectors);

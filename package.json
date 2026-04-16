@@ -9,6 +9,7 @@
     "lint": "eslint",
     "cala:sanity": "node --env-file=.env.local --import tsx scripts/cala-sanity.ts",
     "analyze:run": "node --env-file=.env.local --import tsx scripts/analyze-run.ts",
+    "recover:codex-run": "node --env-file=.env.local --import tsx scripts/recover-codex-run.ts",
     "autoresearch": "node --env-file=.env.local --import tsx scripts/autoresearch.ts",
     "convex:dev": "convex dev"
   },

@@ -5,6 +5,40 @@
 
 ## 2026-04-16
 
+### Anthropic runs now get one bounded prior-window sanity replay before submit
+
+The Anthropic path now exposes a `validate_prior_window_portfolio` tool for the
+end of the run.
+
+What it does:
+
+- replays the draft portfolio over `2024-04-15 -> 2025-04-15`
+- fetches public adjusted closes from Yahoo Finance's chart endpoint
+- caches resolved per-ticker window prices under `.data/historical-price-cache.json`
+- returns a compact diagnostic report:
+  - portfolio return
+  - SPY / QQQ return
+  - excess return vs benchmarks
+  - missing tickers with no replay data
+  - deep loser count
+  - top winners / losers
+  - `shouldRepair` plus concrete concerns / guidance
+
+Important constraints:
+
+- this is Anthropic-only for now
+- it is a **sanity check**, not a ranking signal
+- the agent is told to use it near the end, at most twice total
+- the goal is to catch obvious issues before the real submit, not to tune
+  repeatedly against prior performance
+
+Practical behavior:
+
+- if the replay shows missing price coverage, severe SPY underperformance, or a
+  cluster of deep losers, the agent may repair the portfolio once before
+  calling `submit_portfolio`
+- otherwise it should stop and submit rather than backtest-churn
+
 ### Cala runtime coverage scout now seeds the first research wave
 
 The agent no longer gets a baked-in warm-start stock list.
@@ -47,6 +81,20 @@ Practical goal:
 - reduce wasted early tool calls
 - make the agent more aware of the actual Cala field surface before ranking candidates
 - remove saved-run bias from the prompt entirely
+
+### Agent runs now auto-submit and Codex can self-repair submission failures
+
+Manual `/api/agent` runs now pass a real `submitFn` into both backends instead of
+stopping at a draft payload.
+
+- Anthropic uses the existing `submit_portfolio` repair loop and now persists the
+  accepted submission metadata back onto the run record.
+- Codex now auto-submits after generation. If the leaderboard rejects the payload
+  with a repairable validation/ticker/price-fetch error, Codex reruns against the
+  same local checkpoint with the rejection details appended to the prompt.
+- We also added `npm run recover:codex-run -- <run-id>` to reconstruct a submission
+  payload from `.data/codex-checkpoints/<runId>.json` when a run dies after writing
+  a usable `portfolioDraft`.
 
 ### Codex runtime clamped to reduce side quests
 

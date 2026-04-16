@@ -1,4 +1,7 @@
-import { anthropic, type AnthropicLanguageModelOptions } from "@ai-sdk/anthropic";
+import {
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from "@ai-sdk/anthropic";
 import { createMCPClient } from "@ai-sdk/mcp";
 import { execFile } from "node:child_process";
 import os from "node:os";
@@ -23,10 +26,13 @@ import { attachConsoleLoggingToTools, previewForConsole } from "./tool-logging";
 import { buildCalaPreanalysisPromptSection } from "./cala-preanalysis";
 import { persistCacheToDisk, wrapToolsWithCache } from "./cala-tool-cache";
 import {
+  baselineAmountPerTicker,
+  baselineTickers,
   buildBaselinePromptBlock,
   isBaselineMode,
   mergeWithBaseline,
 } from "./portfolio-baseline";
+import { validatePortfolioPriorWindow } from "./historical-portfolio-validation";
 
 const execFileAsync = promisify(execFile);
 
@@ -40,11 +46,13 @@ const CODE_EXEC_DEFAULT_TIMEOUT_MS = 15_000;
 // researching 50 candidates without leaving room for the final emit, and
 // the submit_portfolio tool now lets us stop early when the agent commits
 // (via `hasToolCall("submit_portfolio")`), so a larger headroom is cheap.
-const DEFAULT_STEP_BUDGET = 50;
-const CONTEXT_CLEAR_TOOL_TRIGGER_TOKENS = 30_000;
+const DEFAULT_STEP_BUDGET = 150;
+// Tuned for ~200k context: defer clear/compact so long runs keep more raw history;
+// leave headroom for max output + large tool results on the next turn.
+const CONTEXT_CLEAR_TOOL_TRIGGER_TOKENS = 100_000;
 const CONTEXT_CLEAR_TOOL_KEEP_COUNT = 8;
 const CONTEXT_CLEAR_TOOL_MIN_TOKENS = 4_000;
-const CONTEXT_COMPACT_TRIGGER_TOKENS = 50_000;
+const CONTEXT_COMPACT_TRIGGER_TOKENS = 140_000;
 
 // Local display name for manual runs. The autoresearch outer loop overrides
 // this when it creates its own run records, so "Mr. Krabs Autoresearch" only
@@ -64,6 +72,7 @@ const REQUIRED_PORTFOLIO_BUDGET = 1_000_000;
 // appended to the prompt so the model can self-correct; this costs extra
 // tokens but is cheaper than losing the whole autoresearch iteration.
 const MAX_VALIDATION_RETRIES = 2;
+const MAX_HISTORICAL_VALIDATION_CALLS = 2;
 
 export class PortfolioValidationError extends Error {
   issues: string[];
@@ -80,9 +89,7 @@ export const validatePortfolioOutput = (
   const issues: string[] = [];
   const transactions = output.submissionPayload.transactions;
   const uniqueTickers = new Set(
-    transactions
-      .map((t) => t.nasdaq_code.trim().toUpperCase())
-      .filter(Boolean),
+    transactions.map((t) => t.nasdaq_code.trim().toUpperCase()).filter(Boolean),
   );
 
   if (uniqueTickers.size !== transactions.length) {
@@ -104,7 +111,9 @@ export const validatePortfolioOutput = (
       );
     }
     if (!Number.isInteger(t.amount)) {
-      issues.push(`Ticker ${t.nasdaq_code} amount ${t.amount} is not an integer dollar value.`);
+      issues.push(
+        `Ticker ${t.nasdaq_code} amount ${t.amount} is not an integer dollar value.`,
+      );
     }
   }
 
@@ -147,7 +156,9 @@ interface ExecCodeResult {
 const resolveSandboxNodeEnv = () => {
   const nodeEnv = process.env.NODE_ENV;
 
-  return nodeEnv === "development" || nodeEnv === "production" || nodeEnv === "test"
+  return nodeEnv === "development" ||
+    nodeEnv === "production" ||
+    nodeEnv === "test"
     ? nodeEnv
     : "production";
 };
@@ -244,7 +255,9 @@ const createCodeExecutionTool = () =>
         };
       }
 
-      const workspace = await mkdtemp(path.join(os.tmpdir(), "mrkrabs-sandbox-"));
+      const workspace = await mkdtemp(
+        path.join(os.tmpdir(), "mrkrabs-sandbox-"),
+      );
       const fileExt =
         runtime === "python" ? ".py" : runtime === "bash" ? ".sh" : ".js";
       // Modern macOS ships without a `python` binary — only `python3`.
@@ -252,7 +265,7 @@ const createCodeExecutionTool = () =>
       // then fall back to `python` only if python3 is missing.
       const executable =
         runtime === "python"
-          ? (process.env.MRKRABS_PYTHON?.trim() || "python3")
+          ? process.env.MRKRABS_PYTHON?.trim() || "python3"
           : runtime;
       const sourcePath = path.join(workspace, `main${fileExt}`);
       const start = Date.now();
@@ -335,7 +348,25 @@ export interface CalaAgentResult {
   output: PortfolioOutput;
   steps: CalaAgentStep[];
   leaderboardResponse?: unknown;
+  leaderboardSubmission?: {
+    requestId: string;
+    publicAgentName: string;
+    publicAgentVersion: string;
+    response: unknown;
+  };
 }
+
+const historicalValidationInputSchema = z.object({
+  positions: z
+    .array(
+      z.object({
+        nasdaqCode: z.string().trim().min(1),
+        companyName: z.string().trim().min(1),
+        amount: z.number().min(MIN_POSITION_SIZE),
+      }),
+    )
+    .min(1),
+});
 
 interface RunCalaAgentOptions {
   // Autoresearch hook. When provided, the outer loop's variant prompt is
@@ -421,10 +452,8 @@ export const runCalaAgent = async (
   const calaTools = attachConsoleLoggingToTools("cala-agent", {
     ...tools,
     run_code: createCodeExecutionTool(),
-    save_research_checkpoint:
-      createSaveResearchCheckpointTool(checkpointState),
-    load_research_checkpoint:
-      createLoadResearchCheckpointTool(checkpointState),
+    save_research_checkpoint: createSaveResearchCheckpointTool(checkpointState),
+    load_research_checkpoint: createLoadResearchCheckpointTool(checkpointState),
   });
 
   const stepBudget = options?.stepBudget ?? DEFAULT_STEP_BUDGET;
@@ -453,7 +482,8 @@ export const runCalaAgent = async (
   // compact_20260112) are only supported on Sonnet/Opus at the moment;
   // Haiku returns a 400 if they're included in providerOptions. Feature-
   // detect by model family and skip the block for Haiku.
-  const modelSupportsContextManagement = !effectiveModel.startsWith("claude-haiku-");
+  const modelSupportsContextManagement =
+    !effectiveModel.startsWith("claude-haiku-");
 
   const aggregatedSteps: CalaAgentStep[] = [];
   type UsageLike = Record<string, unknown>;
@@ -471,7 +501,8 @@ export const runCalaAgent = async (
     for (const [key, value] of Object.entries(nextRecord)) {
       if (typeof value === "number") {
         const existing = aggregatedUsage[key];
-        aggregatedUsage[key] = (typeof existing === "number" ? existing : 0) + value;
+        aggregatedUsage[key] =
+          (typeof existing === "number" ? existing : 0) + value;
       } else if (!(key in aggregatedUsage)) {
         aggregatedUsage[key] = value;
       }
@@ -486,6 +517,13 @@ export const runCalaAgent = async (
   // When submitFn is provided and the leaderboard accepted the portfolio,
   // store the upstream response so callers can extract the score.
   let leaderboardResponse: unknown = null;
+  let leaderboardSubmission: {
+    requestId: string;
+    publicAgentName: string;
+    publicAgentVersion: string;
+    response: unknown;
+  } | null = null;
+  let historicalValidationCalls = 0;
 
   const submitPortfolioTool = tool({
     description:
@@ -555,6 +593,12 @@ export const runCalaAgent = async (
             };
           }
           leaderboardResponse = submitResult.response;
+          leaderboardSubmission = {
+            requestId: submitResult.requestId,
+            publicAgentName: submitResult.agentName,
+            publicAgentVersion: submitResult.agentVersion,
+            response: submitResult.response,
+          };
         }
 
         capturedOutput = validated;
@@ -567,18 +611,79 @@ export const runCalaAgent = async (
                 typeof error === "object" &&
                 "issues" in error &&
                 Array.isArray((error as { issues: unknown }).issues)
-              ? (error as { issues: Array<{ path?: unknown[]; message: string }> })
-                  .issues.map((i) =>
-                    Array.isArray(i.path) && i.path.length > 0
-                      ? `${i.path.join(".")}: ${i.message}`
-                      : i.message,
-                  )
+              ? (
+                  error as {
+                    issues: Array<{ path?: unknown[]; message: string }>;
+                  }
+                ).issues.map((i) =>
+                  Array.isArray(i.path) && i.path.length > 0
+                    ? `${i.path.join(".")}: ${i.message}`
+                    : i.message,
+                )
               : [error instanceof Error ? error.message : String(error)];
         return {
           accepted: false as const,
           errors: issues,
         };
       }
+    },
+  });
+
+  const validatePriorWindowPortfolioTool = tool({
+    description:
+      "Run one bounded prior-window sanity replay on a draft portfolio before submission. " +
+      "This uses public historical adjusted closes for 2024-04-15 -> 2025-04-15 " +
+      "to surface obvious issues like missing tickers, large benchmark underperformance, " +
+      "or clusters of deep losers. Use it near the end, at most twice total, and treat " +
+      "the result as a repair signal — not as a license to optimize repeatedly.",
+    inputSchema: historicalValidationInputSchema,
+    execute: async (input) => {
+      historicalValidationCalls += 1;
+
+      if (historicalValidationCalls > MAX_HISTORICAL_VALIDATION_CALLS) {
+        return {
+          accepted: false as const,
+          shouldRepair: false,
+          concerns: [
+            `Historical validation can only run ${MAX_HISTORICAL_VALIDATION_CALLS} times per attempt.`,
+          ],
+          guidance: [
+            "Either submit the current portfolio or revise it without another replay pass.",
+          ],
+        };
+      }
+
+      const replayPositions = baselineEnabled
+        ? [
+            ...input.positions,
+            ...baselineTickers().map((ticker) => ({
+              nasdaqCode: ticker,
+              companyName: ticker,
+              amount: baselineAmountPerTicker(),
+            })),
+          ]
+        : input.positions;
+
+      if (replayPositions.length < MIN_POSITION_COUNT) {
+        return {
+          accepted: false as const,
+          shouldRepair: true,
+          concerns: [
+            `Historical validation needs at least ${MIN_POSITION_COUNT} draft positions; received ${replayPositions.length}.`,
+          ],
+          guidance: [
+            "Use this tool only when the portfolio draft is effectively complete and ready for submission.",
+          ],
+        };
+      }
+
+      const report = await validatePortfolioPriorWindow(replayPositions);
+
+      return {
+        accepted: true as const,
+        validationPassNumber: historicalValidationCalls,
+        ...report,
+      };
     },
   });
 
@@ -602,6 +707,7 @@ export const runCalaAgent = async (
       // at the tool.
       capturedOutput = null;
       leaderboardResponse = null;
+      leaderboardSubmission = null;
 
       const retryAddendum = isRetry
         ? [
@@ -630,6 +736,12 @@ export const runCalaAgent = async (
         "The tool's input schema matches the leaderboard exactly.",
         "Do NOT return a JSON blob in text — the submit_portfolio tool call IS the output.",
         "",
+        "Before submit_portfolio, call validate_prior_window_portfolio once on",
+        "your near-final draft. If it flags concrete issues (missing ticker data,",
+        "large SPY underperformance, or many deep losers), you may repair the",
+        "portfolio once and optionally validate one more time. Do NOT keep",
+        "iterating on the replay — this is a bounded sanity check, not a tuning loop.",
+        "",
         "When you have 3 or fewer steps remaining, stop researching and",
         "call submit_portfolio with whatever you've verified so far —",
         "failing to commit at all is worse than committing an imperfect list.",
@@ -650,11 +762,12 @@ export const runCalaAgent = async (
         // hasToolCall lets the agent retry submit_portfolio in-loop when
         // its first attempt fails validation — the tool result tells it
         // what to fix, and the next step can try again.
-        stopWhen: [
-          stepCountIs(stepBudget),
-          () => capturedOutput !== null,
-        ],
-        tools: { ...calaTools, submit_portfolio: submitPortfolioTool },
+        stopWhen: [stepCountIs(stepBudget), () => capturedOutput !== null],
+        tools: {
+          ...calaTools,
+          validate_prior_window_portfolio: validatePriorWindowPortfolioTool,
+          submit_portfolio: submitPortfolioTool,
+        },
         toolChoice: "auto",
         ...(modelSupportsContextManagement
           ? {
@@ -751,8 +864,7 @@ export const runCalaAgent = async (
           data: {
             attempt,
             researchSteps: result.steps.length,
-            reason:
-              "research-pass-ended-without-submit_portfolio",
+            reason: "research-pass-ended-without-submit_portfolio",
           },
         });
 
@@ -832,13 +944,11 @@ export const runCalaAgent = async (
         // extraction only when BOTH passes failed to commit — which is
         // extremely rare with toolChoice="required" on the commit pass.
         let validatedOutput: PortfolioOutput;
-        let outputSource:
-          | "research-pass"
-          | "commit-pass"
-          | "text-extraction";
+        let outputSource: "research-pass" | "commit-pass" | "text-extraction";
         if (capturedOutput) {
           validatedOutput = capturedOutput;
-          outputSource = outputPhase === "commit" ? "commit-pass" : "research-pass";
+          outputSource =
+            outputPhase === "commit" ? "commit-pass" : "research-pass";
         } else {
           const parsedOutput = portfolioOutputSchemaForAnthropic.parse(
             extractJsonObject(result.text),
@@ -853,6 +963,7 @@ export const runCalaAgent = async (
           output: validatedOutput,
           steps: aggregatedSteps,
           ...(leaderboardResponse != null ? { leaderboardResponse } : {}),
+          ...(leaderboardSubmission != null ? { leaderboardSubmission } : {}),
         };
 
         console.info("[cala-agent][generateText][success]", {
@@ -918,13 +1029,17 @@ export const runCalaAgent = async (
           typeof error === "object" &&
           "issues" in error &&
           Array.isArray((error as { issues: unknown }).issues)
-            ? ((error as { issues: Array<{ path?: unknown[]; message: string }> }).issues
-                .map(i =>
+            ? (
+                error as {
+                  issues: Array<{ path?: unknown[]; message: string }>;
+                }
+              ).issues
+                .map((i) =>
                   Array.isArray(i.path) && i.path.length > 0
                     ? `${i.path.join(".")}: ${i.message}`
                     : i.message,
                 )
-                .slice(0, 10))
+                .slice(0, 10)
             : null;
 
         if (isExtractFailure) {
@@ -934,7 +1049,7 @@ export const runCalaAgent = async (
         } else if (zodIssues && zodIssues.length > 0) {
           previousIssues = [
             "Previous attempt's JSON did not parse against the schema. Specific issues:",
-            ...zodIssues.map(issue => `- ${issue}`),
+            ...zodIssues.map((issue) => `- ${issue}`),
             "Emit a corrected JSON object that matches every field's type exactly.",
           ];
         } else {

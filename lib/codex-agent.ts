@@ -33,6 +33,7 @@ const MIN_POSITION_SIZE = 5_000;
 const REQUIRED_PORTFOLIO_BUDGET = 1_000_000;
 const MIN_POSITION_COUNT = 50;
 const TARGET_FILING_CUTOFF = "2025-04-15";
+const MAX_SUBMISSION_REPAIR_ATTEMPTS = 2;
 const PLACEHOLDER_TICKER_PATTERN =
   /^(UNVERIFIABLE|UNAVAILABLE|DO-NOT-|INVALID-|PLACEHOLDER|REMOVE_|CALA_|BLOCKED|MISSING|NO_SUBMISSION|OMIT|THIS|PAYLOAD)/i;
 
@@ -77,10 +78,60 @@ export interface CalaAgentResult {
   model: string;
   output: PortfolioOutput;
   steps: CalaAgentStep[];
+  leaderboardResponse?: unknown;
+  leaderboardSubmission?: {
+    requestId: string;
+    publicAgentName: string;
+    publicAgentVersion: string;
+    response: unknown;
+  };
+}
+
+interface SubmissionPayload {
+  team_id: string;
+  model_agent_name: string;
+  model_agent_version: string;
+  transactions: Array<{
+    nasdaq_code: string;
+    amount: number;
+  }>;
+}
+
+interface LeaderboardSubmitSuccess {
+  ok: true;
+  requestId: string;
+  agentName: string;
+  agentVersion: string;
+  response: unknown;
+}
+
+interface LeaderboardSubmitFailure {
+  ok: false;
+  requestId: string;
+  agentName: string;
+  agentVersion: string;
+  upstreamStatus: number;
+  upstreamStatusText: string;
+  details: unknown;
+}
+
+type LeaderboardSubmitResult =
+  | LeaderboardSubmitSuccess
+  | LeaderboardSubmitFailure;
+
+class LeaderboardSubmissionError extends Error {
+  submissionFailure: LeaderboardSubmitFailure;
+
+  constructor(message: string, submissionFailure: LeaderboardSubmitFailure) {
+    super(message);
+    this.name = "LeaderboardSubmissionError";
+    this.submissionFailure = submissionFailure;
+  }
 }
 
 interface RunCalaAgentOptions {
   runId?: string;
+  submitFn?: (payload: SubmissionPayload) => Promise<LeaderboardSubmitResult>;
   onTelemetryEvent?: (event: {
     level: "info" | "error";
     type: "step-started" | "tool-started" | "tool-finished" | "step-finished";
@@ -153,6 +204,63 @@ const extractJsonObject = (text: string) => {
 
   const candidate = fenced.slice(start, end + 1);
   return JSON.parse(candidate);
+};
+
+const stringifySubmissionDetails = (details: unknown) => {
+  if (
+    details &&
+    typeof details === "object" &&
+    "error" in (details as Record<string, unknown>) &&
+    typeof (details as { error?: unknown }).error === "string"
+  ) {
+    return (details as { error: string }).error;
+  }
+
+  try {
+    return JSON.stringify(details);
+  } catch {
+    return String(details);
+  }
+};
+
+const extractBadTickersFromSubmissionError = (message: string) =>
+  Array.from(
+    new Set(
+      [
+        ...Array.from(
+          message.matchAll(
+            /Failed to fetch historical price for ([A-Z.]{1,6})/g,
+          ),
+        ).map((match) => match[1]),
+        ...Array.from(
+          message.matchAll(
+            /Failed to fetch purchase prices.*?: ([A-Z.]{1,6}):/g,
+          ),
+        ).map((match) => match[1]),
+        ...Array.from(
+          message.matchAll(/No data found for ([A-Z.]{1,6})/g),
+        ).map((match) => match[1]),
+      ],
+    ),
+  );
+
+const isRepairableSubmissionError = (message: string) =>
+  /Failed to fetch historical price|Failed to fetch purchase prices|No data found|Duplicate companies found|at least 50 companies|Total investment must be exactly|Each company must receive at least/i.test(
+    message,
+  );
+
+const buildSubmissionRepairIssues = (failure: LeaderboardSubmitFailure) => {
+  const errorBody = stringifySubmissionDetails(failure.details);
+  const badTickers = extractBadTickersFromSubmissionError(errorBody);
+
+  return [
+    `Leaderboard rejected the portfolio (HTTP ${failure.upstreamStatus} ${failure.upstreamStatusText}): ${errorBody}`,
+    ...(badTickers.length > 0
+      ? [
+          `Bad ticker(s): ${badTickers.join(", ")}. Replace ${badTickers.length === 1 ? "it" : "them"} with valid NASDAQ-listed stocks that have an April 15, 2025 purchase price, then re-check the total still equals exactly $1,000,000.`,
+        ]
+      : []),
+  ];
 };
 
 const mergePositions = (positions: PortfolioPosition[]) => {
@@ -553,22 +661,38 @@ Output:
   same tickers, same amounts, same length.
 `.trim();
 
-const buildCodexPrompt = async (prompt: string, checkpointFilePath: string) => {
-  const preanalysisPromptSection = await buildCalaPreanalysisPromptSection();
+const buildCodexPrompt = async (
+  prompt: string,
+  checkpointFilePath: string,
+  repairIssues: string[] = [],
+  preanalysisPromptSection?: string,
+) => {
+  const resolvedPreanalysisPromptSection =
+    preanalysisPromptSection ?? (await buildCalaPreanalysisPromptSection());
+  const repairAddendum =
+    repairIssues.length > 0
+      ? [
+          "Submission repair attempt:",
+          "Your previous portfolio was rejected by the leaderboard.",
+          ...repairIssues.map((issue) => `- ${issue}`),
+          "Load the checkpoint file, fix the portfolio, overwrite the checkpoint with the repaired full JSON, and return a corrected final JSON object only.",
+        ].join("\n")
+      : null;
 
   const effectivePrompt = composePromptSections(
     SHARED_SYSTEM_PROMPT,
-    preanalysisPromptSection,
+    resolvedPreanalysisPromptSection,
     CODEX_EXECUTION_APPENDIX.replace(
       "CHECKPOINT_FILE_PATH",
       checkpointFilePath,
     ),
     `User request:\n${prompt}`,
+    repairAddendum,
   );
 
   return {
     effectivePrompt,
-    preanalysisPromptSection,
+    preanalysisPromptSection: resolvedPreanalysisPromptSection,
   };
 };
 
@@ -625,6 +749,9 @@ export async function runCalaAgent(
     ? await ensureCodexCheckpointFile(options.runId)
     : path.join(process.cwd(), ".data", "codex-checkpoints", "adhoc.json");
 
+  const cachedPreanalysisPromptSection =
+    await buildCalaPreanalysisPromptSection();
+
   console.info("[codex-agent][start]", {
     model: DEFAULT_MODEL,
     promptLength: prompt.length,
@@ -632,161 +759,283 @@ export async function runCalaAgent(
     calaMcpProxyPath: CALA_MCP_PROXY_PATH,
     checkpointFilePath,
     codexPath: BUNDLED_CODEX_PATH ?? "npx:@openai/codex",
-    enabledTools: ["entity_search", "entity_introspection", "retrieve_entity"],
+    enabledTools: [
+      "entity_search",
+      "entity_introspection",
+      "retrieve_entity",
+    ],
   });
 
-  const { effectivePrompt, preanalysisPromptSection } = await buildCodexPrompt(
-    prompt,
-    checkpointFilePath,
-  );
+  let repairIssues: string[] = [];
+  let aggregatedUsage: Record<string, unknown> | null = null;
+  let aggregatedProviderMetadata: Record<string, unknown> | undefined;
+  const aggregatedSteps: CalaAgentStep[] = [];
+  let finalOutput: PortfolioOutput | null = null;
+  let successfulSubmission: LeaderboardSubmitSuccess | null = null;
 
-  console.info("[codex-agent][prompt]", {
-    model: DEFAULT_MODEL,
-    rawPromptLength: prompt.length,
-    effectivePromptLength: effectivePrompt.length,
-    preanalysisIncluded: Boolean(preanalysisPromptSection),
-    preanalysisLength: preanalysisPromptSection?.length ?? 0,
-    preanalysisPreview: preanalysisPromptSection
-      ? preanalysisPromptSection.slice(0, 240)
-      : null,
-  });
-
-  const result = streamText({
-    model: createModel(),
-    prompt: effectivePrompt,
-  });
-
-  for await (const part of result.fullStream) {
-    if (part.type === "tool-call") {
-      if (part.toolName === "exec") {
-        let input: unknown;
-        try {
-          input = typeof part.input === "string" ? JSON.parse(part.input) : part.input;
-        } catch {
-          input = part.input;
-        }
-
-        console.info("[codex-agent][tool][exec][start]", {
-          toolCallId: part.toolCallId,
-          command:
-            input && typeof input === "object" && "command" in input
-              ? (input as { command?: unknown }).command
-              : undefined,
-          cwd:
-            input && typeof input === "object" && "cwd" in input
-              ? (input as { cwd?: unknown }).cwd
-              : undefined,
-          status:
-            input && typeof input === "object" && "status" in input
-              ? (input as { status?: unknown }).status
-              : undefined,
-        });
-      } else {
-        console.info("[codex-agent][tool][start]", {
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          input: safeJsonPreview(part.input, 1200),
-        });
-      }
+  const mergeUsage = (next: unknown) => {
+    if (!next || typeof next !== "object") {
+      return;
     }
 
-    if (part.type === "tool-result") {
-      if (part.toolName === "exec") {
-        const resultPayload =
-          part.result && typeof part.result === "object"
-            ? (part.result as {
-                command?: unknown;
-                aggregatedOutput?: unknown;
-                exitCode?: unknown;
-                status?: unknown;
-              })
-            : undefined;
+    const nextRecord = next as Record<string, unknown>;
+    if (!aggregatedUsage) {
+      aggregatedUsage = { ...nextRecord };
+      return;
+    }
 
-        console.info("[codex-agent][tool][exec][finish]", {
-          toolCallId: part.toolCallId,
-          command: resultPayload?.command,
-          status: resultPayload?.status,
-          exitCode: resultPayload?.exitCode,
-          outputPreview: safeJsonPreview(resultPayload?.aggregatedOutput, 1200),
-        });
-      } else {
-        console.info("[codex-agent][tool][finish]", {
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          result: safeJsonPreview(part.result, 1200),
-        });
+    for (const [key, value] of Object.entries(nextRecord)) {
+      if (typeof value === "number") {
+        const existing = aggregatedUsage[key];
+        aggregatedUsage[key] =
+          (typeof existing === "number" ? existing : 0) + value;
+      } else if (!(key in aggregatedUsage)) {
+        aggregatedUsage[key] = value;
       }
     }
-  }
+  };
 
-  const text = await result.text;
-  const usage = await result.totalUsage;
-  const providerMetadata = await result.providerMetadata;
-  const steps = await result.steps;
-  const parsedObject = portfolioOutputSchema.parse(extractJsonObject(text));
-
-  console.info("[codex-agent][raw-output]", {
-    model: DEFAULT_MODEL,
-    usage: safeJsonPreview(usage, 600),
-    providerMetadata: safeJsonPreview(providerMetadata, 1200),
-    preview: safeJsonPreview(
-      {
-        firstPositions: parsedObject.positions.slice(0, 3),
-        firstTransactions: parsedObject.submissionPayload.transactions.slice(
-          0,
-          3,
-        ),
-        cutoffAudit: parsedObject.cutoffAudit,
-      },
-      2000,
-    ),
-  });
-
-  let normalizedOutput: PortfolioOutput;
-  try {
-    normalizedOutput = normalizeAndValidateOutput(
-      parsedObject,
-      process.env.TEAM_ID,
+  for (
+    let attempt = 0;
+    attempt <= MAX_SUBMISSION_REPAIR_ATTEMPTS;
+    attempt += 1
+  ) {
+    const {
+      effectivePrompt,
+      preanalysisPromptSection: resolvedPreanalysisPromptSection,
+    } = await buildCodexPrompt(
+      prompt,
+      checkpointFilePath,
+      repairIssues,
+      cachedPreanalysisPromptSection,
     );
-  } catch (error) {
-    if (error instanceof PortfolioValidationError) {
-      console.error("[codex-agent][validation][failed]", {
-        issues: error.issues,
-        preview: safeJsonPreview(
-          {
-            firstPositions: parsedObject.positions.slice(0, 5),
-            firstTransactions:
-              parsedObject.submissionPayload.transactions.slice(0, 5),
-          },
-          2000,
-        ),
-      });
+
+    console.info("[codex-agent][prompt]", {
+      model: DEFAULT_MODEL,
+      attempt,
+      rawPromptLength: prompt.length,
+      effectivePromptLength: effectivePrompt.length,
+      preanalysisIncluded: Boolean(resolvedPreanalysisPromptSection),
+      preanalysisLength: resolvedPreanalysisPromptSection?.length ?? 0,
+      preanalysisPreview: resolvedPreanalysisPromptSection
+        ? resolvedPreanalysisPromptSection.slice(0, 240)
+        : null,
+      repairIssueCount: repairIssues.length,
+    });
+
+    const result = streamText({
+      model: createModel(),
+      prompt: effectivePrompt,
+    });
+
+    for await (const part of result.fullStream) {
+      if (part.type === "tool-call") {
+        if (part.toolName === "exec") {
+          let input: unknown;
+          try {
+            input =
+              typeof part.input === "string" ? JSON.parse(part.input) : part.input;
+          } catch {
+            input = part.input;
+          }
+
+          console.info("[codex-agent][tool][exec][start]", {
+            toolCallId: part.toolCallId,
+            command:
+              input && typeof input === "object" && "command" in input
+                ? (input as { command?: unknown }).command
+                : undefined,
+            cwd:
+              input && typeof input === "object" && "cwd" in input
+                ? (input as { cwd?: unknown }).cwd
+                : undefined,
+            status:
+              input && typeof input === "object" && "status" in input
+                ? (input as { status?: unknown }).status
+                : undefined,
+          });
+        } else {
+          console.info("[codex-agent][tool][start]", {
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            input: safeJsonPreview(part.input, 1200),
+          });
+        }
+      }
+
+      if (part.type === "tool-result") {
+        if (part.toolName === "exec") {
+          const resultPayload =
+            part.result && typeof part.result === "object"
+              ? (part.result as {
+                  command?: unknown;
+                  aggregatedOutput?: unknown;
+                  exitCode?: unknown;
+                  status?: unknown;
+                })
+              : undefined;
+
+          console.info("[codex-agent][tool][exec][finish]", {
+            toolCallId: part.toolCallId,
+            command: resultPayload?.command,
+            status: resultPayload?.status,
+            exitCode: resultPayload?.exitCode,
+            outputPreview: safeJsonPreview(
+              resultPayload?.aggregatedOutput,
+              1200,
+            ),
+          });
+        } else {
+          console.info("[codex-agent][tool][finish]", {
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            result: safeJsonPreview(part.result, 1200),
+          });
+        }
+      }
     }
-    throw error;
+
+    const text = await result.text;
+    const usage = await result.totalUsage;
+    const providerMetadata = await result.providerMetadata;
+    const steps = await result.steps;
+    const parsedObject = portfolioOutputSchema.parse(extractJsonObject(text));
+
+    mergeUsage(usage);
+    if (
+      providerMetadata &&
+      typeof providerMetadata === "object" &&
+      !aggregatedProviderMetadata
+    ) {
+      aggregatedProviderMetadata = providerMetadata as Record<string, unknown>;
+    }
+    aggregatedSteps.push(
+      ...steps.map((step) => ({
+        text: step.text,
+        finishReason: step.finishReason,
+        toolCalls: step.toolCalls,
+      })),
+    );
+
+    console.info("[codex-agent][raw-output]", {
+      model: DEFAULT_MODEL,
+      attempt,
+      usage: safeJsonPreview(usage, 600),
+      providerMetadata: safeJsonPreview(providerMetadata, 1200),
+      preview: safeJsonPreview(
+        {
+          firstPositions: parsedObject.positions.slice(0, 3),
+          firstTransactions: parsedObject.submissionPayload.transactions.slice(
+            0,
+            3,
+          ),
+          cutoffAudit: parsedObject.cutoffAudit,
+        },
+        2000,
+      ),
+    });
+
+    let normalizedOutput: PortfolioOutput;
+    try {
+      normalizedOutput = normalizeAndValidateOutput(
+        parsedObject,
+        process.env.TEAM_ID,
+      );
+    } catch (error) {
+      if (error instanceof PortfolioValidationError) {
+        console.error("[codex-agent][validation][failed]", {
+          attempt,
+          issues: error.issues,
+          preview: safeJsonPreview(
+            {
+              firstPositions: parsedObject.positions.slice(0, 5),
+              firstTransactions:
+                parsedObject.submissionPayload.transactions.slice(0, 5),
+            },
+            2000,
+          ),
+        });
+      }
+      throw error;
+    }
+
+    console.info("[codex-agent][success]", {
+      model: DEFAULT_MODEL,
+      attempt,
+      positions: normalizedOutput.positions.length,
+      transactions: normalizedOutput.submissionPayload.transactions.length,
+      preview: safeJsonPreview(
+        {
+          portfolioThesis: normalizedOutput.portfolioThesis,
+          firstTransactions:
+            normalizedOutput.submissionPayload.transactions.slice(0, 5),
+        },
+        900,
+      ),
+    });
+
+    finalOutput = normalizedOutput;
+
+    if (!options?.submitFn) {
+      break;
+    }
+
+    const submitResult = await options.submitFn(normalizedOutput.submissionPayload);
+    if (submitResult.ok) {
+      successfulSubmission = submitResult;
+      console.info("[codex-agent][submit][accepted]", {
+        attempt,
+        requestId: submitResult.requestId,
+        publicAgentName: submitResult.agentName,
+        publicAgentVersion: submitResult.agentVersion,
+      });
+      break;
+    }
+
+    const nextRepairIssues = buildSubmissionRepairIssues(submitResult);
+    const errorBody = nextRepairIssues.join(" ");
+
+    console.warn("[codex-agent][submit][rejected]", {
+      attempt,
+      requestId: submitResult.requestId,
+      upstreamStatus: submitResult.upstreamStatus,
+      upstreamStatusText: submitResult.upstreamStatusText,
+      details: safeJsonPreview(submitResult.details, 2000),
+      repairIssues: nextRepairIssues,
+    });
+
+    if (
+      attempt >= MAX_SUBMISSION_REPAIR_ATTEMPTS ||
+      !isRepairableSubmissionError(errorBody)
+    ) {
+      throw new LeaderboardSubmissionError(
+        `Leaderboard rejected the generated portfolio: ${errorBody}`,
+        submitResult,
+      );
+    }
+
+    repairIssues = nextRepairIssues;
   }
 
-  console.info("[codex-agent][success]", {
-    model: DEFAULT_MODEL,
-    positions: normalizedOutput.positions.length,
-    transactions: normalizedOutput.submissionPayload.transactions.length,
-    preview: safeJsonPreview(
-      {
-        portfolioThesis: normalizedOutput.portfolioThesis,
-        firstTransactions:
-          normalizedOutput.submissionPayload.transactions.slice(0, 5),
-      },
-      900,
-    ),
-  });
+  if (!finalOutput) {
+    throw new Error("Codex did not produce a final portfolio output.");
+  }
 
   const finalResult = {
     model: DEFAULT_MODEL,
-    output: normalizedOutput,
-    steps: steps.map((step) => ({
-      text: step.text,
-      finishReason: step.finishReason,
-      toolCalls: step.toolCalls,
-    })),
+    output: finalOutput,
+    steps: aggregatedSteps,
+    ...(successfulSubmission
+      ? {
+          leaderboardResponse: successfulSubmission.response,
+          leaderboardSubmission: {
+            requestId: successfulSubmission.requestId,
+            publicAgentName: successfulSubmission.agentName,
+            publicAgentVersion: successfulSubmission.agentVersion,
+            response: successfulSubmission.response,
+          },
+        }
+      : {}),
   } satisfies CalaAgentResult;
 
   if (options?.runId) {
@@ -802,11 +1051,8 @@ export async function runCalaAgent(
   }
 
   await options?.onFinish?.({
-    totalUsage: usage,
-    metadata:
-      providerMetadata && typeof providerMetadata === "object"
-        ? (providerMetadata as Record<string, unknown>)
-        : undefined,
+    totalUsage: aggregatedUsage,
+    metadata: aggregatedProviderMetadata,
     result: finalResult,
   });
 

@@ -1,3 +1,6 @@
+import { readFile, readdir } from "node:fs/promises"
+import path from "node:path"
+
 import {
   appendRunEvent,
   readRunRecord,
@@ -10,6 +13,104 @@ import {
 
 export const runtime = "nodejs"
 export const maxDuration = 30
+
+const CODEX_CHECKPOINT_DIR = path.join(
+  process.cwd(),
+  ".data",
+  "codex-checkpoints",
+)
+
+function extractBadTickers(details: unknown) {
+  const message =
+    details &&
+    typeof details === "object" &&
+    "error" in (details as Record<string, unknown>) &&
+    typeof (details as { error?: unknown }).error === "string"
+      ? (details as { error: string }).error
+      : JSON.stringify(details)
+
+  return Array.from(
+    new Set(
+      [
+        ...Array.from(
+          message.matchAll(
+            /Failed to fetch historical price for ([A-Z.]{1,6})/g,
+          ),
+        ).map((match) => match[1]),
+        ...Array.from(
+          message.matchAll(
+            /Failed to fetch purchase prices.*?: ([A-Z.]{1,6}):/g,
+          ),
+        ).map((match) => match[1]),
+      ],
+    ),
+  )
+}
+
+async function readCheckpointForRun(runId: string) {
+  try {
+    const contents = await readFile(
+      path.join(CODEX_CHECKPOINT_DIR, `${runId}.json`),
+      "utf8",
+    )
+    return JSON.parse(contents) as {
+      candidateCompanies?: Array<{
+        ticker?: string
+        nasdaqCode?: string
+        sector?: string
+        status?: string
+      }>
+      portfolioDraft?: Array<{
+        ticker?: string
+        nasdaq_code?: string
+      }>
+    }
+  } catch {
+    return null
+  }
+}
+
+async function findReplacementTicker(
+  runId: string,
+  currentTransactions: Array<{ nasdaq_code: string; amount: number }>,
+  badTicker: string,
+) {
+  const currentCheckpoint = await readCheckpointForRun(runId)
+  const currentTickers = new Set(
+    currentTransactions.map((transaction) => transaction.nasdaq_code.trim().toUpperCase()),
+  )
+  const sectorByTicker = new Map(
+    (currentCheckpoint?.candidateCompanies ?? []).map((candidate) => [
+      (candidate.ticker ?? candidate.nasdaqCode ?? "").trim().toUpperCase(),
+      candidate.sector,
+    ]),
+  )
+  const targetSector = sectorByTicker.get(badTicker)
+
+  const files = await readdir(CODEX_CHECKPOINT_DIR).catch(() => [])
+  const counts = new Map<string, number>()
+
+  for (const file of files) {
+    if (!file.endsWith(".json")) continue
+    const checkpoint = await readCheckpointForRun(file.replace(/\.json$/, ""))
+    for (const candidate of checkpoint?.candidateCompanies ?? []) {
+      const ticker = (candidate.ticker ?? candidate.nasdaqCode ?? "")
+        .trim()
+        .toUpperCase()
+      if (!ticker) continue
+      if (ticker === badTicker) continue
+      if (currentTickers.has(ticker)) continue
+      if (candidate.status !== "selected") continue
+      if (targetSector && candidate.sector && candidate.sector !== targetSector) {
+        continue
+      }
+      counts.set(ticker, (counts.get(ticker) ?? 0) + 1)
+    }
+  }
+
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1])
+  return ranked[0]?.[0] ?? null
+}
 
 export async function POST(
   _request: Request,
@@ -90,6 +191,92 @@ export async function POST(
     const result = await submitToLeaderboard(submissionPayload)
 
     if (!result.ok) {
+      const badTickers = result.upstreamStatus === 422 ? extractBadTickers(result.details) : []
+
+      if (badTickers.length > 0) {
+        const repairedTransactions = [...submissionPayload.transactions]
+        const replacements: Array<{ from: string; to: string }> = []
+
+        for (const badTicker of badTickers) {
+          const replacementTicker = await findReplacementTicker(
+            id,
+            repairedTransactions,
+            badTicker,
+          )
+          if (!replacementTicker) {
+            continue
+          }
+
+          const index = repairedTransactions.findIndex(
+            (transaction) =>
+              transaction.nasdaq_code.trim().toUpperCase() === badTicker,
+          )
+
+          if (index >= 0) {
+            repairedTransactions[index] = {
+              ...repairedTransactions[index],
+              nasdaq_code: replacementTicker,
+            }
+            replacements.push({ from: badTicker, to: replacementTicker })
+          }
+        }
+
+        if (replacements.length > 0) {
+          await appendRunEvent(id, {
+            level: "info",
+            type: "step-finished",
+            title: "Retrying submission with fallback ticker replacements",
+            data: {
+              replacements,
+              originalRequestId: result.requestId,
+            },
+          })
+
+          const retryResult = await submitToLeaderboard({
+            ...submissionPayload,
+            transactions: repairedTransactions,
+          })
+
+          if (retryResult.ok) {
+            await recordRunSubmission(id, {
+              status: "submitted",
+              submittedAt: new Date().toISOString(),
+              requestId: retryResult.requestId,
+              publicAgentName: retryResult.agentName,
+              publicAgentVersion: retryResult.agentVersion,
+              response: retryResult.response,
+              details: {
+                autoRepair: true,
+                replacements,
+                originalFailedRequestId: result.requestId,
+              },
+            })
+
+            await appendRunEvent(id, {
+              level: "info",
+              type: "run-finished",
+              title: "Leaderboard submission accepted after ticker repair",
+              data: {
+                requestId: retryResult.requestId,
+                replacements,
+                response: retryResult.response,
+              },
+            })
+
+            return Response.json({
+              requestId: retryResult.requestId,
+              publicAgentName: retryResult.agentName,
+              publicAgentVersion: retryResult.agentVersion,
+              response: retryResult.response,
+              autoRepair: {
+                replacements,
+                originalFailedRequestId: result.requestId,
+              },
+            })
+          }
+        }
+      }
+
       await recordRunSubmission(id, {
         status: "failed",
         submittedAt: new Date().toISOString(),
