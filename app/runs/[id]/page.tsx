@@ -92,7 +92,7 @@ export default async function RunDetailPage({
       backHref={backHref}
       backLabel={backLabel}
       stageOverride={stageOverride}
-      hideSubmit={isAutoresearch}
+      isAutoresearch={isAutoresearch}
       contextPanel={
         isAutoresearch && ledger ? (
           <AutoresearchIterationPanel ledger={ledger} />

@@ -78,6 +78,7 @@ import { submitToLeaderboard } from "../lib/leaderboard-submit";
 import { PUBLIC_AUTORESEARCH_AGENT_NAME } from "../lib/agent-version";
 import {
   finalizeAutoresearchSession,
+  getAutoresearchSessionPlannedIterations,
   incrementAutoresearchSessionProgress,
 } from "../lib/autoresearch-session";
 
@@ -92,7 +93,19 @@ const DEFAULT_RUN_PROMPT =
 // submit_portfolio tool lets the agent stop as soon as it commits, so the
 // budget is a ceiling, not a target.
 import { isBaselineMode } from "../lib/portfolio-baseline";
-const AUTORESEARCH_STEP_BUDGET = isBaselineMode() ? 15 : 40;
+import {
+  buildUniversePromptBlock,
+  hasResearchUniverse,
+  loadResearchUniverse,
+  saveResearchUniverse,
+} from "../lib/research-universe";
+
+const HAS_UNIVERSE = hasResearchUniverse();
+const AUTORESEARCH_STEP_BUDGET = isBaselineMode()
+  ? 15
+  : HAS_UNIVERSE
+    ? 12
+    : 50;
 
 interface IterationOutcome {
   runId: string;
@@ -259,6 +272,17 @@ async function main() {
   let lastFailureReason = "";
 
   for (let i = 0; i < iterations; i++) {
+    // Check if the session was shrunk from the UI while we were running.
+    if (SESSION_ID) {
+      const currentPlanned = await getAutoresearchSessionPlannedIterations(SESSION_ID).catch(() => null);
+      if (currentPlanned != null && i >= currentPlanned) {
+        console.info(
+          `[autoresearch] session shrunk to ${currentPlanned} iterations — stopping after ${i} completed`,
+        );
+        break;
+      }
+    }
+
     const iteration = iterationCounter++;
     const currentRules = await loadRules();
     const championScore = await loadChampionScore();
@@ -309,11 +333,38 @@ async function main() {
       console.info(`[autoresearch] no champion yet — running baseline`);
     }
 
-    const variantPrompt = composeSystemPrompt(candidateRules);
+    let variantPrompt = composeSystemPrompt(candidateRules);
+
+    // Inject pre-researched company data so the agent skips entity research
+    // and goes straight to ranking + submit. Cuts iterations from ~30 min
+    // to ~3 min. The universe file is built from previous successful runs.
+    if (HAS_UNIVERSE) {
+      const universe = loadResearchUniverse();
+      if (universe.length > 0) {
+        variantPrompt += "\n" + buildUniversePromptBlock(universe);
+        console.info(
+          `[autoresearch] injecting research universe (${universe.length} companies) — step budget ${AUTORESEARCH_STEP_BUDGET}`,
+        );
+      }
+    }
+
     const outcome = await runOneExperiment(variantPrompt);
 
     const iterationCost = outcome.costUsd + mutationCostUsd;
     spent = await addSpentUsd(iterationCost);
+
+    // Update the research universe from every iteration that produced a
+    // valid portfolio, so subsequent iterations benefit from the latest data.
+    if (outcome.result?.output.positions.length) {
+      try {
+        saveResearchUniverse(outcome.result.output.positions);
+      } catch (e) {
+        console.warn(
+          "[autoresearch] failed to save research universe:",
+          e instanceof Error ? e.message : e,
+        );
+      }
+    }
 
     const kept = outcome.score != null && outcome.score > championScore.score;
 

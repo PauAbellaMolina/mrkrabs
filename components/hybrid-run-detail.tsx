@@ -42,9 +42,9 @@ type Props = {
   // this overrides the stage derived from run.status so stale "running"
   // records render their final state correctly.
   stageOverride?: RunStage;
-  // Autoresearch iterations submit automatically — hide the manual
-  // submit / resubmit UI.
-  hideSubmit?: boolean;
+  // Autoresearch iterations: suppress submit buttons, diff panel,
+  // redundant prompt display, and other manual-run-only chrome.
+  isAutoresearch?: boolean;
 };
 
 const DEFAULT_BACK_HREF = "/";
@@ -58,7 +58,7 @@ export function HybridRunDetail({
   backLabel = DEFAULT_BACK_LABEL,
   contextPanel,
   stageOverride,
-  hideSubmit,
+  isAutoresearch,
 }: Props) {
   const { ready, enabled } = useMockMode();
 
@@ -101,7 +101,7 @@ export function HybridRunDetail({
         backLabel={backLabel}
         contextPanel={contextPanel}
         stageOverride={stageOverride}
-        hideSubmit={hideSubmit}
+        isAutoresearch={isAutoresearch}
       />
     );
   }
@@ -125,6 +125,7 @@ export function HybridRunDetail({
       backLabel={backLabel}
       contextPanel={contextPanel}
       stageOverride={stageOverride}
+      isAutoresearch={isAutoresearch}
     />
   );
 }
@@ -166,7 +167,7 @@ function DetailBody({
   backLabel,
   contextPanel,
   stageOverride,
-  hideSubmit,
+  isAutoresearch,
 }: {
   run: AgentRunRecord;
   baseline: AgentRunRecord | null;
@@ -175,7 +176,7 @@ function DetailBody({
   backLabel: string;
   contextPanel?: React.ReactNode;
   stageOverride?: RunStage;
-  hideSubmit?: boolean;
+  isAutoresearch?: boolean;
 }) {
   const stage = stageOverride ?? deriveRunStage(run);
   const isRunning = stage === "running";
@@ -208,9 +209,11 @@ function DetailBody({
           </Link>
           <RefreshButton />
         </div>
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
-          Request {run.requestId}
-        </p>
+        {!isAutoresearch ? (
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
+            Request {run.requestId}
+          </p>
+        ) : null}
       </nav>
 
       {contextPanel ?? null}
@@ -227,14 +230,18 @@ function DetailBody({
                   <SystemPromptBadge mode={run.systemPromptMode} />
                 ) : null}
               </div>
-              <h1 className="mt-3 font-sans text-2xl font-semibold tracking-tight text-[color:var(--foreground)] sm:text-3xl">
-                {truncate(run.prompt, 160)}
-              </h1>
-              <p className="mt-4 max-w-2xl whitespace-pre-wrap text-sm leading-6 text-[color:var(--muted-foreground)]">
-                {run.prompt}
-              </p>
+              {!isAutoresearch ? (
+                <>
+                  <h1 className="mt-3 font-sans text-2xl font-semibold tracking-tight text-[color:var(--foreground)] sm:text-3xl">
+                    {truncate(run.prompt, 160)}
+                  </h1>
+                  <p className="mt-4 max-w-2xl whitespace-pre-wrap text-sm leading-6 text-[color:var(--muted-foreground)]">
+                    {run.prompt}
+                  </p>
+                </>
+              ) : null}
             </div>
-            <RunStageBadge stage={stage} />
+            {!isAutoresearch ? <RunStageBadge stage={stage} /> : null}
           </header>
 
           <HeaderStats run={run} stage={stage} totalAllocated={totalAllocated} />
@@ -258,7 +265,7 @@ function DetailBody({
           markers={markers}
           totalAllocated={totalAllocated}
           isMock={isMock}
-          hideSubmit={hideSubmit}
+          isAutoresearch={isAutoresearch}
         />
       )}
     </main>
@@ -387,8 +394,6 @@ function RunningBody({ run }: { run: AgentRunRecord }) {
         <RunActivityFeed events={run.events} pulseLatest />
       </Panel>
 
-      {run.checkpoint ? <CheckpointSummaryPanel run={run} /> : null}
-
       <Panel eyebrow="Context" title="Prompt">
         <pre className="max-h-[400px] overflow-auto whitespace-pre-wrap border border-[color:var(--border)] bg-[color:var(--background)] p-4 font-mono text-xs leading-6 text-[color:var(--foreground)]">
           {run.prompt}
@@ -413,8 +418,6 @@ function DegradedSettledBody({ run }: { run: AgentRunRecord }) {
           available below.
         </p>
       </Panel>
-
-      {run.checkpoint ? <CheckpointSummaryPanel run={run} /> : null}
 
       <Panel eyebrow="Telemetry" title="Timeline">
         <RunActivityFeed events={run.events} />
@@ -460,7 +463,7 @@ function SettledBody({
   markers,
   totalAllocated,
   isMock,
-  hideSubmit,
+  isAutoresearch,
 }: {
   run: AgentRunRecord;
   stage: RunStage;
@@ -469,11 +472,11 @@ function SettledBody({
   markers: Map<string, DiffMarker> | undefined;
   totalAllocated: number;
   isMock: boolean;
-  hideSubmit?: boolean;
+  isAutoresearch?: boolean;
 }) {
   const result = run.result!;
   const isSubmittable =
-    !hideSubmit && (stage === "done" || stage === "submit-failed");
+    !isAutoresearch && (stage === "done" || stage === "submit-failed");
   const [tab, setTab] = useState<DetailTab>("evidence");
 
   // Build the uuid → Cala-tool-call index once per run; EntityPill in the
@@ -501,7 +504,7 @@ function SettledBody({
 
       {tab === "evidence" ? (
         <>
-          {!hideSubmit &&
+          {!isAutoresearch &&
           (stage === "submitted" || stage === "submit-failed") ? (
             <RunSubmissionPanel
               runId={run.id}
@@ -535,11 +538,78 @@ function SettledBody({
                     border="l"
                   />
                 </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4">
+                  <MiniMetric
+                    label="Unique tickers"
+                    value={`${new Set(result.output.positions.map(p => p.nasdaqCode)).size}`}
+                  />
+                  <MiniMetric
+                    label="Min alloc"
+                    value={money.format(
+                      Math.min(
+                        ...result.output.positions.map(p => p.amount),
+                      ),
+                    )}
+                    border="l"
+                  />
+                  <MiniMetric
+                    label="Max alloc"
+                    value={money.format(
+                      Math.max(
+                        ...result.output.positions.map(p => p.amount),
+                      ),
+                    )}
+                    border="l"
+                  />
+                  <MiniMetric
+                    label="Avg alloc"
+                    value={money.format(
+                      Math.round(
+                        totalAllocated /
+                          (result.output.positions.length || 1),
+                      ),
+                    )}
+                    border="l"
+                  />
+                </div>
                 <p className="text-sm leading-6 text-[color:var(--muted-foreground)]">
                   {result.output.cutoffAudit.complianceSummary}
                 </p>
               </div>
             </Panel>
+
+            {result.output.portfolioThesis ? (
+              <Panel eyebrow="Strategy" title="Portfolio thesis">
+                <div className="flex flex-col gap-5">
+                  <p className="font-sans text-sm leading-7 text-[color:var(--foreground)]">
+                    {result.output.portfolioThesis}
+                  </p>
+                  {result.output.openGaps.length > 0 ? (
+                    <div>
+                      <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+                        Open gaps
+                      </p>
+                      <ul className="mt-2 flex flex-col gap-1.5">
+                        {result.output.openGaps.map((gap, idx) => (
+                          <li
+                            key={idx}
+                            className="flex gap-2 font-mono text-[11px] leading-relaxed text-[color:var(--foreground)]"
+                          >
+                            <span
+                              aria-hidden
+                              className="text-[color:var(--muted-foreground)]"
+                            >
+                              ·
+                            </span>
+                            <span className="flex-1">{gap}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              </Panel>
+            ) : null}
 
             {isSubmittable ? (
               <RunSubmissionPanel
@@ -549,23 +619,13 @@ function SettledBody({
               />
             ) : null}
 
-            {diff && baseline ? (
+            {!isAutoresearch && diff && baseline ? (
               <RunDiffPanel
                 diff={diff}
                 baselineRunId={baseline.id}
                 baselineStartedAt={baseline.startedAt}
               />
-            ) : (
-              <section className="border border-dashed border-[color:var(--border)] bg-[color:var(--surface)] px-5 py-6">
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-                  No baseline
-                </p>
-                <p className="mt-2 font-sans text-sm text-[color:var(--foreground)]">
-                  This is the first completed run — no baseline to compare
-                  against yet. Future runs will show a diff against this one.
-                </p>
-              </section>
-            )}
+            ) : null}
 
             <Panel
               eyebrow="Portfolio"
@@ -593,15 +653,19 @@ function SettledBody({
             <RunActivityFeed events={run.events} />
           </Panel>
 
-          <Panel eyebrow="Context" title="Prompt">
-            <pre className="whitespace-pre-wrap border border-[color:var(--border)] bg-[color:var(--background)] p-4 font-mono text-xs leading-6 text-[color:var(--foreground)]">
-              {run.prompt}
-            </pre>
-          </Panel>
+          {!isAutoresearch ? (
+            <>
+              <Panel eyebrow="Context" title="Prompt">
+                <pre className="whitespace-pre-wrap border border-[color:var(--border)] bg-[color:var(--background)] p-4 font-mono text-xs leading-6 text-[color:var(--foreground)]">
+                  {run.prompt}
+                </pre>
+              </Panel>
 
-          <Panel eyebrow="JSON" title="Submission payload">
-            <CodeBlock value={result.output.submissionPayload} />
-          </Panel>
+              <Panel eyebrow="JSON" title="Submission payload">
+                <CodeBlock value={result.output.submissionPayload} />
+              </Panel>
+            </>
+          ) : null}
         </section>
       )}
     </>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { CalaAgentResult } from "@/lib/cala-agent";
 import type { EntityEventsIndex } from "@/lib/entity-events";
 import type { DiffMarker } from "@/lib/run-diff";
@@ -34,10 +34,20 @@ type Props = {
   toolEvents?: EntityEventsIndex;
 };
 
+type RankedPosition = PortfolioPosition & { _rank: number };
+
 export function RunPortfolioTable({ result, markers, toolEvents }: Props) {
   const positions = result.output.positions;
   const showMarkers = !!markers && markers.size > 0;
   const [expandedTicker, setExpandedTicker] = useState<string | null>(null);
+
+  const rankedPositions: RankedPosition[] = useMemo(
+    () =>
+      [...positions]
+        .sort((a, b) => a.complexityScore - b.complexityScore)
+        .map((p, i) => ({ ...p, _rank: i + 1 })),
+    [positions],
+  );
 
   // uuid → companyName lookup so entity pills can resolve a human label
   // for the primary (companyEntityId) and any supportingEntityIds that
@@ -52,33 +62,34 @@ export function RunPortfolioTable({ result, markers, toolEvents }: Props) {
   // Collapsed-row columns: #, (diff), ticker, company, notional, thesis,
   // expand-chevron. Total = 6 (+1 if diffs are shown). The expanded
   // detail panel spans all of them.
-  const columnCount = showMarkers ? 7 : 6;
+  const columnCount = showMarkers ? 8 : 7;
 
   return (
     <div className="max-h-[70vh] overflow-auto overscroll-contain">
       <table className="w-full border-collapse font-mono text-xs">
         <thead>
           <tr className="border-b border-[color:var(--border)] text-[9px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
-            <th className="px-4 py-3 text-left font-normal">#</th>
+            <th className="px-4 py-3 text-left font-normal">Rank</th>
             {showMarkers ? (
               <th className="px-2 py-3 text-left font-normal" aria-label="Diff" />
             ) : null}
             <th className="px-3 py-3 text-left font-normal">Ticker</th>
             <th className="px-3 py-3 text-left font-normal">Company</th>
             <th className="px-3 py-3 text-right font-normal">Notional</th>
+            <th className="px-3 py-3 text-right font-normal">Score</th>
             <th className="px-3 py-3 text-left font-normal">Thesis</th>
             <th className="px-3 py-3 text-right font-normal" aria-label="Expand" />
           </tr>
         </thead>
         <tbody>
-          {positions.map((position, idx) => {
+          {rankedPositions.map((position) => {
             const marker = markers?.get(position.nasdaqCode) ?? null;
             const isExpanded = expandedTicker === position.nasdaqCode;
             return (
               <PositionRows
                 key={`${position.companyEntityId}-${position.nasdaqCode}`}
                 position={position}
-                index={idx}
+                index={position._rank - 1}
                 marker={marker}
                 showMarkers={showMarkers}
                 isExpanded={isExpanded}
@@ -139,7 +150,8 @@ function PositionRows({
         }
       >
         <td className="px-4 py-3 text-[color:var(--muted-foreground)] tabular-nums">
-          {(index + 1).toString().padStart(2, "0")}
+          {(position as RankedPosition)._rank?.toString().padStart(2, "0") ??
+            (index + 1).toString().padStart(2, "0")}
         </td>
         {showMarkers ? (
           <td className="px-2 py-3 text-center text-[color:var(--foreground)]">
@@ -158,11 +170,15 @@ function PositionRows({
         <td className="px-3 py-3 font-semibold text-[color:var(--foreground)]">
           {position.nasdaqCode}
         </td>
-        <td className="max-w-[180px] truncate px-3 py-3 font-sans text-[color:var(--muted-foreground)]">
-          {position.companyName}
+        <td className="max-w-[180px] px-3 py-3 font-sans text-[color:var(--muted-foreground)]">
+          <span className="block truncate">{position.companyName}</span>
+          <FilingBadge date={position.currentAnnualFilingDate} />
         </td>
         <td className="px-3 py-3 text-right tabular-nums text-[color:var(--foreground)]">
           {money.format(position.amount)}
+        </td>
+        <td className="px-3 py-3 text-right tabular-nums text-[color:var(--muted-foreground)]">
+          {numberFormatter.format(position.complexityScore)}
         </td>
         <td className="max-w-[420px] truncate px-3 py-3 font-sans text-[color:var(--foreground)]">
           {position.thesis}
@@ -339,6 +355,9 @@ function EvidenceColumn({
           </span>
         </p>
       ) : null}
+      <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.15em] text-[color:var(--muted-foreground)] opacity-60">
+        Source: Cala Entity Graph
+      </p>
     </div>
   );
 }
@@ -411,4 +430,28 @@ function formatSignedNumber(value: number): string {
   const abs = Math.abs(value);
   const sign = value > 0 ? "+" : value < 0 ? "−" : "";
   return `${sign}${numberFormatter.format(abs)}`;
+}
+
+const CUTOFF = new Date("2025-04-15");
+const MS_PER_MONTH = 1000 * 60 * 60 * 24 * 30.44;
+
+function FilingBadge({ date }: { date: string | null | undefined }) {
+  const color = (() => {
+    if (!date) return "oklch(0.50 0 0)";
+    const months = (CUTOFF.getTime() - new Date(date).getTime()) / MS_PER_MONTH;
+    if (months <= 12) return "oklch(0.75 0.18 145)";
+    if (months <= 18) return "oklch(0.80 0.18 85)";
+    return "oklch(0.70 0.20 25)";
+  })();
+
+  return (
+    <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.15em] text-[color:var(--muted-foreground)]">
+      <span
+        className="inline-block h-1.5 w-1.5 shrink-0"
+        style={{ background: color }}
+        aria-hidden
+      />
+      {date ?? "no filing"}
+    </span>
+  );
 }

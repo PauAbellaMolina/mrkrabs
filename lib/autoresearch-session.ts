@@ -76,6 +76,25 @@ export async function finalizeAutoresearchSession(
   });
 }
 
+export async function shrinkAutoresearchSession(
+  sessionId: string,
+  plannedIterations: number,
+): Promise<void> {
+  await getConvexClient().mutation(api.autoresearch.shrinkSession, {
+    sessionId,
+    plannedIterations,
+  });
+}
+
+export async function getAutoresearchSessionPlannedIterations(
+  sessionId: string,
+): Promise<number | null> {
+  return await getConvexClient().query(
+    api.autoresearch.getSessionPlannedIterations,
+    { sessionId },
+  ) as number | null;
+}
+
 export async function listAutoresearchSessions(): Promise<
   AutoresearchSession[]
 > {

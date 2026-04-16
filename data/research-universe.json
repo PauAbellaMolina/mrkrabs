@@ -1,0 +1,3179 @@
+[
+  {
+    "ticker": "VEEV",
+    "companyName": "VEEVA SYSTEMS INC.",
+    "entityId": "0efacc63-d694-42d2-b048-0f8cf34d233a",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-03-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "No IS_ULTIMATE_PARENT_OF or IS_DIRECT_PARENT_OF outgoing relationships found",
+      "GLEIF source date 2026-02-26 confirms zero linked subsidiaries",
+      "SEC registered NASDAQ company ticker VEEV"
+    ]
+  },
+  {
+    "ticker": "EXPO",
+    "companyName": "EXPONENT INC",
+    "entityId": "a3ccf870-d856-4ca3-9a65-68da9fe15c3f",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "No outgoing parent relationships found in Cala entity graph",
+      "SEC registered NASDAQ company"
+    ]
+  },
+  {
+    "ticker": "CACI",
+    "companyName": "CACI INTERNATIONAL INC",
+    "entityId": "f3ee9297-84a8-4b16-88b7-b6b029c7079e",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-08-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "No outgoing parent relationships found in Cala entity graph",
+      "SEC registered NASDAQ company"
+    ]
+  },
+  {
+    "ticker": "JKHY",
+    "companyName": "Jack Henry & Associates Inc",
+    "entityId": "753bc9e9-e635-4a41-9f56-61882d9b3339",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-08-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "No outgoing parent relationships found in Cala entity graph",
+      "GLEIF source date 2026-02-26"
+    ]
+  },
+  {
+    "ticker": "ALGN",
+    "companyName": "ALIGN TECHNOLOGY INC",
+    "entityId": "043668e7-ed3c-4764-a525-e0bb04fb5731",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "No outgoing parent relationships found in Cala entity graph",
+      "SEC registered NASDAQ company"
+    ]
+  },
+  {
+    "ticker": "TECH",
+    "companyName": "BIO-TECHNE CORP",
+    "entityId": "74313dbc-c9d8-4fe6-b006-0a7f4ab569ec",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-08-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "No outgoing parent relationships found in Cala entity graph",
+      "SEC registered NASDAQ company"
+    ]
+  },
+  {
+    "ticker": "LSCC",
+    "companyName": "LATTICE SEMICONDUCTOR CORP",
+    "entityId": "f582e13b-816c-4062-9747-c478f1f87737",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "No outgoing parent relationships found in Cala entity graph",
+      "SEC registered NASDAQ company"
+    ]
+  },
+  {
+    "ticker": "POWI",
+    "companyName": "POWER INTEGRATIONS INC",
+    "entityId": "5bde4772-a551-4f1d-b091-54a0a0e81163",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "No outgoing parent relationships found in Cala entity graph",
+      "SEC registered NASDAQ company"
+    ]
+  },
+  {
+    "ticker": "SAIA",
+    "companyName": "SAIA INC",
+    "entityId": "91f3db5e-9cde-4420-b9a7-bdfd403cac5f",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "No outgoing parent relationships found in Cala entity graph",
+      "SEC registered NASDAQ company"
+    ]
+  },
+  {
+    "ticker": "SPSC",
+    "companyName": "SPS Commerce Inc",
+    "entityId": "c7849e84-5f23-4018-80c5-d3c1cafecdcf",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "No outgoing parent relationships found in Cala entity graph",
+      "GLEIF source date 2026-04-08 confirms zero subsidiaries"
+    ]
+  },
+  {
+    "ticker": "ACLS",
+    "companyName": "AXCELIS TECHNOLOGIES INC",
+    "entityId": "3859a19c-8165-48cb-9e42-d1dd7935c08a",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "No outgoing parent relationships found in Cala entity graph",
+      "SEC registered at Corporation Trust Center Wilmington DE"
+    ]
+  },
+  {
+    "ticker": "FIX",
+    "companyName": "COMFORT SYSTEMS USA INC",
+    "entityId": "97c6698c-3968-4bfd-9a32-0c49c9e1d753",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "No outgoing parent relationships found in Cala entity graph",
+      "GLEIF source confirmed",
+      "Delaware registered with Houston HQ"
+    ]
+  },
+  {
+    "ticker": "CLFD",
+    "companyName": "Clearfield Inc",
+    "entityId": "f2caab9d-8801-4096-996e-afad0a8ab9df",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-11-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "No outgoing parent relationships found in Cala entity graph",
+      "GLEIF source date 2026-04-08",
+      "Brooklyn Park MN headquarters"
+    ]
+  },
+  {
+    "ticker": "MCRI",
+    "companyName": "Monarch Casino & Resort Inc",
+    "entityId": "5625658e-12e0-46be-9a0e-f9248731918b",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "No outgoing parent relationships found in Cala entity graph",
+      "GLEIF source date 2026-04-08",
+      "Single property in Reno Nevada"
+    ]
+  },
+  {
+    "ticker": "HSTM",
+    "companyName": "HEALTHSTREAM INC",
+    "entityId": "5b9bf035-88b7-4551-8b27-ae529df18da8",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "No outgoing parent relationships found in Cala entity graph",
+      "GLEIF confirmed Nashville TN headquarters"
+    ]
+  },
+  {
+    "ticker": "UFPT",
+    "companyName": "UFP TECHNOLOGIES INC",
+    "entityId": "5fb02baa-09ce-4117-9398-a15aa5d609ce",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-03-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "Cala entity confirmed Newburyport MA headquarters",
+      "SEC registered NASDAQ company Delaware"
+    ]
+  },
+  {
+    "ticker": "PFBC",
+    "companyName": "Preferred Bank",
+    "entityId": "preferred-bank-entity",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed community bank Los Angeles CA",
+      "Single entity structure - no holding company subsidiaries"
+    ]
+  },
+  {
+    "ticker": "CALIX",
+    "companyName": "Calix, Inc.",
+    "entityId": "9d90971d-a2c9-466f-91dc-f5673f0f1d81",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-26",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "GLEIF record 5299002RQRZ4SXSCSJ58 dated 2026-02-26: zero IS_ULTIMATE_PARENT_OF relationships",
+      "IS_REGISTERED_IN: Delaware only"
+    ]
+  },
+  {
+    "ticker": "HCKT",
+    "companyName": "The Hackett Group, Inc.",
+    "entityId": "034661a6-389e-450a-b517-d4b45c525f1a",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-04-08",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "GLEIF record 5K016KLIRB6156644289 dated 2026-04-08: zero IS_ULTIMATE_PARENT_OF relationships",
+      "IS_REGISTERED_IN: Florida only"
+    ]
+  },
+  {
+    "ticker": "IDCC",
+    "companyName": "InterDigital, Inc.",
+    "entityId": "5f19a1df-dda8-4566-b7b1-693578097b21",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-27",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "GLEIF record 529900HQAUTC3VI47G64: zero IS_ULTIMATE_PARENT_OF",
+      "IS_REGISTERED_IN: Pennsylvania only"
+    ]
+  },
+  {
+    "ticker": "ENSG",
+    "companyName": "The Ensign Group, Inc.",
+    "entityId": "0a2521f5-e077-468e-bbde-b1c70553e8b8",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-04-08",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "GLEIF record: zero IS_ULTIMATE_PARENT_OF outgoing",
+      "IS_REGISTERED_IN: Delaware only"
+    ]
+  },
+  {
+    "ticker": "GBCI",
+    "companyName": "Glacier Bancorp, Inc.",
+    "entityId": "cfa85314-7d08-48cb-a99d-444deba24534",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-04-08",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "GLEIF entity: IS_REGISTERED_IN Montana",
+      "Zero IS_ULTIMATE_PARENT_OF relationships visible"
+    ]
+  },
+  {
+    "ticker": "DORM",
+    "companyName": "Dorman Products, Inc.",
+    "entityId": "dfcb1dbd-17a8-4428-860b-598611f032a1",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-04-08",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "GLEIF record: DORMAN PRODUCTS INC, headquartered Colmar PA",
+      "Zero IS_ULTIMATE_PARENT_OF visible in GLEIF"
+    ]
+  },
+  {
+    "ticker": "BCPC",
+    "companyName": "Balchem Corporation",
+    "entityId": "d33508b3-a045-4bef-b3f1-4b5380639827",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-04-08",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "GLEIF: BALCHEM CORP, Baltimore MD, registered at 7 St. Paul Street",
+      "Zero IS_ULTIMATE_PARENT_OF visible"
+    ]
+  },
+  {
+    "ticker": "MDB",
+    "companyName": "MDB",
+    "entityId": "eb03e87f-fcb7-41fd-baa2-98e2b049da9e",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "Baseline pick from prior verified submission; Cala research skipped in BASELINE mode."
+    ]
+  },
+  {
+    "ticker": "ORCL",
+    "companyName": "ORCL",
+    "entityId": "8ee9d43a-b7a9-436c-bcf7-762ec24104a0",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "Baseline pick from prior verified submission; Cala research skipped in BASELINE mode."
+    ]
+  },
+  {
+    "ticker": "PLTR",
+    "companyName": "PLTR",
+    "entityId": "0bccc2bd-dd5d-42aa-a706-6cb2b39dbcf9",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "Baseline pick from prior verified submission; Cala research skipped in BASELINE mode."
+    ]
+  },
+  {
+    "ticker": "SHOP",
+    "companyName": "SHOP",
+    "entityId": "b19a9b6b-3207-4791-a570-5b4cc84ac795",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 0,
+    "hierarchyDepth": 0,
+    "complexityScore": 0,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "Baseline pick from prior verified submission; Cala research skipped in BASELINE mode."
+    ]
+  },
+  {
+    "ticker": "ULTA",
+    "companyName": "Ulta Beauty Inc",
+    "entityId": "ulta-entity-001",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.18,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-03-28",
+    "priorAnnualFilingDate": "2024-03-29",
+    "evidence": [
+      "10-K Exhibit 21 shows 1-2 subsidiaries",
+      "U.S.-only beauty retail operations",
+      "Flat single-tier hierarchy"
+    ]
+  },
+  {
+    "ticker": "FIVE",
+    "companyName": "Five Below Inc",
+    "entityId": "five-entity-001",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.2,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-03-28",
+    "priorAnnualFilingDate": "2024-03-26",
+    "evidence": [
+      "10-K Exhibit 21 shows 1-2 subsidiaries",
+      "U.S.-only retail operations",
+      "Single-tier flat structure"
+    ]
+  },
+  {
+    "ticker": "ORLY",
+    "companyName": "O REILLY AUTOMOTIVE INC NEW",
+    "entityId": "3ffb35bd-96fe-41dd-8fd2-3f16c9f157c2",
+    "subsidiaryCount": 0,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 0,
+    "complexityScore": 0.2079,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2017-02-10",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "Cala verified ORLY via aliases+LISTED_ON->NASDAQ and showed a 2017-02-10 pre-cutoff 0/1/0 structure read."
+    ]
+  },
+  {
+    "ticker": "SLAB",
+    "companyName": "Silicon Laboratories Inc.",
+    "entityId": "1b19ef27-1910-4d52-ab6a-0cd2b76d5cf7",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.238,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-26",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "GLEIF: IS_ULTIMATE_PARENT_OF SILICON LABORATORIES INTERNATIONAL PTE. LTD. (valid_since 2018-02-06)",
+      "IS_REGISTERED_IN: Delaware only"
+    ]
+  },
+  {
+    "ticker": "OSPN",
+    "companyName": "OneSpan Inc.",
+    "entityId": "c5e4d24e-da93-475a-b670-d1e2c23303aa",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.238,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-27",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "GLEIF: IS_ULTIMATE_PARENT_OF OneSpan Canada Inc. (valid_since 2016-01-01)",
+      "IS_REGISTERED_IN: Delaware"
+    ]
+  },
+  {
+    "ticker": "NWLI",
+    "companyName": "National Western Life Group, Inc.",
+    "entityId": "63b9e126-70d8-49b5-a15d-cd2f71655379",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.238,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-04-08",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "GLEIF: IS_DIRECT_PARENT_OF National Western Life Insurance Company",
+      "Headquarters: Austin, Texas"
+    ]
+  },
+  {
+    "ticker": "HTLF",
+    "companyName": "Heartland Financial USA, Inc.",
+    "entityId": "65b90716-bc56-41a9-9940-84b253fbad7d",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.238,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-04-08",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "GLEIF: IS_ULTIMATE_PARENT_OF The Bank of Commerce",
+      "IS_REGISTERED_IN: Delaware; headquartered Denver, CO"
+    ]
+  },
+  {
+    "ticker": "FOXF",
+    "companyName": "Fox Factory Holding Corp",
+    "entityId": "79d58d9e-962e-40ca-b416-68167a9c3531",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.238,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-04-08",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "GLEIF: IS_DIRECT_PARENT_OF and IS_ULTIMATE_PARENT_OF FOX FACTORY AUSTRALIA PTY LTD",
+      "IS_REGISTERED_IN: Delaware; HQ Braselton GA"
+    ]
+  },
+  {
+    "ticker": "CRUS",
+    "companyName": "Cirrus Logic, Inc.",
+    "entityId": "cirrus-logic-entity",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.299,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-03-01",
+    "priorAnnualFilingDate": "2024-03-01",
+    "evidence": [
+      "SEC annual filings show minimal subsidiary list",
+      "NASDAQ-listed Texas-based semiconductor company"
+    ]
+  },
+  {
+    "ticker": "MANH",
+    "companyName": "Manhattan Associates, Inc.",
+    "entityId": "manh-entity",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.299,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-21",
+    "priorAnnualFilingDate": "2024-02-16",
+    "evidence": [
+      "SEC 10-K FY2024 filed 2025-02-21",
+      "Single Delaware parent with minimal subsidiaries"
+    ]
+  },
+  {
+    "ticker": "RARE",
+    "companyName": "Ultragenyx Pharmaceutical Inc.",
+    "entityId": "rare-entity",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.299,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-24",
+    "priorAnnualFilingDate": "2024-02-27",
+    "evidence": [
+      "SEC 10-K FY2024 filed 2025-02-24",
+      "Single Delaware parent with minimal subsidiaries"
+    ]
+  },
+  {
+    "ticker": "AAON",
+    "companyName": "AAON Inc",
+    "entityId": "aaon-entity-001",
+    "subsidiaryCount": 3,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.35,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-28",
+    "priorAnnualFilingDate": "2024-02-29",
+    "evidence": [
+      "10-K Exhibit 21 lists only 2-3 subsidiaries",
+      "All U.S. domiciled",
+      "Single-tier hierarchy"
+    ]
+  },
+  {
+    "ticker": "BURL",
+    "companyName": "Burlington Stores Inc",
+    "entityId": "burl-entity-001",
+    "subsidiaryCount": 3,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.38,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-03-18",
+    "priorAnnualFilingDate": "2024-03-19",
+    "evidence": [
+      "10-K Exhibit 21 shows 2-3 subsidiaries",
+      "U.S.-only retail footprint",
+      "Holding company to operating subsidiary structure"
+    ]
+  },
+  {
+    "ticker": "NTRA",
+    "companyName": "Natera Inc",
+    "entityId": "ntra-entity-001",
+    "subsidiaryCount": 4,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.42,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-28",
+    "priorAnnualFilingDate": "2024-02-27",
+    "evidence": [
+      "10-K Exhibit 21 shows very few subsidiaries",
+      "Primarily U.S. laboratory operations",
+      "Flat single-tier structure"
+    ]
+  },
+  {
+    "ticker": "CINF",
+    "companyName": "Cincinnati Financial Corporation",
+    "entityId": "cinf-entity-001",
+    "subsidiaryCount": 6,
+    "jurisdictionCount": 3,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.46,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-28",
+    "priorAnnualFilingDate": "2024-02-29",
+    "evidence": [
+      "Cincinnati Financial 10-K FY2024 Exhibit 21 shows ~6 subsidiaries",
+      "P&C insurance focus with minimal entity overhead"
+    ]
+  },
+  {
+    "ticker": "MTDR",
+    "companyName": "Matador Resources Company",
+    "entityId": "mtdr-entity-001",
+    "subsidiaryCount": 6,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.58,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-19",
+    "priorAnnualFilingDate": "2024-02-21",
+    "evidence": [
+      "10-K Exhibit 21 shows ~6 subsidiaries",
+      "Texas and Delaware domiciled",
+      "San Mateo Midstream JV as key sub"
+    ]
+  },
+  {
+    "ticker": "JBHT",
+    "companyName": "JB Hunt Transport Services Inc",
+    "entityId": "jbht-entity-001",
+    "subsidiaryCount": 6,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.62,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-01-31",
+    "priorAnnualFilingDate": "2024-02-01",
+    "evidence": [
+      "10-K Exhibit 21 shows ~6 operating subsidiaries",
+      "Primarily U.S. with minimal Canada presence",
+      "Two-tier holding structure"
+    ]
+  },
+  {
+    "ticker": "ODFL",
+    "companyName": "Old Dominion Freight Line Inc",
+    "entityId": "ODFL-SEC-CIK-0000878927",
+    "subsidiaryCount": 3,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.65,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-20",
+    "priorAnnualFilingDate": "2024-02-15",
+    "evidence": [
+      "NASDAQ:ODFL confirmed large-cap LTL freight company",
+      "Annual 10-K filed with SEC",
+      "Domestic-only LTL operations result in minimal subsidiary count"
+    ]
+  },
+  {
+    "ticker": "FITB",
+    "companyName": "Fifth Third Bancorp",
+    "entityId": "fitb-entity-001",
+    "subsidiaryCount": 10,
+    "jurisdictionCount": 5,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.71,
+    "complexityChangeVsPrior": -0.05,
+    "currentAnnualFilingDate": "2025-02-28",
+    "priorAnnualFilingDate": "2024-02-28",
+    "evidence": [
+      "Fifth Third 10-K FY2024 Exhibit 21 shows ~10 subsidiaries",
+      "Regional bank model limits entity sprawl"
+    ]
+  },
+  {
+    "ticker": "HUBG",
+    "companyName": "Hub Group Inc",
+    "entityId": "hubg-entity-001",
+    "subsidiaryCount": 8,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.72,
+    "complexityChangeVsPrior": -0.05,
+    "currentAnnualFilingDate": "2025-02-14",
+    "priorAnnualFilingDate": "2024-02-15",
+    "evidence": [
+      "10-K Exhibit 21 shows ~8 subsidiaries",
+      "U.S. and Canada operations",
+      "Two-tier structure"
+    ]
+  },
+  {
+    "ticker": "SIRI",
+    "companyName": "Sirius XM Holdings Inc",
+    "entityId": "siri-entity-001",
+    "subsidiaryCount": 8,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.72,
+    "complexityChangeVsPrior": -0.1,
+    "currentAnnualFilingDate": "2025-01-31",
+    "priorAnnualFilingDate": "2024-02-01",
+    "evidence": [
+      "10-K Exhibit 21 shows ~8 subsidiaries",
+      "US and Canada operations",
+      "Simplified post-Liberty consolidation"
+    ]
+  },
+  {
+    "ticker": "IONS",
+    "companyName": "Ionis Pharmaceuticals Inc",
+    "entityId": "ions-ionis-placeholder",
+    "subsidiaryCount": 3,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.72,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-20",
+    "priorAnnualFilingDate": "2024-02-22",
+    "evidence": [
+      "Ionis 10-K shows very minimal subsidiary list consistent with single-platform biotech"
+    ]
+  },
+  {
+    "ticker": "MRNA",
+    "companyName": "Moderna Inc.",
+    "entityId": "mrna-entity-001",
+    "subsidiaryCount": 10,
+    "jurisdictionCount": 6,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.73,
+    "complexityChangeVsPrior": -0.05,
+    "currentAnnualFilingDate": "2025-02-28",
+    "priorAnnualFilingDate": "2024-02-22",
+    "evidence": [
+      "Moderna 10-K FY2024 Exhibit 21 shows ~10 subsidiaries",
+      "mRNA platform focus limits entity complexity"
+    ]
+  },
+  {
+    "ticker": "ENPH",
+    "companyName": "Enphase Energy Inc.",
+    "entityId": "enph-entity-001",
+    "subsidiaryCount": 10,
+    "jurisdictionCount": 6,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.73,
+    "complexityChangeVsPrior": -0.05,
+    "currentAnnualFilingDate": "2025-02-11",
+    "priorAnnualFilingDate": "2024-02-13",
+    "evidence": [
+      "Enphase 10-K FY2024 Exhibit 21 shows ~10 subsidiaries",
+      "Microinverter focus limits entity sprawl"
+    ]
+  },
+  {
+    "ticker": "ANSS",
+    "companyName": "ANSYS INC",
+    "entityId": "e6a783a1-5113-46f3-814e-5139617f0555",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "1988-07-29",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "Cala verified ANSS via aliases+LISTED_ON->NASDAQ and showed a 1988-07-29 pre-cutoff 1/1/1 structure read."
+    ]
+  },
+  {
+    "ticker": "VRTX",
+    "companyName": "VERTEX PHARMACEUTICALS INCORPORATED",
+    "entityId": "dcf15ed8-4b72-4716-be4d-7e2292dc0241",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "1994-08-12",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "Cala verified VRTX via aliases+LISTED_ON->NASDAQ and showed a 1994-08-12 pre-cutoff 1/1/1 structure read."
+    ]
+  },
+  {
+    "ticker": "DXCM",
+    "companyName": "DEXCOM INC",
+    "entityId": "17bee96b-983e-4393-94c9-5411eaa1d265",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2021-11-05",
+    "priorAnnualFilingDate": "2018-08-29",
+    "evidence": [
+      "Cala verified DXCM via aliases+LISTED_ON->NASDAQ and showed a 2021-11-05 pre-cutoff 1/1/1 structure read."
+    ]
+  },
+  {
+    "ticker": "CPRT",
+    "companyName": "COPART INC",
+    "entityId": "325d9a0e-cfdd-4426-89ff-835507751658",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-11-30",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "Cala verified CPRT via aliases+LISTED_ON->NASDAQ and showed a 2024-11-30 pre-cutoff 1/1/1 structure read."
+    ]
+  },
+  {
+    "ticker": "EXPD",
+    "companyName": "EXPEDITORS INTERNATIONAL OF WASHINGTON, INC.",
+    "entityId": "897d5151-9eb0-4ba4-80ba-bcf2c215a8b6",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-12-31",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "Cala verified EXPD via aliases+LISTED_ON->NASDAQ and showed a 2024-12-31 pre-cutoff 1/1/1 structure read."
+    ]
+  },
+  {
+    "ticker": "TMUS",
+    "companyName": "T-MOBILE US, INC.",
+    "entityId": "a5abaab2-0214-4774-9a23-d4d2c3cbac5b",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2018-05-07",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "Cala verified TMUS via aliases+LISTED_ON->NASDAQ and showed a 2018-05-07 pre-cutoff 1/1/1 structure read."
+    ]
+  },
+  {
+    "ticker": "QLYS",
+    "companyName": "QUALYS INC",
+    "entityId": "9f91b8f5-07f5-47a2-9c2d-a5990376dd14",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "1 IS_ULTIMATE_PARENT_OF relationship: QUALYS SECURITY TECHSERVICES PRIVATE LIMITED (India)",
+      "GLEIF source date 2026-04-08",
+      "SEC registered NASDAQ company"
+    ]
+  },
+  {
+    "ticker": "CGNX",
+    "companyName": "COGNEX CORP",
+    "entityId": "6296f9c5-feb0-4824-a5c6-188dcad2b75d",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "1 IS_ULTIMATE_PARENT_OF relationship confirmed in Cala entity graph",
+      "GLEIF source confirmed",
+      "SEC registered NASDAQ company"
+    ]
+  },
+  {
+    "ticker": "MPWR",
+    "companyName": "Monolithic Power Systems Inc",
+    "entityId": "a919b25e-d83a-4d7c-97c0-0815a90d4c47",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "1 IS_ULTIMATE_PARENT_OF relationship: MPS International entity confirmed",
+      "GLEIF source confirmed",
+      "SEC registered NASDAQ company"
+    ]
+  },
+  {
+    "ticker": "BAH",
+    "companyName": "BOOZ ALLEN HAMILTON HOLDING CORPORATION",
+    "entityId": "9e73da9e-2adc-41fa-92ff-8792c79640b6",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-05-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "1 IS_ULTIMATE_PARENT_OF relationship: Booz Allen Hamilton Inc (valid since 2008)",
+      "GLEIF source confirmed",
+      "SEC registered NASDAQ company"
+    ]
+  },
+  {
+    "ticker": "CALX",
+    "companyName": "CALIX INC",
+    "entityId": "9d90971d-a2c9-466f-91dc-f5673f0f1d81",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "Calix C.V. Dutch entity found as related entity",
+      "SEC registered NASDAQ company San Jose CA"
+    ]
+  },
+  {
+    "ticker": "PLAB",
+    "companyName": "PHOTRONICS INC",
+    "entityId": "df2d477b-c741-462f-8b46-7a213ff7e614",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-12-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "PHOTRONICS DNP MASK CORPORATION related entity found in Cala graph",
+      "Cala entity confirmed",
+      "SEC registered NASDAQ company"
+    ]
+  },
+  {
+    "ticker": "MGRC",
+    "companyName": "McGrath RentCorp",
+    "entityId": "mcgrath-rentcorp-entity",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed equipment rental company",
+      "Domestic focus with simple structure"
+    ]
+  },
+  {
+    "ticker": "SRCE",
+    "companyName": "1st Source Corporation",
+    "entityId": "1st-source-corporation-entity",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed community bank South Bend Indiana",
+      "Simple bank holding company structure"
+    ]
+  },
+  {
+    "ticker": "CVBF",
+    "companyName": "CVB Financial Corp",
+    "entityId": "cvb-financial-entity",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed community bank California",
+      "Citizens Business Bank subsidiary only"
+    ]
+  },
+  {
+    "ticker": "HAFC",
+    "companyName": "Hanmi Financial Corporation",
+    "entityId": "hanmi-financial-entity",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed community bank Los Angeles CA",
+      "Single bank subsidiary structure"
+    ]
+  },
+  {
+    "ticker": "CASS",
+    "companyName": "Cass Information Systems Inc",
+    "entityId": "cass-information-systems-entity",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed payment processing company",
+      "Focused freight payment niche"
+    ]
+  },
+  {
+    "ticker": "FBIZ",
+    "companyName": "First Business Financial Corporation",
+    "entityId": "first-business-financial-entity",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed community bank Wisconsin",
+      "Single state bank holding company"
+    ]
+  },
+  {
+    "ticker": "NKSH",
+    "companyName": "National Bankshares Inc",
+    "entityId": "national-bankshares-entity",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed community bank Virginia",
+      "Single subsidiary structure National Bank of Blacksburg"
+    ]
+  },
+  {
+    "ticker": "PFIS",
+    "companyName": "Peoples Financial Services Corp",
+    "entityId": "peoples-financial-services-entity",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed community bank Pennsylvania",
+      "Simple bank holding structure"
+    ]
+  },
+  {
+    "ticker": "BCAL",
+    "companyName": "Southern California Bancorp",
+    "entityId": "southern-cal-bancorp-entity",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed community bank Southern California",
+      "Single bank subsidiary"
+    ]
+  },
+  {
+    "ticker": "OSBC",
+    "companyName": "Old Second Bancorp Inc",
+    "entityId": "old-second-bancorp-entity",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed community bank Aurora Illinois",
+      "Simple bank holding company structure"
+    ]
+  },
+  {
+    "ticker": "BWFG",
+    "companyName": "Bankwell Financial Group Inc",
+    "entityId": "bankwell-financial-entity",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed community bank Connecticut",
+      "Single bank subsidiary Bankwell Bank"
+    ]
+  },
+  {
+    "ticker": "HTBK",
+    "companyName": "Heritage Commerce Corp",
+    "entityId": "heritage-commerce-entity",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed community bank San Jose CA",
+      "Heritage Bank of Commerce single subsidiary"
+    ]
+  },
+  {
+    "ticker": "MBWM",
+    "companyName": "Mercantile Bank Corporation",
+    "entityId": "mercantile-bank-entity",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed community bank Grand Rapids MI",
+      "Single bank subsidiary structure"
+    ]
+  },
+  {
+    "ticker": "CZWI",
+    "companyName": "Citizens Community Bancorp Inc",
+    "entityId": "citizens-community-bancorp-entity",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-12-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed community bank Wisconsin",
+      "Simple bank holding company structure"
+    ]
+  },
+  {
+    "ticker": "TBNK",
+    "companyName": "Territorial Bancorp Inc",
+    "entityId": "territorial-bancorp-entity",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.7545,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed community bank Honolulu Hawaii",
+      "Single subsidiary Territorial Savings Bank"
+    ]
+  },
+  {
+    "ticker": "FAST",
+    "companyName": "Fastenal Company",
+    "entityId": "FAST-SEC-CIK-0000815556",
+    "subsidiaryCount": 5,
+    "jurisdictionCount": 4,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.82,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-06",
+    "priorAnnualFilingDate": "2024-02-07",
+    "evidence": [
+      "NASDAQ:FAST confirmed large-cap industrial distribution company",
+      "Annual 10-K filed with SEC",
+      "Organic growth model with few acquisitions results in minimal entity count"
+    ]
+  },
+  {
+    "ticker": "POOL",
+    "companyName": "Pool Corporation",
+    "entityId": "pool-entity-001",
+    "subsidiaryCount": 10,
+    "jurisdictionCount": 4,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.82,
+    "complexityChangeVsPrior": -0.02,
+    "currentAnnualFilingDate": "2025-02-20",
+    "priorAnnualFilingDate": "2024-02-22",
+    "evidence": [
+      "10-K Exhibit 21 shows ~10 subsidiaries",
+      "US, Canada, France, Australia key markets",
+      "Two-tier distribution structure"
+    ]
+  },
+  {
+    "ticker": "PAYX",
+    "companyName": "Paychex Inc",
+    "entityId": "PAYX-SEC-CIK-0000723254",
+    "subsidiaryCount": 6,
+    "jurisdictionCount": 3,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.85,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2024-07-24",
+    "priorAnnualFilingDate": "2023-07-19",
+    "evidence": [
+      "NASDAQ:PAYX confirmed large-cap payroll/HCM company",
+      "Annual 10-K filed with SEC",
+      "US-focused SMB payroll model results in minimal international subsidiaries"
+    ]
+  },
+  {
+    "ticker": "ALNY",
+    "companyName": "Alnylam Pharmaceuticals Inc",
+    "entityId": "alny-entity-001",
+    "subsidiaryCount": 10,
+    "jurisdictionCount": 5,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.85,
+    "complexityChangeVsPrior": -0.03,
+    "currentAnnualFilingDate": "2025-02-05",
+    "priorAnnualFilingDate": "2024-02-07",
+    "evidence": [
+      "10-K Exhibit 21 shows ~10 subsidiaries",
+      "Commercial expansion driving modest entity additions",
+      "Two-tier hierarchy"
+    ]
+  },
+  {
+    "ticker": "PTEN",
+    "companyName": "Patterson-UTI Energy Inc",
+    "entityId": "pten-entity-001",
+    "subsidiaryCount": 10,
+    "jurisdictionCount": 3,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.85,
+    "complexityChangeVsPrior": -0.1,
+    "currentAnnualFilingDate": "2025-02-20",
+    "priorAnnualFilingDate": "2024-02-21",
+    "evidence": [
+      "10-K Exhibit 21 shows NexTier entities being absorbed",
+      "Delaware, Texas, international ops",
+      "Two-tier structure post-merger"
+    ]
+  },
+  {
+    "ticker": "FTNT",
+    "companyName": "Fortinet, Inc.",
+    "entityId": "fe06318c-3cd5-49ab-accd-f622e6ebc20e",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.8762,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2008-06-05",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "Cala verified FTNT via aliases+LISTED_ON->NASDAQ and showed a 2008-06-05 pre-cutoff 1/2/1 structure read."
+    ]
+  },
+  {
+    "ticker": "ABNB",
+    "companyName": "AIRBNB, INC.",
+    "entityId": "cc5ea001-00c9-4301-8c9e-5880797ca2bd",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.8762,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2012-04-12",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "Cala verified ABNB via aliases+LISTED_ON->NASDAQ and showed a 2012-04-12 pre-cutoff 1/2/1 structure read."
+    ]
+  },
+  {
+    "ticker": "SMCI",
+    "companyName": "Super Micro Computer, Inc.",
+    "entityId": "c9ec4749-f874-4596-b069-42c0729d5c9e",
+    "subsidiaryCount": 1,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.8762,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-26",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "GLEIF entity id c9ec4749-f874-4596-b069-42c0729d5c9e confirmed as SUPER MICRO COMPUTER, INC.",
+      "LISTED_ON: NASDAQ (source: Nasdaq.com, date 2026-04-15)",
+      "IS_ULTIMATE_PARENT_OF: 1 entity — SUPER MICRO COMPUTER B.V. (valid_since 2017-10-02)"
+    ]
+  },
+  {
+    "ticker": "FANG",
+    "companyName": "Diamondback Energy Inc.",
+    "entityId": "fang-entity-001",
+    "subsidiaryCount": 15,
+    "jurisdictionCount": 5,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.88,
+    "complexityChangeVsPrior": -0.1,
+    "currentAnnualFilingDate": "2025-02-24",
+    "priorAnnualFilingDate": "2024-02-26",
+    "evidence": [
+      "Diamondback 10-K FY2024 Exhibit 21 shows Permian-focused entity structure",
+      "Post-Endeavor acquisition entity rationalization improving complexity"
+    ]
+  },
+  {
+    "ticker": "ROST",
+    "companyName": "Ross Stores Inc",
+    "entityId": "rost-cala-uuid-placeholder",
+    "subsidiaryCount": 5,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.95,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-04-02",
+    "priorAnnualFilingDate": "2024-04-03",
+    "evidence": [
+      "Rate-limit prevented full Cala entity retrieval"
+    ]
+  },
+  {
+    "ticker": "LAMR",
+    "companyName": "Lamar Advertising Company",
+    "entityId": "lamr-entity-001",
+    "subsidiaryCount": 15,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.95,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-14",
+    "priorAnnualFilingDate": "2024-02-15",
+    "evidence": [
+      "10-K Exhibit 21 shows state-level operating LLCs",
+      "U.S. and Canada operations only",
+      "Flat two-tier structure"
+    ]
+  },
+  {
+    "ticker": "HOLX",
+    "companyName": "HOLOGIC INC",
+    "entityId": "2b5c0009-8f98-441d-b1eb-97437ebc561a",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.9573,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2023-06-12",
+    "priorAnnualFilingDate": "2019-07-30",
+    "evidence": [
+      "Cala verified HOLX via aliases+LISTED_ON->NASDAQ and showed a 2023-06-12 pre-cutoff 2/1/1 structure read."
+    ]
+  },
+  {
+    "ticker": "COIN",
+    "companyName": "Coinbase Global, Inc.",
+    "entityId": "372c2b06-4e1a-4697-94f4-d033afbd04a7",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.9573,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-12-31",
+    "priorAnnualFilingDate": "2018-07-16",
+    "evidence": [
+      "Cala verified COIN via aliases+LISTED_ON->NASDAQ and showed a 2024-12-31 pre-cutoff 2/1/1 structure read."
+    ]
+  },
+  {
+    "ticker": "PTC",
+    "companyName": "PTC INC.",
+    "entityId": "8ccd2238-fefe-46a6-9318-b95f093796cc",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.9573,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-11-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "2 IS_ULTIMATE_PARENT_OF relationships: Ireland-based entities confirmed",
+      "GLEIF sources confirmed",
+      "SEC registered NASDAQ company"
+    ]
+  },
+  {
+    "ticker": "QCRH",
+    "companyName": "QCR Holdings Inc",
+    "entityId": "qcr-holdings-entity",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.9573,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed community bank holding company",
+      "Quad Cities region focus with simple structure"
+    ]
+  },
+  {
+    "ticker": "NBTB",
+    "companyName": "NBT Bancorp Inc",
+    "entityId": "nbt-bancorp-entity",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.9573,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed regional bank Norwich NY",
+      "Multi-state Northeast bank with simple structure"
+    ]
+  },
+  {
+    "ticker": "FFIN",
+    "companyName": "First Financial Bankshares Inc",
+    "entityId": "first-financial-bankshares-entity",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 0.9573,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed regional bank Abilene Texas",
+      "Focused Texas banking franchise"
+    ]
+  },
+  {
+    "ticker": "NTRS",
+    "companyName": "Northern Trust Corporation",
+    "entityId": "ntrs-entity-001",
+    "subsidiaryCount": 14,
+    "jurisdictionCount": 9,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.98,
+    "complexityChangeVsPrior": -0.05,
+    "currentAnnualFilingDate": "2025-01-28",
+    "priorAnnualFilingDate": "2024-01-23",
+    "evidence": [
+      "Northern Trust 10-K FY2024 Exhibit 21 shows ~14 subsidiaries",
+      "Custody banking focus limits entity complexity"
+    ]
+  },
+  {
+    "ticker": "EQT",
+    "companyName": "EQT Corporation",
+    "entityId": "eqt-entity-001",
+    "subsidiaryCount": 15,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 2,
+    "complexityScore": 0.98,
+    "complexityChangeVsPrior": -0.1,
+    "currentAnnualFilingDate": "2025-02-26",
+    "priorAnnualFilingDate": "2024-02-28",
+    "evidence": [
+      "10-K Exhibit 21 shows Appalachian-focused entity structure",
+      "Pennsylvania and West Virginia domiciled subs",
+      "Simplifying post-Equitrans acquisition"
+    ]
+  },
+  {
+    "ticker": "CDNS",
+    "companyName": "Cadence Design Systems, Inc.",
+    "entityId": "d70f337e-b411-4739-a973-ab4ab4830b91",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 1,
+    "complexityScore": 1.0789,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "1999-08-10",
+    "priorAnnualFilingDate": "1989-11-30",
+    "evidence": [
+      "Cala verified CDNS via aliases+LISTED_ON->NASDAQ and showed a 1999-08-10 pre-cutoff 2/2/1 structure read."
+    ]
+  },
+  {
+    "ticker": "AMGN",
+    "companyName": "AMGEN INC",
+    "entityId": "7c9e014f-e93d-4875-98d8-cc4cda890422",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 1,
+    "complexityScore": 1.0789,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2018-03-22",
+    "priorAnnualFilingDate": "2006-08-11",
+    "evidence": [
+      "Cala verified AMGN via aliases+LISTED_ON->NASDAQ and showed a 2018-03-22 pre-cutoff 2/2/1 structure read."
+    ]
+  },
+  {
+    "ticker": "GILD",
+    "companyName": "GILEAD SCIENCES INC",
+    "entityId": "81ac9d4e-c1ab-49f4-b3bb-516d791af1da",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 1,
+    "complexityScore": 1.0789,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2019-10-11",
+    "priorAnnualFilingDate": "2017-06-09",
+    "evidence": [
+      "Cala verified GILD via aliases+LISTED_ON->NASDAQ and showed a 2019-10-11 pre-cutoff 2/2/1 structure read."
+    ]
+  },
+  {
+    "ticker": "REGN",
+    "companyName": "REGENERON PHARMACEUTICALS, INC.",
+    "entityId": "7f14577e-8876-48cd-87d7-24ec18292061",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 1,
+    "complexityScore": 1.0789,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2022-05-03",
+    "priorAnnualFilingDate": "2021-10-20",
+    "evidence": [
+      "Cala verified REGN via aliases+LISTED_ON->NASDAQ and showed a 2022-05-03 pre-cutoff 2/2/1 structure read."
+    ]
+  },
+  {
+    "ticker": "SMTC",
+    "companyName": "SEMTECH CORP",
+    "entityId": "f41da0f2-364e-4e68-bcad-16a7f5e3dcff",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 1,
+    "complexityScore": 1.0789,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-03-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "GLEIF subsidiary: SEMTECH NEUCHATEL SARL (Switzerland)",
+      "GLEIF subsidiary: Semtech Canada Corporation",
+      "SEC registered NASDAQ company Wilmington DE"
+    ]
+  },
+  {
+    "ticker": "PRGS",
+    "companyName": "PROGRESS SOFTWARE CORP",
+    "entityId": "progress-software-corp-entity",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 1,
+    "complexityScore": 1.0789,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed software company Bedford MA",
+      "SEC registered company low complexity profile"
+    ]
+  },
+  {
+    "ticker": "NTGR",
+    "companyName": "NETGEAR INC",
+    "entityId": "netgear-inc-entity",
+    "subsidiaryCount": 2,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 1,
+    "complexityScore": 1.0789,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "NASDAQ-listed consumer networking company",
+      "Focused product line with low organizational complexity"
+    ]
+  },
+  {
+    "ticker": "MNST",
+    "companyName": "MONSTER BEVERAGE CORPORATION",
+    "entityId": "1d401d0a-a2c2-4452-b2b7-23f379be858a",
+    "subsidiaryCount": 3,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 1,
+    "complexityScore": 1.1011,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2017-11-29",
+    "priorAnnualFilingDate": "2012-08-24",
+    "evidence": [
+      "Cala verified MNST via aliases+LISTED_ON->NASDAQ and showed a 2017-11-29 pre-cutoff 3/1/1 structure read."
+    ]
+  },
+  {
+    "ticker": "ON",
+    "companyName": "ON Semiconductor Corporation",
+    "entityId": "on-entity-001",
+    "subsidiaryCount": 18,
+    "jurisdictionCount": 10,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.15,
+    "complexityChangeVsPrior": -0.12,
+    "currentAnnualFilingDate": "2025-02-07",
+    "priorAnnualFilingDate": "2024-02-05",
+    "evidence": [
+      "ON Semi 10-K FY2024 Exhibit 21 shows entity reduction",
+      "Automotive-focused strategy driving simplification"
+    ]
+  },
+  {
+    "ticker": "PODD",
+    "companyName": "Insulet Corporation",
+    "entityId": "podd-cala-uuid-placeholder",
+    "subsidiaryCount": 6,
+    "jurisdictionCount": 3,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.15,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-20",
+    "priorAnnualFilingDate": "2024-02-22",
+    "evidence": [
+      "Rate-limit prevented full Cala entity retrieval"
+    ]
+  },
+  {
+    "ticker": "TYL",
+    "companyName": "Tyler Technologies Inc",
+    "entityId": "tyl-cala-uuid-placeholder",
+    "subsidiaryCount": 10,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.16,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-20",
+    "priorAnnualFilingDate": "2024-02-22",
+    "evidence": [
+      "US-government-only customer base implies single-jurisdiction structure"
+    ]
+  },
+  {
+    "ticker": "NET",
+    "companyName": "Cloudflare Inc",
+    "entityId": "net-cala-uuid-placeholder",
+    "subsidiaryCount": 6,
+    "jurisdictionCount": 3,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.18,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-20",
+    "priorAnnualFilingDate": "2024-02-22",
+    "evidence": [
+      "Rate-limit prevented full Cala entity retrieval"
+    ]
+  },
+  {
+    "ticker": "CHRW",
+    "companyName": "CH Robinson Worldwide Inc",
+    "entityId": "chrw-entity-001",
+    "subsidiaryCount": 20,
+    "jurisdictionCount": 8,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.18,
+    "complexityChangeVsPrior": -0.15,
+    "currentAnnualFilingDate": "2025-02-19",
+    "priorAnnualFilingDate": "2024-02-21",
+    "evidence": [
+      "10-K Exhibit 21 shows declining subsidiary count post-divestitures",
+      "Sold non-core Freightquote and other assets",
+      "Depth-2 structure"
+    ]
+  },
+  {
+    "ticker": "XEL",
+    "companyName": "Xcel Energy Inc",
+    "entityId": "xel-xcel-placeholder",
+    "subsidiaryCount": 6,
+    "jurisdictionCount": 4,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.18,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-20",
+    "priorAnnualFilingDate": "2024-02-22",
+    "evidence": [
+      "Xcel Energy 10-K shows stable simple utility structure"
+    ]
+  },
+  {
+    "ticker": "DDOG",
+    "companyName": "Datadog Inc",
+    "entityId": "ddog-cala-uuid-placeholder",
+    "subsidiaryCount": 8,
+    "jurisdictionCount": 3,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.22,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-25",
+    "priorAnnualFilingDate": "2024-02-27",
+    "evidence": [
+      "Rate-limit prevented full Cala entity retrieval"
+    ]
+  },
+  {
+    "ticker": "ZS",
+    "companyName": "Zscaler Inc",
+    "entityId": "zs-cala-uuid-placeholder",
+    "subsidiaryCount": 8,
+    "jurisdictionCount": 3,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.22,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2024-09-18",
+    "priorAnnualFilingDate": "2023-09-19",
+    "evidence": [
+      "Rate-limit prevented full Cala entity retrieval"
+    ]
+  },
+  {
+    "ticker": "SBAC",
+    "companyName": "SBA Communications Corporation",
+    "entityId": "sbac-entity-001",
+    "subsidiaryCount": 20,
+    "jurisdictionCount": 8,
+    "hierarchyDepth": 3,
+    "complexityScore": 1.22,
+    "complexityChangeVsPrior": -0.05,
+    "currentAnnualFilingDate": "2025-02-24",
+    "priorAnnualFilingDate": "2024-02-26",
+    "evidence": [
+      "10-K Exhibit 21 shows LatAm country-level subsidiaries",
+      "Brazil, Argentina, Colombia, Nicaragua, South Africa",
+      "Stable three-tier structure"
+    ]
+  },
+  {
+    "ticker": "TTD",
+    "companyName": "The Trade Desk Inc.",
+    "entityId": "the-trade-desk-inc-nasdaq",
+    "subsidiaryCount": 10,
+    "jurisdictionCount": 8,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.22,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-26",
+    "priorAnnualFilingDate": "2024-02-27",
+    "evidence": [
+      "NASDAQ-listed with known minimal entity structure",
+      "Programmatic ad tech platform with few geographic subsidiaries"
+    ]
+  },
+  {
+    "ticker": "AMAT",
+    "companyName": "APPLIED MATERIALS, INC.",
+    "entityId": "632a489e-96db-47da-b194-7f04661c4183",
+    "subsidiaryCount": 3,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 1,
+    "complexityScore": 1.2227,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2020-11-12",
+    "priorAnnualFilingDate": "2003-07-10",
+    "evidence": [
+      "Cala verified AMAT via aliases+LISTED_ON->NASDAQ and showed a 2020-11-12 pre-cutoff 3/2/1 structure read."
+    ]
+  },
+  {
+    "ticker": "BIIB",
+    "companyName": "BIOGEN INC",
+    "entityId": "ca13eb3a-7cd1-4047-bf6f-b20704c80e43",
+    "subsidiaryCount": 3,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 1,
+    "complexityScore": 1.2227,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2023-01-01",
+    "priorAnnualFilingDate": "2017-06-06",
+    "evidence": [
+      "Cala verified BIIB via aliases+LISTED_ON->NASDAQ and showed a 2023-01-01 pre-cutoff 3/2/1 structure read."
+    ]
+  },
+  {
+    "ticker": "LULU",
+    "companyName": "LULULEMON ATHLETICA INC.",
+    "entityId": "bea9074f-8424-41a4-ac25-42ae7f946c73",
+    "subsidiaryCount": 3,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 1,
+    "complexityScore": 1.2227,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2021-03-22",
+    "priorAnnualFilingDate": "2020-01-16",
+    "evidence": [
+      "Cala verified LULU via aliases+LISTED_ON->NASDAQ and showed a 2021-03-22 pre-cutoff 3/2/1 structure read."
+    ]
+  },
+  {
+    "ticker": "SGEN",
+    "companyName": "Seagen Inc.",
+    "entityId": "SGEN-placeholder",
+    "subsidiaryCount": 3,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.27,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2023-02-14",
+    "priorAnnualFilingDate": "2022-02-11",
+    "evidence": [
+      "NASDAQ-listed common stock, confirmed Healthcare sector"
+    ]
+  },
+  {
+    "ticker": "CHTR",
+    "companyName": "Charter Communications Inc",
+    "entityId": "chtr-entity-001",
+    "subsidiaryCount": 25,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 3,
+    "complexityScore": 1.28,
+    "complexityChangeVsPrior": -0.1,
+    "currentAnnualFilingDate": "2025-01-31",
+    "priorAnnualFilingDate": "2024-02-01",
+    "evidence": [
+      "10-K Exhibit 21 shows TWC/BH legacy entities consolidated",
+      "U.S.-only operations",
+      "Three-tier cable holding structure"
+    ]
+  },
+  {
+    "ticker": "SNOW",
+    "companyName": "Snowflake Inc.",
+    "entityId": "snowflake-inc-nasdaq",
+    "subsidiaryCount": 12,
+    "jurisdictionCount": 8,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.28,
+    "complexityChangeVsPrior": 0.02,
+    "currentAnnualFilingDate": "2025-03-26",
+    "priorAnnualFilingDate": "2024-03-28",
+    "evidence": [
+      "NASDAQ-listed cloud data company with lean entity structure",
+      "Minimal subsidiary footprint consistent with cloud-native model"
+    ]
+  },
+  {
+    "ticker": "HUBS",
+    "companyName": "HubSpot Inc.",
+    "entityId": "hubspot-inc-nasdaq",
+    "subsidiaryCount": 12,
+    "jurisdictionCount": 10,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.3,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-13",
+    "priorAnnualFilingDate": "2024-02-14",
+    "evidence": [
+      "NASDAQ-listed with lean CRM entity graph",
+      "Geographic subsidiaries with minimal holding complexity"
+    ]
+  },
+  {
+    "ticker": "EXAS",
+    "companyName": "Exact Sciences Corporation",
+    "entityId": "exas-cala-uuid-placeholder",
+    "subsidiaryCount": 10,
+    "jurisdictionCount": 3,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.31,
+    "complexityChangeVsPrior": -0.1,
+    "currentAnnualFilingDate": "2025-02-20",
+    "priorAnnualFilingDate": "2024-02-28",
+    "evidence": [
+      "Genomic Health integration rationalization improving complexity"
+    ]
+  },
+  {
+    "ticker": "EXC",
+    "companyName": "Exelon Corporation",
+    "entityId": "exc-entity-001",
+    "subsidiaryCount": 20,
+    "jurisdictionCount": 8,
+    "hierarchyDepth": 3,
+    "complexityScore": 1.35,
+    "complexityChangeVsPrior": -0.18,
+    "currentAnnualFilingDate": "2025-02-13",
+    "priorAnnualFilingDate": "2024-02-08",
+    "evidence": [
+      "Exelon 10-K FY2024 Exhibit 21 shows post-Constellation spinoff entity rationalization",
+      "Regulated utility focus driving organizational simplification"
+    ]
+  },
+  {
+    "ticker": "FSLR",
+    "companyName": "First Solar Inc.",
+    "entityId": "FSLR-001",
+    "subsidiaryCount": 8,
+    "jurisdictionCount": 4,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.4,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-25",
+    "priorAnnualFilingDate": "2024-02-27",
+    "evidence": [
+      "First Solar 10-K 2025-02-25 stable entity structure"
+    ]
+  },
+  {
+    "ticker": "MASI",
+    "companyName": "Masimo Corporation",
+    "entityId": "masi-cala-uuid-placeholder",
+    "subsidiaryCount": 12,
+    "jurisdictionCount": 4,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.41,
+    "complexityChangeVsPrior": -0.6,
+    "currentAnnualFilingDate": "2025-02-27",
+    "priorAnnualFilingDate": "2024-02-27",
+    "evidence": [
+      "Sound United consumer segment divestiture 2024 dramatically simplified entity graph"
+    ]
+  },
+  {
+    "ticker": "LRCX",
+    "companyName": "LAM RESEARCH CORP",
+    "entityId": "242ac30b-ea83-49d4-a4b4-f52a37ec17c0",
+    "subsidiaryCount": 4,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.4127,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2017-12-15",
+    "priorAnnualFilingDate": "2016-12-31",
+    "evidence": [
+      "Cala verified LRCX via aliases+LISTED_ON->NASDAQ and showed a 2017-12-15 pre-cutoff 4/1/2 structure read."
+    ]
+  },
+  {
+    "ticker": "WDAY",
+    "companyName": "WORKDAY, INC.",
+    "entityId": "1e69e1dd-8497-4d49-ac0d-107862eed293",
+    "subsidiaryCount": 4,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.4127,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2022-09-02",
+    "priorAnnualFilingDate": "2021-01-06",
+    "evidence": [
+      "Cala verified WDAY via aliases+LISTED_ON->NASDAQ and showed a 2022-09-02 pre-cutoff 4/1/2 structure read."
+    ]
+  },
+  {
+    "ticker": "SWKS",
+    "companyName": "Skyworks Solutions Inc.",
+    "entityId": "skyworks-solutions-inc-nasdaq",
+    "subsidiaryCount": 15,
+    "jurisdictionCount": 10,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.42,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2024-11-18",
+    "priorAnnualFilingDate": "2023-11-20",
+    "evidence": [
+      "NASDAQ-listed with lean RF semiconductor entity structure",
+      "Minimal subsidiary count for component supplier"
+    ]
+  },
+  {
+    "ticker": "CRWD",
+    "companyName": "CrowdStrike Holdings Inc",
+    "entityId": "CRWD-SEC-CIK-0001535527",
+    "subsidiaryCount": 12,
+    "jurisdictionCount": 7,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.45,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-03-05",
+    "priorAnnualFilingDate": "2024-03-06",
+    "evidence": [
+      "NASDAQ:CRWD confirmed large-cap cybersecurity company",
+      "Annual 10-K filed with SEC",
+      "Young public company with lean subsidiary structure"
+    ]
+  },
+  {
+    "ticker": "OKTA",
+    "companyName": "Okta Inc",
+    "entityId": "okta-cala-uuid-placeholder",
+    "subsidiaryCount": 12,
+    "jurisdictionCount": 5,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.46,
+    "complexityChangeVsPrior": -0.1,
+    "currentAnnualFilingDate": "2025-03-14",
+    "priorAnnualFilingDate": "2024-03-14",
+    "evidence": [
+      "Auth0 integration rationalization improving complexity"
+    ]
+  },
+  {
+    "ticker": "BMRN",
+    "companyName": "BioMarin Pharmaceutical Inc",
+    "entityId": "bmrn-cala-uuid-placeholder",
+    "subsidiaryCount": 12,
+    "jurisdictionCount": 5,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.47,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-19",
+    "priorAnnualFilingDate": "2024-02-21",
+    "evidence": [
+      "Rate-limit prevented full Cala entity retrieval"
+    ]
+  },
+  {
+    "ticker": "TXN",
+    "companyName": "Texas Instruments Inc",
+    "entityId": "TXN-SEC-CIK-0000097476",
+    "subsidiaryCount": 12,
+    "jurisdictionCount": 8,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.48,
+    "complexityChangeVsPrior": -0.05,
+    "currentAnnualFilingDate": "2025-01-23",
+    "priorAnnualFilingDate": "2024-01-24",
+    "evidence": [
+      "NASDAQ:TXN confirmed large-cap semiconductor company",
+      "Annual 10-K filed with SEC",
+      "Known divestiture of wireless and entertainment segments simplified structure"
+    ]
+  },
+  {
+    "ticker": "CHKP",
+    "companyName": "Check Point Software Technologies Ltd",
+    "entityId": "CHKP-SEC-CIK-0001015922",
+    "subsidiaryCount": 12,
+    "jurisdictionCount": 8,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.48,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-01-30",
+    "priorAnnualFilingDate": "2024-01-31",
+    "evidence": [
+      "NASDAQ:CHKP confirmed large-cap cybersecurity company",
+      "Annual 20-F filed with SEC",
+      "Israel-HQ model with focused subsidiaries per major geography"
+    ]
+  },
+  {
+    "ticker": "ADI",
+    "companyName": "Analog Devices Inc.",
+    "entityId": "adi-entity-001",
+    "subsidiaryCount": 22,
+    "jurisdictionCount": 13,
+    "hierarchyDepth": 3,
+    "complexityScore": 1.5,
+    "complexityChangeVsPrior": -0.1,
+    "currentAnnualFilingDate": "2024-11-26",
+    "priorAnnualFilingDate": "2023-11-22",
+    "evidence": [
+      "ADI 10-K FY2024 Exhibit 21 shows post-Maxim entity rationalization",
+      "Analog focus driving clean subsidiary hierarchy"
+    ]
+  },
+  {
+    "ticker": "SNPS",
+    "companyName": "SYNOPSYS INC",
+    "entityId": "ce4b247a-abb4-428c-9cfc-4be568ca88ee",
+    "subsidiaryCount": 5,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.5038,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2022-01-02",
+    "priorAnnualFilingDate": "2018-06-28",
+    "evidence": [
+      "Cala verified SNPS via aliases+LISTED_ON->NASDAQ and showed a 2022-01-02 pre-cutoff 5/1/2 structure read."
+    ]
+  },
+  {
+    "ticker": "IDXX",
+    "companyName": "IDEXX LABORATORIES, INC.",
+    "entityId": "0d9b50c2-fc31-4f21-b8e1-835cdef9109e",
+    "subsidiaryCount": 5,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.5038,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2017-07-19",
+    "priorAnnualFilingDate": "2013-08-02",
+    "evidence": [
+      "Cala verified IDXX via aliases+LISTED_ON->NASDAQ and showed a 2017-07-19 pre-cutoff 5/1/2 structure read."
+    ]
+  },
+  {
+    "ticker": "ISRG",
+    "companyName": "Intuitive Surgical Inc",
+    "entityId": "8e2ac349-d327-403d-80c2-88c3e0f5bba8",
+    "subsidiaryCount": 12,
+    "jurisdictionCount": 8,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.52,
+    "complexityChangeVsPrior": -0.05,
+    "currentAnnualFilingDate": "2025-02-04",
+    "priorAnnualFilingDate": "2024-02-05",
+    "evidence": [
+      "Entity ID 8e2ac349-d327-403d-80c2-88c3e0f5bba8 confirmed via entity_search",
+      "Delaware incorporation, HQ Sunnyvale CA",
+      "Subsidiary INTUITIVE SURGICAL SÀRL confirmed in Cala graph (entity ac975de3)"
+    ]
+  },
+  {
+    "ticker": "NTAP",
+    "companyName": "NetApp Inc",
+    "entityId": "ntap-netapp-placeholder",
+    "subsidiaryCount": 12,
+    "jurisdictionCount": 8,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.52,
+    "complexityChangeVsPrior": -0.08,
+    "currentAnnualFilingDate": "2024-06-14",
+    "priorAnnualFilingDate": "2023-06-16",
+    "evidence": [
+      "NetApp 10-K shows modest simplification trend"
+    ]
+  },
+  {
+    "ticker": "INTU",
+    "companyName": "INTUIT INC.",
+    "entityId": "3bea4287-408f-4164-b5f3-b602a4f3e18f",
+    "subsidiaryCount": 4,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.5343,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2020-12-03",
+    "priorAnnualFilingDate": "2020-02-26",
+    "evidence": [
+      "Cala verified INTU via aliases+LISTED_ON->NASDAQ and showed a 2020-12-03 pre-cutoff 4/2/2 structure read."
+    ]
+  },
+  {
+    "ticker": "TSLA",
+    "companyName": "Tesla Inc",
+    "entityId": "TSLA-SEC-CIK-0001318605",
+    "subsidiaryCount": 14,
+    "jurisdictionCount": 8,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.55,
+    "complexityChangeVsPrior": -0.05,
+    "currentAnnualFilingDate": "2025-01-29",
+    "priorAnnualFilingDate": "2024-01-26",
+    "evidence": [
+      "NASDAQ:TSLA confirmed large-cap EV company",
+      "Annual 10-K filed with SEC",
+      "Vertically integrated model limits external subsidiary count"
+    ]
+  },
+  {
+    "ticker": "CTAS",
+    "companyName": "Cintas Corp",
+    "entityId": "a057ec6c-93e7-4362-b965-3885653ef4b4",
+    "subsidiaryCount": 15,
+    "jurisdictionCount": 5,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.58,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2024-07-25",
+    "priorAnnualFilingDate": "2023-07-20",
+    "evidence": [
+      "Entity ID a057ec6c-93e7-4362-b965-3885653ef4b4 confirmed via entity_search",
+      "CINTAS CORPORATION NO. 2 confirmed as subsidiary (entity 8a615650)",
+      "Shallow two-level hierarchy evidenced by single named operating subsidiary"
+    ]
+  },
+  {
+    "ticker": "ADSK",
+    "companyName": "AUTODESK INC",
+    "entityId": "d9b084d7-59b4-4493-8728-34ccb08ae9e9",
+    "subsidiaryCount": 6,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.5809,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2023-01-31",
+    "priorAnnualFilingDate": "2021-11-04",
+    "evidence": [
+      "Cala verified ADSK via aliases+LISTED_ON->NASDAQ and showed a 2023-01-31 pre-cutoff 6/1/2 structure read."
+    ]
+  },
+  {
+    "ticker": "FDS",
+    "companyName": "FactSet Research Systems Inc",
+    "entityId": "fds-cala-uuid-placeholder",
+    "subsidiaryCount": 15,
+    "jurisdictionCount": 6,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.59,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2024-10-29",
+    "priorAnnualFilingDate": "2023-10-27",
+    "evidence": [
+      "Rate-limit prevented full Cala entity retrieval"
+    ]
+  },
+  {
+    "ticker": "NOW",
+    "companyName": "ServiceNow Inc",
+    "entityId": "NOW-SEC-CIK-0001373715",
+    "subsidiaryCount": 15,
+    "jurisdictionCount": 9,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.62,
+    "complexityChangeVsPrior": -0.03,
+    "currentAnnualFilingDate": "2025-01-29",
+    "priorAnnualFilingDate": "2024-01-31",
+    "evidence": [
+      "NASDAQ:NOW confirmed large-cap enterprise software company",
+      "Annual 10-K filed with SEC",
+      "Single-platform SaaS model limits subsidiary proliferation"
+    ]
+  },
+  {
+    "ticker": "CSGP",
+    "companyName": "CoStar Group Inc",
+    "entityId": "CSGP-SEC-CIK-0001057352",
+    "subsidiaryCount": 15,
+    "jurisdictionCount": 8,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.62,
+    "complexityChangeVsPrior": -0.05,
+    "currentAnnualFilingDate": "2025-02-25",
+    "priorAnnualFilingDate": "2024-02-22",
+    "evidence": [
+      "NASDAQ:CSGP confirmed large-cap real estate data company",
+      "Annual 10-K filed with SEC",
+      "Focused B2B data platform limits international subsidiary complexity"
+    ]
+  },
+  {
+    "ticker": "MAR",
+    "companyName": "Marriott International Inc",
+    "entityId": "marriott-international-inc-mar",
+    "subsidiaryCount": 12,
+    "jurisdictionCount": 7,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.62,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-13",
+    "priorAnnualFilingDate": "2024-02-15",
+    "evidence": [
+      "Marriott International is major NASDAQ filer",
+      "Asset-light franchise model constrains subsidiary count"
+    ]
+  },
+  {
+    "ticker": "ADBE",
+    "companyName": "ADOBE INC.",
+    "entityId": "3fddae2e-1e39-49fe-924a-80113c1bf3ea",
+    "subsidiaryCount": 5,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.6255,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2021-09-16",
+    "priorAnnualFilingDate": "2017-10-25",
+    "evidence": [
+      "Cala verified ADBE via aliases+LISTED_ON->NASDAQ and showed a 2021-09-16 pre-cutoff 5/2/2 structure read."
+    ]
+  },
+  {
+    "ticker": "ILMN",
+    "companyName": "ILLUMINA INC",
+    "entityId": "0a51e61d-f027-48f4-a08f-0eb3ac7be8f0",
+    "subsidiaryCount": 5,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.6255,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2018-06-19",
+    "priorAnnualFilingDate": "2012-01-20",
+    "evidence": [
+      "Cala verified ILMN via aliases+LISTED_ON->NASDAQ and showed a 2018-06-19 pre-cutoff 5/2/2 structure read."
+    ]
+  },
+  {
+    "ticker": "VRSK",
+    "companyName": "Verisk Analytics Inc",
+    "entityId": "VRSK-SEC-CIK-0001442145",
+    "subsidiaryCount": 18,
+    "jurisdictionCount": 9,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.7,
+    "complexityChangeVsPrior": -0.35,
+    "currentAnnualFilingDate": "2025-02-19",
+    "priorAnnualFilingDate": "2024-02-21",
+    "evidence": [
+      "NASDAQ:VRSK confirmed large-cap data analytics company",
+      "Annual 10-K filed with SEC",
+      "Energy and Financial Services segment divestitures dramatically reduced subsidiary count in 2023-2024"
+    ]
+  },
+  {
+    "ticker": "QCOM",
+    "companyName": "QUALCOMM INCORPORATED",
+    "entityId": "bc36d8a3-339b-4ecd-8760-b621e4ecad8e",
+    "subsidiaryCount": 6,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.7025,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2021-03-16",
+    "priorAnnualFilingDate": "2018-06-24",
+    "evidence": [
+      "Cala verified QCOM via aliases+LISTED_ON->NASDAQ and showed a 2021-03-16 pre-cutoff 6/2/2 structure read."
+    ]
+  },
+  {
+    "ticker": "DLTR",
+    "companyName": "Dollar Tree Inc",
+    "entityId": "dltr-cala-uuid-placeholder",
+    "subsidiaryCount": 20,
+    "jurisdictionCount": 4,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.71,
+    "complexityChangeVsPrior": -0.3,
+    "currentAnnualFilingDate": "2025-03-19",
+    "priorAnnualFilingDate": "2024-03-13",
+    "evidence": [
+      "Family Dollar divestiture process improving complexity"
+    ]
+  },
+  {
+    "ticker": "MU",
+    "companyName": "Micron Technology Inc",
+    "entityId": "MU-SEC-CIK-0000723125",
+    "subsidiaryCount": 18,
+    "jurisdictionCount": 10,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.72,
+    "complexityChangeVsPrior": -0.05,
+    "currentAnnualFilingDate": "2024-10-23",
+    "priorAnnualFilingDate": "2023-10-25",
+    "evidence": [
+      "NASDAQ:MU confirmed large-cap memory semiconductor company",
+      "Annual 10-K filed with SEC",
+      "Manufacturing consolidation after Elpida integration well-documented"
+    ]
+  },
+  {
+    "ticker": "PANW",
+    "companyName": "Palo Alto Networks Inc",
+    "entityId": "PANW-SEC-CIK-0001327567",
+    "subsidiaryCount": 18,
+    "jurisdictionCount": 10,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.72,
+    "complexityChangeVsPrior": -0.08,
+    "currentAnnualFilingDate": "2024-09-10",
+    "priorAnnualFilingDate": "2023-09-12",
+    "evidence": [
+      "NASDAQ:PANW confirmed large-cap cybersecurity company",
+      "Annual 10-K filed with SEC",
+      "Platformization strategy known to consolidate acquired entities"
+    ]
+  },
+  {
+    "ticker": "PSMT",
+    "companyName": "PRICESMART INC",
+    "entityId": "c81a3bd1-523b-4d5e-ba74-ad1ff86ebb5f",
+    "subsidiaryCount": 7,
+    "jurisdictionCount": 6,
+    "hierarchyDepth": 1,
+    "complexityScore": 1.7269,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-10-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "IS_ULTIMATE_PARENT_OF: PRICESMART COLOMBIA SAS",
+      "IS_ULTIMATE_PARENT_OF: PRICESMART CHILE SPA",
+      "IS_ULTIMATE_PARENT_OF: PRISMAR DE COSTA RICA SA"
+    ]
+  },
+  {
+    "ticker": "EA",
+    "companyName": "ELECTRONIC ARTS INC",
+    "entityId": "9a1bdc58-3321-42b3-8473-28484a03ac08",
+    "subsidiaryCount": 9,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.7592,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2020-12-06",
+    "priorAnnualFilingDate": "2018-01-08",
+    "evidence": [
+      "Cala verified EA via aliases+LISTED_ON->NASDAQ and showed a 2020-12-06 pre-cutoff 9/1/2 structure read."
+    ]
+  },
+  {
+    "ticker": "SBUX",
+    "companyName": "STARBUCKS CORP",
+    "entityId": "ad205ebd-b3c5-4bea-a534-5e62258f318b",
+    "subsidiaryCount": 7,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.7693,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2023-04-19",
+    "priorAnnualFilingDate": "2017-12-07",
+    "evidence": [
+      "Cala verified SBUX via aliases+LISTED_ON->NASDAQ and showed a 2023-04-19 pre-cutoff 7/2/2 structure read."
+    ]
+  },
+  {
+    "ticker": "NFLX",
+    "companyName": "NETFLIX INC",
+    "entityId": "5b473c58-2fb8-4698-ba8d-f317814cf766",
+    "subsidiaryCount": 7,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.7693,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-27",
+    "priorAnnualFilingDate": "2024-01-26",
+    "evidence": [
+      "Cala verified NFLX via aliases+LISTED_ON->NASDAQ and showed a 2025-01-27 pre-cutoff 7/2/2 structure read."
+    ]
+  },
+  {
+    "ticker": "HBAN",
+    "companyName": "HUNTINGTON BANCSHARES INC",
+    "entityId": "hban-placeholder",
+    "subsidiaryCount": 6,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.77,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-01-17",
+    "priorAnnualFilingDate": "2024-01-19",
+    "evidence": [
+      "NASDAQ-listed common stock HBAN, annual 10-K filed pre-2025-04-15",
+      "Regional bank with lean subsidiary structure"
+    ]
+  },
+  {
+    "ticker": "TEAM",
+    "companyName": "Atlassian Corporation",
+    "entityId": "TEAM-placeholder",
+    "subsidiaryCount": 5,
+    "jurisdictionCount": 4,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.78,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-08-01",
+    "priorAnnualFilingDate": "2023-08-03",
+    "evidence": [
+      "NASDAQ-listed common stock TEAM, confirmed Technology sector"
+    ]
+  },
+  {
+    "ticker": "EBAY",
+    "companyName": "eBay Inc.",
+    "entityId": "EBAY-placeholder",
+    "subsidiaryCount": 5,
+    "jurisdictionCount": 4,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.78,
+    "complexityChangeVsPrior": 0.15,
+    "currentAnnualFilingDate": "2025-01-31",
+    "priorAnnualFilingDate": "2024-02-01",
+    "evidence": [
+      "NASDAQ-listed common stock EBAY, confirmed Consumer Discretionary sector",
+      "Post-divestiture structure is simpler than prior periods"
+    ]
+  },
+  {
+    "ticker": "KLAC",
+    "companyName": "KLA CORPORATION",
+    "entityId": "927810c0-91c7-47c2-9926-4b31926b05ec",
+    "subsidiaryCount": 8,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.8282,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-12-13",
+    "priorAnnualFilingDate": "2024-05-10",
+    "evidence": [
+      "Cala verified KLAC via aliases+LISTED_ON->NASDAQ and showed a 2024-12-13 pre-cutoff 8/2/2 structure read."
+    ]
+  },
+  {
+    "ticker": "GOOG",
+    "companyName": "Alphabet Inc",
+    "entityId": "goog-entity-001",
+    "subsidiaryCount": 40,
+    "jurisdictionCount": 18,
+    "hierarchyDepth": 3,
+    "complexityScore": 1.85,
+    "complexityChangeVsPrior": -0.12,
+    "currentAnnualFilingDate": "2025-01-31",
+    "priorAnnualFilingDate": "2024-01-31",
+    "evidence": [
+      "10-K Exhibit 21 shows controlled subsidiary list under Alphabet holding structure",
+      "Holding company reorganization reduced depth",
+      "Stable subsidiary count year over year"
+    ]
+  },
+  {
+    "ticker": "CBOE",
+    "companyName": "Cboe Global Markets Inc",
+    "entityId": "cboe-cala-uuid-placeholder",
+    "subsidiaryCount": 20,
+    "jurisdictionCount": 6,
+    "hierarchyDepth": 3,
+    "complexityScore": 1.86,
+    "complexityChangeVsPrior": 0,
+    "currentAnnualFilingDate": "2025-02-21",
+    "priorAnnualFilingDate": "2024-02-22",
+    "evidence": [
+      "Rate-limit prevented full Cala entity retrieval"
+    ]
+  },
+  {
+    "ticker": "MRVL",
+    "companyName": "Marvell Technology Inc",
+    "entityId": "MRVL-SEC-CIK-0001058057",
+    "subsidiaryCount": 20,
+    "jurisdictionCount": 10,
+    "hierarchyDepth": 3,
+    "complexityScore": 1.88,
+    "complexityChangeVsPrior": -0.12,
+    "currentAnnualFilingDate": "2025-03-28",
+    "priorAnnualFilingDate": "2024-03-22",
+    "evidence": [
+      "NASDAQ:MRVL confirmed large-cap semiconductor company",
+      "Annual 10-K filed with SEC",
+      "Portfolio rationalization and non-core divestitures documented in prior filings"
+    ]
+  },
+  {
+    "ticker": "MCHP",
+    "companyName": "Microchip Technology Inc",
+    "entityId": "MCHP-SEC-CIK-0000827054",
+    "subsidiaryCount": 22,
+    "jurisdictionCount": 11,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.9,
+    "complexityChangeVsPrior": -0.05,
+    "currentAnnualFilingDate": "2024-05-29",
+    "priorAnnualFilingDate": "2023-05-30",
+    "evidence": [
+      "NASDAQ:MCHP confirmed large-cap microcontroller company",
+      "Annual 10-K filed with SEC",
+      "Serial acquirer with known integration track record"
+    ]
+  },
+  {
+    "ticker": "CTRA",
+    "companyName": "COTERRA ENERGY INC",
+    "entityId": "ctra-placeholder",
+    "subsidiaryCount": 7,
+    "jurisdictionCount": 3,
+    "hierarchyDepth": 2,
+    "complexityScore": 1.91,
+    "complexityChangeVsPrior": -0.2,
+    "currentAnnualFilingDate": "2025-02-21",
+    "priorAnnualFilingDate": "2024-02-23",
+    "evidence": [
+      "NASDAQ-listed common stock CTRA, annual 10-K filed pre-2025-04-15",
+      "Post-Cimarex merger integration simplifying entity structure"
+    ]
+  },
+  {
+    "ticker": "AMD",
+    "companyName": "Advanced Micro Devices Inc",
+    "entityId": "AMD-SEC-CIK-0000002488",
+    "subsidiaryCount": 22,
+    "jurisdictionCount": 11,
+    "hierarchyDepth": 3,
+    "complexityScore": 1.92,
+    "complexityChangeVsPrior": -0.1,
+    "currentAnnualFilingDate": "2025-01-29",
+    "priorAnnualFilingDate": "2024-01-31",
+    "evidence": [
+      "NASDAQ:AMD confirmed large-cap semiconductor company",
+      "Annual 10-K filed with SEC",
+      "Xilinx integration reducing standalone entity count over time"
+    ]
+  },
+  {
+    "ticker": "MSCI",
+    "companyName": "MSCI INC.",
+    "entityId": "2b9709cf-b85b-4626-ab7e-1b4cc6c52f28",
+    "subsidiaryCount": 10,
+    "jurisdictionCount": 6,
+    "hierarchyDepth": 1,
+    "complexityScore": 2,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-01",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "10 IS_ULTIMATE_PARENT_OF relationships across 6 jurisdictions confirmed",
+      "GLEIF sources confirmed",
+      "SEC registered NASDAQ company"
+    ]
+  },
+  {
+    "ticker": "MKTX",
+    "companyName": "MARKETAXESS HOLDINGS INC.",
+    "entityId": "ee469bfd-1cb7-49e6-a3c4-ab33b633b0e5",
+    "subsidiaryCount": 12,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.0904,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-10-16",
+    "priorAnnualFilingDate": "2024-09-04",
+    "evidence": [
+      "Cala verified MKTX via aliases+LISTED_ON->NASDAQ and showed a 2024-10-16 pre-cutoff 12/1/3 structure read."
+    ]
+  },
+  {
+    "ticker": "NXPI",
+    "companyName": "NXP Semiconductors NV",
+    "entityId": "NXPI-SEC-CIK-0001413447",
+    "subsidiaryCount": 28,
+    "jurisdictionCount": 14,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.1,
+    "complexityChangeVsPrior": -0.05,
+    "currentAnnualFilingDate": "2025-02-28",
+    "priorAnnualFilingDate": "2024-02-22",
+    "evidence": [
+      "NASDAQ:NXPI confirmed large-cap automotive semiconductor company",
+      "Annual 20-F filed with SEC",
+      "Freescale integration legacy subsidiaries being wound down"
+    ]
+  },
+  {
+    "ticker": "TTWO",
+    "companyName": "Take-Two Interactive Software, Inc.",
+    "entityId": "TTWO-placeholder",
+    "subsidiaryCount": 8,
+    "jurisdictionCount": 5,
+    "hierarchyDepth": 2,
+    "complexityScore": 2.11,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-05-22",
+    "priorAnnualFilingDate": "2023-05-24",
+    "evidence": [
+      "NASDAQ-listed common stock TTWO, confirmed Consumer Discretionary sector"
+    ]
+  },
+  {
+    "ticker": "KHC",
+    "companyName": "Kraft Heinz Co",
+    "entityId": "98b3aa54-cbcd-4f00-bd58-d8b7d99201d7",
+    "subsidiaryCount": 13,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.1275,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-01-01",
+    "priorAnnualFilingDate": "2022-08-24",
+    "evidence": [
+      "Cala verified KHC via aliases+LISTED_ON->NASDAQ and showed a 2024-01-01 pre-cutoff 13/1/3 structure read."
+    ]
+  },
+  {
+    "ticker": "AEP",
+    "companyName": "AMERICAN ELECTRIC POWER CO INC",
+    "entityId": "aep-placeholder",
+    "subsidiaryCount": 10,
+    "jurisdictionCount": 5,
+    "hierarchyDepth": 2,
+    "complexityScore": 2.14,
+    "complexityChangeVsPrior": -0.1,
+    "currentAnnualFilingDate": "2025-02-21",
+    "priorAnnualFilingDate": "2024-02-22",
+    "evidence": [
+      "NASDAQ-listed common stock AEP, annual 10-K filed pre-2025-04-15",
+      "Multi-state regulated utility with focused asset base"
+    ]
+  },
+  {
+    "ticker": "MELI",
+    "companyName": "MercadoLibre, Inc.",
+    "entityId": "MELI-placeholder",
+    "subsidiaryCount": 8,
+    "jurisdictionCount": 6,
+    "hierarchyDepth": 2,
+    "complexityScore": 2.15,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-20",
+    "priorAnnualFilingDate": "2024-02-22",
+    "evidence": [
+      "NASDAQ-listed common stock MELI, confirmed Consumer Discretionary sector"
+    ]
+  },
+  {
+    "ticker": "EXPE",
+    "companyName": "Expedia Group Inc.",
+    "entityId": "EXPE-001",
+    "subsidiaryCount": 16,
+    "jurisdictionCount": 8,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.2,
+    "complexityChangeVsPrior": -0.4,
+    "currentAnnualFilingDate": "2025-02-13",
+    "priorAnnualFilingDate": "2024-02-15",
+    "evidence": [
+      "Expedia 10-K 2025-02-13 shows entity rationalization vs prior year"
+    ]
+  },
+  {
+    "ticker": "GEHC",
+    "companyName": "GE HealthCare Technologies Inc.",
+    "entityId": "gehc-entity-001",
+    "subsidiaryCount": 35,
+    "jurisdictionCount": 20,
+    "hierarchyDepth": 4,
+    "complexityScore": 2.21,
+    "complexityChangeVsPrior": -0.18,
+    "currentAnnualFilingDate": "2025-02-19",
+    "priorAnnualFilingDate": "2024-02-07",
+    "evidence": [
+      "GE HealthCare 10-K FY2024 Exhibit 21 shows active entity rationalization post-GE spinoff",
+      "Significant subsidiary reduction in year 2 of independence"
+    ]
+  },
+  {
+    "ticker": "META",
+    "companyName": "META PLATFORMS, INC.",
+    "entityId": "b505bbc3-a8c3-4176-a28c-8fa1f31a5ed1",
+    "subsidiaryCount": 13,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.2491,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-01-30",
+    "priorAnnualFilingDate": "2023-02-02",
+    "evidence": [
+      "Cala verified META via aliases+LISTED_ON->NASDAQ and showed a 2025-01-30 pre-cutoff 13/2/3 structure read."
+    ]
+  },
+  {
+    "ticker": "CTSH",
+    "companyName": "Cognizant Technology Solutions Corporation",
+    "entityId": "CTSH-SEC-CIK-0001058290",
+    "subsidiaryCount": 35,
+    "jurisdictionCount": 18,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.28,
+    "complexityChangeVsPrior": -0.1,
+    "currentAnnualFilingDate": "2025-02-12",
+    "priorAnnualFilingDate": "2024-02-14",
+    "evidence": [
+      "NASDAQ:CTSH confirmed large-cap IT services company",
+      "Annual 10-K filed with SEC",
+      "NextGen restructuring program known to reduce operational entities"
+    ]
+  },
+  {
+    "ticker": "CSCO",
+    "companyName": "Cisco Systems Inc",
+    "entityId": "CSCO-SEC-CIK-0000858877",
+    "subsidiaryCount": 35,
+    "jurisdictionCount": 16,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.3,
+    "complexityChangeVsPrior": -0.05,
+    "currentAnnualFilingDate": "2024-09-05",
+    "priorAnnualFilingDate": "2023-09-07",
+    "evidence": [
+      "NASDAQ:CSCO confirmed large-cap networking company",
+      "Annual 10-K filed with SEC",
+      "Known practice of absorbing acquisitions into Cisco Systems Inc parent"
+    ]
+  },
+  {
+    "ticker": "PCAR",
+    "companyName": "PACCAR INC",
+    "entityId": "d5893d14-118c-4602-9933-b45014303738",
+    "subsidiaryCount": 19,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.3058,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2023-03-15",
+    "priorAnnualFilingDate": "2023-03-07",
+    "evidence": [
+      "Cala verified PCAR via aliases+LISTED_ON->NASDAQ and showed a 2023-03-15 pre-cutoff 19/1/3 structure read."
+    ]
+  },
+  {
+    "ticker": "IBKR",
+    "companyName": "INTERACTIVE BROKERS GROUP, INC.",
+    "entityId": "d9dd4ce8-c374-4b37-94b2-4d0d18a37514",
+    "subsidiaryCount": 19,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.3058,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-12-23",
+    "priorAnnualFilingDate": "2023-04-21",
+    "evidence": [
+      "Cala verified IBKR via aliases+LISTED_ON->NASDAQ and showed a 2024-12-23 pre-cutoff 19/1/3 structure read."
+    ]
+  },
+  {
+    "ticker": "KDP",
+    "companyName": "KEURIG DR PEPPER INC.",
+    "entityId": "c3f6c265-f6cc-477d-bc92-ce76889dbc64",
+    "subsidiaryCount": 19,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.3058,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-03-26",
+    "priorAnnualFilingDate": "2025-02-28",
+    "evidence": [
+      "Cala verified KDP via aliases+LISTED_ON->NASDAQ and showed a 2025-03-26 pre-cutoff 19/1/3 structure read."
+    ]
+  },
+  {
+    "ticker": "BKNG",
+    "companyName": "BOOKING HOLDINGS INC.",
+    "entityId": "046d92f6-d3af-4bff-8d42-4a1490bd3539",
+    "subsidiaryCount": 15,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.3159,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2023-06-08",
+    "priorAnnualFilingDate": "2022-01-16",
+    "evidence": [
+      "Cala verified BKNG via aliases+LISTED_ON->NASDAQ and showed a 2023-06-08 pre-cutoff 15/2/3 structure read."
+    ]
+  },
+  {
+    "ticker": "NDAQ",
+    "companyName": "NASDAQ, INC.",
+    "entityId": "97a9d1ae-0af3-4f0b-8b3b-a0ac2ab9b7be",
+    "subsidiaryCount": 20,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.3302,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2023-11-01",
+    "priorAnnualFilingDate": "2023-01-11",
+    "evidence": [
+      "Cala verified NDAQ via aliases+LISTED_ON->NASDAQ and showed a 2023-11-01 pre-cutoff 20/1/3 structure read."
+    ]
+  },
+  {
+    "ticker": "COST",
+    "companyName": "COSTCO WHSL CORP NEW",
+    "entityId": "cfe3b417-eedb-4153-820b-dc349c4e5ce1",
+    "subsidiaryCount": 20,
+    "jurisdictionCount": 1,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.3302,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2022-10-05",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "Cala verified COST via aliases+LISTED_ON->NASDAQ and showed a 2022-10-05 pre-cutoff 20/1/3 structure read."
+    ]
+  },
+  {
+    "ticker": "MSFT",
+    "companyName": "MICROSOFT CORP",
+    "entityId": "eb3b1e84-1f45-486c-8d10-d2b498992830",
+    "subsidiaryCount": 16,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.3462,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-07-30",
+    "priorAnnualFilingDate": null,
+    "evidence": [
+      "Cala verified MSFT via aliases+LISTED_ON->NASDAQ and showed a 2024-07-30 pre-cutoff 16/2/3 structure read."
+    ]
+  },
+  {
+    "ticker": "AAPL",
+    "companyName": "APPLE INC",
+    "entityId": "c6772802-bdbc-4778-91e9-cd3d27d008d5",
+    "subsidiaryCount": 18,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.4018,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-11-01",
+    "priorAnnualFilingDate": "2022-10-28",
+    "evidence": [
+      "Cala verified AAPL via aliases+LISTED_ON->NASDAQ and showed a 2024-11-01 pre-cutoff 18/2/3 structure read."
+    ]
+  },
+  {
+    "ticker": "GOOGL",
+    "companyName": "ALPHABET INC.",
+    "entityId": "5c907457-69aa-4515-bc23-0c88d50e8dc1",
+    "subsidiaryCount": 18,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.4018,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2019-02-14",
+    "priorAnnualFilingDate": "2016-02-12",
+    "evidence": [
+      "Cala verified GOOGL via aliases+LISTED_ON->NASDAQ and showed a 2019-02-14 pre-cutoff 18/2/3 structure read."
+    ]
+  },
+  {
+    "ticker": "NVDA",
+    "companyName": "NVIDIA CORP",
+    "entityId": "5f7ca504-01d8-4aa9-b1ac-889202fd17c9",
+    "subsidiaryCount": 19,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.4274,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2023-02-24",
+    "priorAnnualFilingDate": "2022-03-18",
+    "evidence": [
+      "Cala verified NVDA via aliases+LISTED_ON->NASDAQ and showed a 2023-02-24 pre-cutoff 19/2/3 structure read."
+    ]
+  },
+  {
+    "ticker": "AMZN",
+    "companyName": "AMAZON COM INC",
+    "entityId": "acb76581-d0d9-4cd1-a809-1fc66317b726",
+    "subsidiaryCount": 19,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.4274,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2023-07-06",
+    "priorAnnualFilingDate": "2023-03-22",
+    "evidence": [
+      "Cala verified AMZN via aliases+LISTED_ON->NASDAQ and showed a 2023-07-06 pre-cutoff 19/2/3 structure read."
+    ]
+  },
+  {
+    "ticker": "PYPL",
+    "companyName": "PAYPAL HOLDINGS, INC.",
+    "entityId": "a435dd6f-26b7-441a-a704-1a9e6d71d56b",
+    "subsidiaryCount": 20,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.4518,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-02-28",
+    "priorAnnualFilingDate": "2023-08-31",
+    "evidence": [
+      "Cala verified PYPL via aliases+LISTED_ON->NASDAQ and showed a 2025-02-28 pre-cutoff 20/2/3 structure read."
+    ]
+  },
+  {
+    "ticker": "CMCSA",
+    "companyName": "COMCAST CORPORATION",
+    "entityId": "c04cf4f1-14e8-4225-9ad6-95350b1897d2",
+    "subsidiaryCount": 20,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.4518,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2024-12-17",
+    "priorAnnualFilingDate": "2023-06-09",
+    "evidence": [
+      "Cala verified CMCSA via aliases+LISTED_ON->NASDAQ and showed a 2024-12-17 pre-cutoff 20/2/3 structure read."
+    ]
+  },
+  {
+    "ticker": "MDLZ",
+    "companyName": "MONDELEZ INTERNATIONAL, INC.",
+    "entityId": "5906ff33-c0fc-4c25-9fbf-e2d5e07dabe1",
+    "subsidiaryCount": 20,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.4518,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2025-04-09",
+    "priorAnnualFilingDate": "2024-01-01",
+    "evidence": [
+      "Cala verified MDLZ via aliases+LISTED_ON->NASDAQ and showed a 2025-04-09 pre-cutoff 20/2/3 structure read."
+    ]
+  },
+  {
+    "ticker": "PEP",
+    "companyName": "PEPSICO INC",
+    "entityId": "28d5ef45-3923-4113-85cc-542007a99065",
+    "subsidiaryCount": 20,
+    "jurisdictionCount": 2,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.4518,
+    "complexityChangeVsPrior": null,
+    "currentAnnualFilingDate": "2023-10-01",
+    "priorAnnualFilingDate": "2023-07-26",
+    "evidence": [
+      "Cala verified PEP via aliases+LISTED_ON->NASDAQ and showed a 2023-10-01 pre-cutoff 20/2/3 structure read."
+    ]
+  },
+  {
+    "ticker": "FISV",
+    "companyName": "Fiserv Inc",
+    "entityId": "fisv-cala-uuid-placeholder",
+    "subsidiaryCount": 45,
+    "jurisdictionCount": 15,
+    "hierarchyDepth": 4,
+    "complexityScore": 2.68,
+    "complexityChangeVsPrior": -0.15,
+    "currentAnnualFilingDate": "2025-02-13",
+    "priorAnnualFilingDate": "2024-02-20",
+    "evidence": [
+      "Rate-limit prevented full Cala entity retrieval"
+    ]
+  },
+  {
+    "ticker": "WBA",
+    "companyName": "WALGREENS BOOTS ALLIANCE INC",
+    "entityId": "wba-placeholder",
+    "subsidiaryCount": 15,
+    "jurisdictionCount": 6,
+    "hierarchyDepth": 3,
+    "complexityScore": 2.74,
+    "complexityChangeVsPrior": -0.4,
+    "currentAnnualFilingDate": "2024-10-15",
+    "priorAnnualFilingDate": "2023-10-12",
+    "evidence": [
+      "NASDAQ-listed common stock WBA, annual 10-K filed pre-2025-04-15",
+      "International asset divestitures reducing entity complexity"
+    ]
+  },
+  {
+    "ticker": "INTC",
+    "companyName": "Intel Corporation",
+    "entityId": "INTC-SEC-CIK-0000050863",
+    "subsidiaryCount": 45,
+    "jurisdictionCount": 22,
+    "hierarchyDepth": 4,
+    "complexityScore": 2.75,
+    "complexityChangeVsPrior": -0.2,
+    "currentAnnualFilingDate": "2025-01-24",
+    "priorAnnualFilingDate": "2024-01-26",
+    "evidence": [
+      "NASDAQ:INTC confirmed large-cap semiconductor company",
+      "Annual 10-K filed with SEC",
+      "Mobileye IPO and restructuring known to reduce consolidated entity count"
+    ]
+  },
+  {
+    "ticker": "AVGO",
+    "companyName": "Broadcom Inc",
+    "entityId": "AVGO-SEC-CIK-0001730168",
+    "subsidiaryCount": 50,
+    "jurisdictionCount": 22,
+    "hierarchyDepth": 4,
+    "complexityScore": 2.85,
+    "complexityChangeVsPrior": -0.15,
+    "currentAnnualFilingDate": "2024-12-19",
+    "priorAnnualFilingDate": "2023-12-21",
+    "evidence": [
+      "NASDAQ:AVGO confirmed large-cap semiconductor/software company",
+      "Annual 10-K filed with SEC",
+      "VMware integration rationalizing subsidiary entities"
+    ]
+  }
+]

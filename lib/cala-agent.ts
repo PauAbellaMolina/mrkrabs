@@ -612,15 +612,19 @@ export const runCalaAgent = async (
           ].join("\n")
         : "";
 
+      const hasUniverse = effectiveSystemPrompt.includes(
+        "PRE-RESEARCHED COMPANY UNIVERSE",
+      );
       const userPrompt = [
         `TEAM_ID: ${process.env.TEAM_ID}`,
         `MODEL_AGENT_NAME: ${DEFAULT_AGENT_NAME}`,
         `MODEL_AGENT_VERSION: ${DEFAULT_AGENT_VERSION}`,
         "",
-        "Research Cala's entity graph, then submit the final portfolio by",
-        "calling the submit_portfolio tool exactly once. The tool's input",
-        "schema matches the leaderboard exactly. Do NOT return a JSON blob",
-        "in text — the submit_portfolio tool call IS the output.",
+        hasUniverse
+          ? "Pre-researched company data is in the system prompt. DO NOT call entity_search, entity_introspection, or retrieve_entity for companies already listed. Go directly to ranking, selection, and submit_portfolio."
+          : "Research Cala's entity graph, then submit the final portfolio by calling the submit_portfolio tool exactly once.",
+        "The tool's input schema matches the leaderboard exactly.",
+        "Do NOT return a JSON blob in text — the submit_portfolio tool call IS the output.",
         "",
         "When you have 3 or fewer steps remaining, stop researching and",
         "call submit_portfolio with whatever you've verified so far —",
@@ -657,7 +661,7 @@ export const runCalaAgent = async (
               },
             }
           : {}),
-        maxOutputTokens: 4000,
+        maxOutputTokens: 16000,
         maxRetries: 2,
         experimental_onStepStart: async (event: {
           stepNumber: number;
@@ -780,7 +784,7 @@ export const runCalaAgent = async (
                 },
               }
             : {}),
-          maxOutputTokens: 8000,
+          maxOutputTokens: 16000,
           maxRetries: 2,
           onStepFinish: async (event: {
             stepNumber: number;

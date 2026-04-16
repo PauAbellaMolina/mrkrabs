@@ -244,6 +244,33 @@ export const attachSessionPid = mutation({
   },
 });
 
+export const shrinkSession = mutation({
+  args: { sessionId: v.string(), plannedIterations: v.number() },
+  handler: async (ctx, { sessionId, plannedIterations }) => {
+    const row = await ctx.db
+      .query("autoresearchSessions")
+      .withIndex("by_sessionId", q => q.eq("sessionId", sessionId))
+      .first();
+    if (!row) throw new Error(`session ${sessionId} not found`);
+    if (row.status !== "running") {
+      throw new Error(`session ${sessionId} is ${row.status}, not running`);
+    }
+    const clamped = Math.max(row.completedIterations, Math.floor(plannedIterations));
+    await ctx.db.patch(row._id, { plannedIterations: clamped });
+  },
+});
+
+export const getSessionPlannedIterations = query({
+  args: { sessionId: v.string() },
+  handler: async (ctx, { sessionId }) => {
+    const row = await ctx.db
+      .query("autoresearchSessions")
+      .withIndex("by_sessionId", q => q.eq("sessionId", sessionId))
+      .first();
+    return row?.plannedIterations ?? null;
+  },
+});
+
 export const incrementSessionProgress = mutation({
   args: { sessionId: v.string() },
   handler: async (ctx, { sessionId }) => {

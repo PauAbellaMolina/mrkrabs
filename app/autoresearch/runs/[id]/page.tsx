@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { RefreshButton } from "@/components/refresh-button";
-import { AutoresearchSessionStopButton } from "@/components/autoresearch-session-stop-button";
+import { AutoresearchSessionControls } from "@/components/autoresearch-session-controls";
 import { api } from "@/convex/_generated/api";
 import { getConvexClient } from "@/lib/convex-client";
 import { getAutoresearchSession } from "@/lib/autoresearch-session";
@@ -178,7 +178,11 @@ export default async function AutoresearchSessionDetailPage({
             </p>
           </div>
           {session.status === "running" ? (
-            <AutoresearchSessionStopButton sessionId={sessionId} />
+            <AutoresearchSessionControls
+              sessionId={sessionId}
+              completedIterations={session.completedIterations}
+              plannedIterations={session.plannedIterations}
+            />
           ) : null}
         </header>
 
@@ -236,6 +240,8 @@ export default async function AutoresearchSessionDetailPage({
           </div>
         ) : null}
       </section>
+
+      <ScoreTrendPanel iterations={sessionIterations} />
 
       <section>
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
@@ -405,5 +411,197 @@ function Cell({
         {value}
       </p>
     </div>
+  );
+}
+
+const scoreMoney = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+
+function ScoreTrendPanel({
+  iterations,
+}: {
+  iterations: IterationSummary[];
+}) {
+  const scored = iterations.filter(
+    (it): it is IterationSummary & { score: number; iteration: number } =>
+      it.score != null && it.iteration != null,
+  );
+  if (scored.length < 2) return null;
+
+  const scores = scored.map(it => it.score);
+  const minScore = Math.min(...scores);
+  const maxScore = Math.max(...scores);
+  const range = maxScore - minScore || 1;
+
+  const W = 640;
+  const H = 140;
+  const padL = 64;
+  const padR = 16;
+  const padT = 16;
+  const padB = 28;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+
+  const points = scored.map((it, idx) => ({
+    x: padL + (idx / (scored.length - 1)) * plotW,
+    y: padT + plotH - ((it.score - minScore) / range) * plotH,
+    kept: it.kept ?? false,
+    skipped: !!it.skipReason,
+    iteration: it.iteration,
+    score: it.score,
+  }));
+
+  const linePath = points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
+    .join(" ");
+
+  return (
+    <section className="border border-[color:var(--border)] bg-[color:var(--surface)]">
+      <header className="border-b border-[color:var(--border)] px-5 py-4">
+        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted-foreground)]">
+          Score
+        </p>
+        <h2 className="mt-1 font-sans text-base font-semibold tracking-tight text-[color:var(--foreground)]">
+          Trend across iterations
+        </h2>
+      </header>
+      <div className="px-5 py-5">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="w-full"
+          aria-label="Score trend chart"
+        >
+          {/* Horizontal grid lines */}
+          <line
+            x1={padL}
+            y1={padT}
+            x2={W - padR}
+            y2={padT}
+            stroke="var(--border)"
+            strokeWidth="0.5"
+          />
+          <line
+            x1={padL}
+            y1={padT + plotH}
+            x2={W - padR}
+            y2={padT + plotH}
+            stroke="var(--border)"
+            strokeWidth="0.5"
+          />
+
+          {/* Y-axis labels */}
+          <text
+            x={padL - 6}
+            y={padT + 4}
+            textAnchor="end"
+            fill="var(--muted-foreground)"
+            fontSize="9"
+            fontFamily="monospace"
+          >
+            {scoreMoney.format(maxScore)}
+          </text>
+          <text
+            x={padL - 6}
+            y={padT + plotH + 4}
+            textAnchor="end"
+            fill="var(--muted-foreground)"
+            fontSize="9"
+            fontFamily="monospace"
+          >
+            {scoreMoney.format(minScore)}
+          </text>
+
+          {/* Line */}
+          <path
+            d={linePath}
+            fill="none"
+            stroke="var(--foreground)"
+            strokeWidth="1.5"
+            opacity="0.5"
+          />
+
+          {/* Points */}
+          {points.map(p =>
+            p.skipped ? (
+              <g key={p.iteration}>
+                <line
+                  x1={p.x - 3}
+                  y1={p.y - 3}
+                  x2={p.x + 3}
+                  y2={p.y + 3}
+                  stroke="var(--muted-foreground)"
+                  strokeWidth="1.5"
+                />
+                <line
+                  x1={p.x + 3}
+                  y1={p.y - 3}
+                  x2={p.x - 3}
+                  y2={p.y + 3}
+                  stroke="var(--muted-foreground)"
+                  strokeWidth="1.5"
+                />
+              </g>
+            ) : p.kept ? (
+              <circle
+                key={p.iteration}
+                cx={p.x}
+                cy={p.y}
+                r="4"
+                fill="var(--foreground)"
+              />
+            ) : (
+              <circle
+                key={p.iteration}
+                cx={p.x}
+                cy={p.y}
+                r="3.5"
+                fill="var(--background)"
+                stroke="var(--foreground)"
+                strokeWidth="1.5"
+              />
+            ),
+          )}
+
+          {/* X-axis: first and last iteration */}
+          <text
+            x={points[0].x}
+            y={H - 4}
+            textAnchor="middle"
+            fill="var(--muted-foreground)"
+            fontSize="9"
+            fontFamily="monospace"
+          >
+            #{scored[0].iteration}
+          </text>
+          <text
+            x={points[points.length - 1].x}
+            y={H - 4}
+            textAnchor="middle"
+            fill="var(--muted-foreground)"
+            fontSize="9"
+            fontFamily="monospace"
+          >
+            #{scored[scored.length - 1].iteration}
+          </text>
+        </svg>
+        <div className="mt-3 flex gap-5 font-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 bg-[color:var(--foreground)]" />
+            kept
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 border border-[color:var(--foreground)]" />
+            discarded
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="text-[10px]">✕</span>
+            skipped
+          </span>
+        </div>
+      </div>
+    </section>
   );
 }

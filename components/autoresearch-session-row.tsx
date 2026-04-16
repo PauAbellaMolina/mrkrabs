@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import type { AutoresearchSession } from "@/lib/autoresearch-session";
 
 // Fixed locale + style so the server-rendered timestamp matches the client
@@ -252,4 +252,57 @@ function useRunningElapsed(startedAt: string, isRunning: boolean): string | null
     return () => window.clearTimeout(handle);
   }, [isRunning]);
   return elapsed;
+}
+
+function ShrinkControl({ session }: { session: AutoresearchSession }) {
+  const router = useRouter();
+  const remaining = session.plannedIterations - session.completedIterations;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  const handleShrink = (event: React.MouseEvent | React.FormEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const raw = inputRef.current?.value;
+    if (!raw) return;
+    const newPlanned = session.completedIterations + Number(raw);
+    if (!Number.isFinite(newPlanned) || newPlanned < session.completedIterations) return;
+    setBusy(true);
+    fetch("/api/autoresearch/shrink", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: session.sessionId,
+        plannedIterations: newPlanned,
+      }),
+    })
+      .then(() => router.refresh())
+      .catch(() => {})
+      .finally(() => setBusy(false));
+  };
+
+  return (
+    <form
+      onSubmit={handleShrink}
+      onClick={event => event.stopPropagation()}
+      className="relative z-10 flex items-center gap-1"
+    >
+      <input
+        ref={inputRef}
+        type="number"
+        min={0}
+        max={remaining}
+        defaultValue={remaining}
+        disabled={busy}
+        className="w-12 border border-[color:var(--border)] bg-[color:var(--background)] px-1.5 py-1 text-center font-mono text-[10px] tabular-nums text-[color:var(--foreground)] disabled:opacity-60"
+      />
+      <button
+        type="submit"
+        disabled={busy}
+        className="border border-[color:var(--border)] bg-[color:var(--surface)] px-2 py-1 font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--foreground)] transition hover:border-[color:var(--foreground)] disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {busy ? "…" : "left"}
+      </button>
+    </form>
+  );
 }
