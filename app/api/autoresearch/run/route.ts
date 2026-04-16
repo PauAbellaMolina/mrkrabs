@@ -130,6 +130,13 @@ export async function POST(request: Request) {
           AUTORESEARCH_SESSION_ID: sessionId,
           AUTORESEARCH_MODEL: model,
           AUTORESEARCH_LOG_PATH: logPath,
+          // BASELINE test mode is env-driven so the dev server inherits it
+          // from .env.local or a prefix like `MRKRABS_BASELINE=1 pnpm dev`.
+          // No extra UI surface yet — flip via env, restart dev server, new
+          // autoresearch sessions pick it up.
+          ...(process.env.MRKRABS_BASELINE
+            ? { MRKRABS_BASELINE: process.env.MRKRABS_BASELINE }
+            : {}),
         },
       },
     );

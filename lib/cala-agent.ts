@@ -20,6 +20,11 @@ import {
 import { BASE_SYSTEM_PROMPT_FOR_RESEARCH } from "./system-prompt";
 import { attachConsoleLoggingToTools, previewForConsole } from "./tool-logging";
 import { persistCacheToDisk, wrapToolsWithCache } from "./cala-tool-cache";
+import {
+  buildBaselinePromptBlock,
+  isBaselineMode,
+  mergeWithBaseline,
+} from "./portfolio-baseline";
 
 const execFileAsync = promisify(execFile);
 
@@ -407,8 +412,19 @@ export const runCalaAgent = async (
   const stepBudget = options?.stepBudget ?? DEFAULT_STEP_BUDGET;
 
   const effectiveModel = options?.model?.trim() || DEFAULT_MODEL;
-  const effectiveSystemPrompt =
+  const baseSystemPrompt =
     options?.systemPromptOverride?.trim() || BASE_SYSTEM_PROMPT_FOR_RESEARCH;
+  // BASELINE test mode locks 40 tickers and asks the agent to only pick 10
+  // more. The baseline prompt block appends after the normal system prompt
+  // so the existing thesis + tool-use guidance still applies; the block
+  // just narrows the task scope and lists the forbidden tickers.
+  const baselineEnabled = isBaselineMode();
+  const effectiveSystemPrompt = baselineEnabled
+    ? `${baseSystemPrompt}\n\n${buildBaselinePromptBlock()}`
+    : baseSystemPrompt;
+  if (baselineEnabled) {
+    console.info("[cala-agent] BASELINE mode on — agent picks 10, 40 locked");
+  }
 
   // Anthropic's context-management features (clear_tool_uses_20250919,
   // compact_20260112) are only supported on Sonnet/Opus at the moment;
@@ -455,7 +471,16 @@ export const runCalaAgent = async (
     inputSchema: portfolioOutputSchemaForAnthropic,
     execute: async (input) => {
       try {
-        const validated = portfolioOutputSchema.parse(input);
+        let validated = portfolioOutputSchema.parse(input);
+        // BASELINE mode: the agent submitted only 10 positions; merge in
+        // the 40 locked baseline tickers before the validator runs so the
+        // usual 50-ticker / $1M / no-duplicate checks apply to the full
+        // payload. If the agent accidentally picked a ticker that's
+        // already in the baseline, validatePortfolioOutput will catch the
+        // duplicate and the outer retry loop will give it another shot.
+        if (baselineEnabled) {
+          validated = mergeWithBaseline(validated);
+        }
         validatePortfolioOutput(validated);
         capturedOutput = validated;
         const txs = validated.submissionPayload.transactions;

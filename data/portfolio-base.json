@@ -1,0 +1,11 @@
+{
+  "description": "40-ticker baseline for MRKRABS_BASELINE=1 test mode. Picked as the alphabetically-first 40 tickers from a previously-accepted leaderboard submission. Each locked at $20,000 (total $800,000) — autoresearch only needs to pick 10 more tickers at $20,000 each.",
+  "tickers": [
+    "AAPL", "ABNB", "ADBE", "AMAT", "AMD", "AMGN", "AMZN", "AVGO",
+    "BIIB", "CDNS", "COIN", "CPRT", "CRWD", "CTAS", "DDOG", "DXCM",
+    "EBAY", "FAST", "FTNT", "GILD", "GOOGL", "IDXX", "INTU", "ISRG",
+    "KLAC", "LRCX", "MCHP", "MDB", "META", "MRVL", "MSFT", "MU",
+    "NFLX", "NVDA", "NXPI", "ODFL", "ORCL", "PANW", "PAYX", "PLTR"
+  ],
+  "amountPerTickerUsd": 20000
+}
