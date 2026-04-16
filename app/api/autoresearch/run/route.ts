@@ -23,6 +23,7 @@ export const maxDuration = 10;
 interface RunRequestBody {
   iterations?: number;
   model?: string;
+  baseline?: boolean;
 }
 
 const ALLOWED_MODELS = new Set([
@@ -56,6 +57,7 @@ function openSessionLogFile(sessionId: string): {
 export async function POST(request: Request) {
   let iterations = 5;
   let model = DEFAULT_MODEL;
+  let baseline = false;
   try {
     const body = (await request.json()) as RunRequestBody;
     if (typeof body.iterations === "number" && Number.isFinite(body.iterations)) {
@@ -63,6 +65,9 @@ export async function POST(request: Request) {
     }
     if (typeof body.model === "string" && ALLOWED_MODELS.has(body.model)) {
       model = body.model;
+    }
+    if (body.baseline === true) {
+      baseline = true;
     }
   } catch {
     // empty body is fine — defaults apply
@@ -130,12 +135,15 @@ export async function POST(request: Request) {
           AUTORESEARCH_SESSION_ID: sessionId,
           AUTORESEARCH_MODEL: model,
           AUTORESEARCH_LOG_PATH: logPath,
-          // BASELINE test mode is env-driven so the dev server inherits it
-          // from .env.local or a prefix like `MRKRABS_BASELINE=1 pnpm dev`.
-          // No extra UI surface yet — flip via env, restart dev server, new
-          // autoresearch sessions pick it up.
-          ...(process.env.MRKRABS_BASELINE
-            ? { MRKRABS_BASELINE: process.env.MRKRABS_BASELINE }
+          // BASELINE mode: the UI trigger sets this per-session so devs
+          // don't need to restart `pnpm dev` with an env prefix. Inherits
+          // from process.env as a fallback if it was already set globally.
+          ...(baseline || process.env.MRKRABS_BASELINE
+            ? {
+                MRKRABS_BASELINE: baseline
+                  ? "1"
+                  : (process.env.MRKRABS_BASELINE ?? "1"),
+              }
             : {}),
         },
       },
@@ -168,6 +176,7 @@ export async function POST(request: Request) {
       pid: child.pid ?? null,
       iterations,
       model,
+      baseline,
       logPath,
     });
 
@@ -177,6 +186,7 @@ export async function POST(request: Request) {
         sessionId,
         iterations,
         model,
+        baseline,
         pid: child.pid ?? null,
         logPath,
       },

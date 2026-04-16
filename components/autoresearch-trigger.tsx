@@ -13,7 +13,14 @@ import {
 
 type Status =
   | { kind: "idle" }
-  | { kind: "queued"; iterations: number; modelId: string; sessionId: string; at: number }
+  | {
+      kind: "queued";
+      iterations: number;
+      modelId: string;
+      sessionId: string;
+      baseline: boolean;
+      at: number;
+    }
   | { kind: "error"; message: string };
 
 const DEFAULT_ITERATIONS = 5;
@@ -26,6 +33,7 @@ export function AutoresearchTrigger() {
   const [familyId, setFamilyId] =
     useState<AnthropicFamilyId>(DEFAULT_ANTHROPIC_FAMILY);
   const [variantId, setVariantId] = useState<string>(DEFAULT_ANTHROPIC_VARIANT);
+  const [baseline, setBaseline] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [isPending, startTransition] = useTransition();
   const [expanded, setExpanded] = useState(false);
@@ -53,7 +61,11 @@ export function AutoresearchTrigger() {
         const response = await fetch("/api/autoresearch/run", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ iterations: clamped, model: modelId }),
+          body: JSON.stringify({
+            iterations: clamped,
+            model: modelId,
+            baseline,
+          }),
         });
         const data = (await response.json()) as {
           ok?: boolean;
@@ -68,6 +80,7 @@ export function AutoresearchTrigger() {
           iterations: clamped,
           modelId,
           sessionId: data.sessionId,
+          baseline,
           at: Date.now(),
         });
         setExpanded(false);
@@ -165,6 +178,27 @@ export function AutoresearchTrigger() {
           disabled={isPending}
         />
 
+        <label className="flex items-center gap-3">
+          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+            Baseline mode
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={baseline}
+            onClick={() => setBaseline(v => !v)}
+            disabled={isPending}
+            className={
+              "border px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] transition disabled:cursor-not-allowed " +
+              (baseline
+                ? "border-[color:var(--foreground)] bg-[color:var(--foreground)] text-[color:var(--background)]"
+                : "border-[color:var(--border)] bg-transparent text-[color:var(--muted-foreground)] hover:border-[color:var(--foreground)] hover:text-[color:var(--foreground)]")
+            }
+          >
+            {baseline ? "On — 40 locked, agent picks 10" : "Off — full 50-ticker research"}
+          </button>
+        </label>
+
         <div className="flex items-baseline justify-between border-t border-[color:var(--border)] pt-3">
           <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
             Model ID
@@ -261,7 +295,8 @@ function StatusLine({ status }: { status: Status }) {
     return (
       <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--foreground)]">
         queued {status.iterations} iteration
-        {status.iterations === 1 ? "" : "s"} · {status.modelId} — session{" "}
+        {status.iterations === 1 ? "" : "s"} · {status.modelId}
+        {status.baseline ? " · baseline" : ""} — session{" "}
         {status.sessionId.slice(0, 8)}
       </span>
     );
