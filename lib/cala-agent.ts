@@ -13,6 +13,7 @@ import {
   type PortfolioOutput,
 } from "./portfolio-schema";
 import { createResearchCheckpointState } from "./research-checkpoint-state";
+import { removeFromUniverse } from "./research-universe";
 import {
   createLoadResearchCheckpointTool,
   createSaveResearchCheckpointTool,
@@ -537,6 +538,9 @@ export const runCalaAgent = async (
                 /Failed to fetch (?:historical )?price for ([A-Z.]{1,6})/g,
               ),
             ].map((m) => m[1]);
+            if (badTickers.length > 0) {
+              removeFromUniverse(badTickers);
+            }
             return {
               accepted: false as const,
               leaderboard_rejection: true as const,

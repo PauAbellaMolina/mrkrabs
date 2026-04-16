@@ -333,16 +333,24 @@ export const listSessions = query({
       discarded: number;
       skipped: number;
       bestScore: number | null;
+      scores: number[];
     };
     const statsBySession = new Map<string, Stats>();
 
-    for (const entry of ledgerRaw) {
+    const sortedLedger = [...ledgerRaw].sort((a, b) =>
+      typeof a.iteration === "number" && typeof b.iteration === "number"
+        ? a.iteration - b.iteration
+        : 0,
+    );
+
+    for (const entry of sortedLedger) {
       if (!entry.sessionId) continue;
       const current: Stats = statsBySession.get(entry.sessionId) ?? {
         kept: 0,
         discarded: 0,
         skipped: 0,
         bestScore: null,
+        scores: [],
       };
       if (entry.skipReason) {
         current.skipped += 1;
@@ -351,11 +359,11 @@ export const listSessions = query({
       } else {
         current.discarded += 1;
       }
-      if (
-        typeof entry.score === "number" &&
-        (current.bestScore == null || entry.score > current.bestScore)
-      ) {
-        current.bestScore = entry.score;
+      if (typeof entry.score === "number") {
+        if (current.bestScore == null || entry.score > current.bestScore) {
+          current.bestScore = entry.score;
+        }
+        current.scores.push(entry.score);
       }
       statsBySession.set(entry.sessionId, current);
     }
@@ -381,6 +389,7 @@ export const listSessions = query({
           discardedCount: stats?.discarded ?? 0,
           skippedCount: stats?.skipped ?? 0,
           bestScore: stats?.bestScore ?? null,
+          scores: stats?.scores ?? [],
         };
       });
   },

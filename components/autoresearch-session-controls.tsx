@@ -17,6 +17,7 @@ export function AutoresearchSessionControls({
   const router = useRouter();
   const remaining = plannedIterations - completedIterations;
   const inputRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
   const [shrinkBusy, setShrinkBusy] = useState(false);
   const [stopPending, startStopTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +60,7 @@ export function AutoresearchSessionControls({
         });
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         if (!res.ok) throw new Error(data.error ?? "Stop failed");
+        setOpen(false);
         router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Stop failed");
@@ -67,50 +69,67 @@ export function AutoresearchSessionControls({
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-end gap-4">
-        <form onSubmit={handleShrink} className="flex items-end gap-2">
-          <div className="flex flex-col gap-1">
-            <label
-              htmlFor="remaining-input"
-              className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]"
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="flex h-8 w-8 items-center justify-center border border-[color:var(--border)] bg-[color:var(--surface)] font-mono text-sm text-[color:var(--muted-foreground)] transition hover:border-[color:var(--foreground)] hover:text-[color:var(--foreground)]"
+        aria-label="Session options"
+      >
+        ···
+      </button>
+
+      {open ? (
+        <>
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setOpen(false)}
+          />
+          <div className="absolute right-0 top-[calc(100%+4px)] z-20 flex min-w-[240px] flex-col gap-3 border border-[color:var(--border)] bg-[color:var(--surface)] p-4 shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
+            <form onSubmit={handleShrink} className="flex items-end gap-2">
+              <div className="flex flex-col gap-1">
+                <label
+                  htmlFor="remaining-input"
+                  className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]"
+                >
+                  Remaining iterations
+                </label>
+                <input
+                  id="remaining-input"
+                  ref={inputRef}
+                  type="number"
+                  min={0}
+                  max={remaining}
+                  defaultValue={remaining}
+                  disabled={shrinkBusy}
+                  className="w-16 border border-[color:var(--border)] bg-[color:var(--background)] px-2 py-1.5 font-mono text-sm tabular-nums text-[color:var(--foreground)] disabled:opacity-60"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={shrinkBusy}
+                className="border border-[color:var(--border)] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--foreground)] transition hover:border-[color:var(--foreground)] disabled:opacity-60"
+              >
+                {shrinkBusy ? "…" : "Set"}
+              </button>
+            </form>
+
+            <button
+              type="button"
+              onClick={handleStop}
+              disabled={stopPending}
+              className="w-full border border-[color:var(--border)] py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--foreground)] transition hover:border-[color:var(--foreground)] hover:bg-[color:var(--foreground)] hover:text-[color:var(--background)] disabled:opacity-60"
             >
-              Remaining iterations
-            </label>
-            <input
-              id="remaining-input"
-              ref={inputRef}
-              type="number"
-              min={0}
-              max={remaining}
-              defaultValue={remaining}
-              disabled={shrinkBusy}
-              className="w-20 border border-[color:var(--border)] bg-[color:var(--background)] px-3 py-2 font-mono text-sm tabular-nums text-[color:var(--foreground)] disabled:opacity-60"
-            />
+              {stopPending ? "Stopping…" : "Stop session"}
+            </button>
+
+            {error ? (
+              <p className="font-mono text-[10px] text-[color:var(--muted-foreground)]">
+                {error}
+              </p>
+            ) : null}
           </div>
-          <button
-            type="submit"
-            disabled={shrinkBusy}
-            className="border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--foreground)] transition hover:border-[color:var(--foreground)] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {shrinkBusy ? "Updating…" : "Set"}
-          </button>
-        </form>
-
-        <button
-          type="button"
-          onClick={handleStop}
-          disabled={stopPending}
-          className="border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--foreground)] transition hover:border-[color:var(--foreground)] hover:bg-[color:var(--foreground)] hover:text-[color:var(--background)] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {stopPending ? "Stopping…" : "Stop session"}
-        </button>
-      </div>
-
-      {error ? (
-        <p className="font-mono text-[10px] text-[color:var(--muted-foreground)]">
-          {error}
-        </p>
+        </>
       ) : null}
     </div>
   );

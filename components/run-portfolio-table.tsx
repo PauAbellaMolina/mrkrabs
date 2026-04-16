@@ -249,34 +249,54 @@ function PositionDetail({
               live from Cala Entity Graph
             </span>
           </div>
+          <p className="font-sans text-[11px] leading-5 text-[color:var(--muted-foreground)]">
+            The agent queried Cala&rsquo;s entity graph to resolve{" "}
+            <span className="text-[color:var(--foreground)]">{position.companyName}</span>
+            &rsquo;s identity, map its parent/subsidiary ownership structure,
+            extract filing-linked complexity metrics, and verify pre-cutoff
+            evidence &mdash; then used those facts as the basis for this
+            position.
+          </p>
           <div className="border border-[color:var(--border)] bg-[color:var(--surface)] px-5 py-4">
             <CalaEntityDetail
               uuid={position.companyEntityId}
               companyName={position.companyName}
             />
           </div>
-          <p className="font-mono text-[10px] leading-5 text-[color:var(--muted-foreground)]">
-            The agent selected{" "}
-            <span className="text-[color:var(--foreground)]">{position.nasdaqCode}</span>{" "}
-            based on the above Cala entity data — complexity score{" "}
-            <span className="font-semibold text-[color:var(--foreground)]">
-              {numberFormatter.format(position.complexityScore)}
-            </span>
-            {position.complexityChangeVsPrior != null ? (
-              <>
-                {" "}(Δ{" "}
+          <div className="border border-[color:var(--border)] bg-[color:var(--background)] px-4 py-3">
+            <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+              Investment decision
+            </p>
+            <p className="mt-1.5 font-sans text-[12px] leading-5 text-[color:var(--foreground)]">
+              {position.thesis}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-3 font-mono text-[10px] text-[color:var(--muted-foreground)]">
+              <span>
+                Complexity{" "}
                 <span className="font-semibold text-[color:var(--foreground)]">
-                  {formatSignedNumber(position.complexityChangeVsPrior)}
+                  {numberFormatter.format(position.complexityScore)}
                 </span>
-                {" "}vs prior filing)
-              </>
-            ) : null}
-            , filing dated{" "}
-            <span className="text-[color:var(--foreground)]">
-              {position.currentAnnualFilingDate}
-            </span>
-            .
-          </p>
+              </span>
+              {position.complexityChangeVsPrior != null ? (
+                <span>
+                  Δ{" "}
+                  <span className="font-semibold text-[color:var(--foreground)]">
+                    {formatSignedNumber(position.complexityChangeVsPrior)}
+                  </span>
+                  {" "}vs prior
+                </span>
+              ) : null}
+              <span>
+                {position.subsidiaryCount} subs · {position.jurisdictionCount} jur · depth {position.hierarchyDepth}
+              </span>
+              <span>
+                Filing{" "}
+                <span className="text-[color:var(--foreground)]">
+                  {position.currentAnnualFilingDate}
+                </span>
+              </span>
+            </div>
+          </div>
           {position.calaEvidence.length > 0 ? (
             <div className="flex flex-col gap-1">
               <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">

@@ -268,6 +268,7 @@ async function main() {
       ? startingLedger[startingLedger.length - 1].iteration + 1
       : 1;
 
+  const sessionHistory: LedgerEntry[] = [...startingLedger];
   const MAX_CONSECUTIVE_FAILURES = 3;
   let consecutiveFailures = 0;
   let lastFailureReason = "";
@@ -287,7 +288,6 @@ async function main() {
     const iteration = iterationCounter++;
     const currentRules = await loadRules();
     const championScore = await loadChampionScore();
-    const history = await loadRecentLedgerEntries(15);
 
     console.info(
       `\n[autoresearch] ── iteration ${iteration} ── champion $${championScore.score.toLocaleString()} | rules=${currentRules.length}/${8}`,
@@ -305,7 +305,7 @@ async function main() {
         const proposal = await proposeRule(
           currentRules,
           championScore.score,
-          history,
+          sessionHistory,
         );
         if (proposal) {
           proposedRule = proposal.rule;
@@ -411,38 +411,23 @@ async function main() {
 
     const kept = outcome.score != null && outcome.score > championScore.score;
 
+    // Always append proposed rules to the playbook — even if the score
+    // didn't beat the champion. The 8-rule cap auto-evicts the oldest.
+    // The mutator sees full history with scores + deltas so it knows
+    // which rules helped and which didn't.
+    if (proposedRule) {
+      await appendRule({
+        text: proposedRule,
+        addedAtIteration: iteration,
+      });
+    }
+
     if (kept) {
-      if (proposedRule) {
-        await appendRule({
-          text: proposedRule,
-          addedAtIteration: iteration,
-        });
-      }
       await writeChampionScore({
         score: outcome.score!,
         iteration,
         publicAgentVersion: outcome.publicAgentVersion,
         updatedAt: new Date().toISOString(),
-      });
-    }
-
-    // When an iteration is skipped due to submission failure (not an agent
-    // error or empty result), the proposed rule wasn't tested fairly.
-    // Persist it so the next iteration inherits it instead of losing the
-    // mutator's work.
-    const isSubmitFailure =
-      !kept &&
-      proposedRule &&
-      outcome.skipReason &&
-      (outcome.skipReason.startsWith("submit-rejected") ||
-        outcome.skipReason.startsWith("agent finished without"));
-    if (isSubmitFailure) {
-      console.info(
-        `[autoresearch] preserving untested rule for next iteration: ${proposedRule}`,
-      );
-      await appendRule({
-        text: proposedRule,
-        addedAtIteration: iteration,
       });
     }
 
@@ -462,6 +447,7 @@ async function main() {
       sessionId: SESSION_ID ?? undefined,
     };
     await appendLedgerEntry(entry);
+    sessionHistory.push(entry);
 
     if (SESSION_ID) {
       await incrementAutoresearchSessionProgress(SESSION_ID).catch(error => {

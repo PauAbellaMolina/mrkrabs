@@ -1,221 +1,359 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import type { PortfolioPosition } from "@/lib/portfolio-schema";
+import { CalaEntityDetail } from "./cala-entity-detail";
 
-const num = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
+const money = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
 
 type Props = {
   positions: PortfolioPosition[];
 };
 
-export function CalaOntologyPanel({ positions }: Props) {
-  const uniqueEntities = new Set(positions.map(p => p.companyEntityId));
-  const filingDates = positions
-    .map(p => p.currentAnnualFilingDate)
-    .filter(Boolean);
-  const earliestFiling = filingDates.length > 0
-    ? filingDates.sort()[0]
-    : null;
-  const latestFiling = filingDates.length > 0
-    ? filingDates.sort().reverse()[0]
-    : null;
-  const totalSubsidiaries = positions.reduce((s, p) => s + p.subsidiaryCount, 0);
-  const avgComplexity =
-    positions.reduce((s, p) => s + p.complexityScore, 0) / (positions.length || 1);
-  const improving = positions.filter(
-    p => p.complexityChangeVsPrior != null && p.complexityChangeVsPrior < 0,
-  ).length;
+const INITIAL_VISIBLE = 6;
 
-  const allEvidence = positions.flatMap(p => p.calaEvidence);
-  const calaToolMentions = allEvidence.filter(
-    e =>
-      e.includes("entity_search") ||
-      e.includes("retrieve_entity") ||
-      e.includes("entity_introspection") ||
-      e.includes("Cala"),
-  ).length;
+export function CalaOntologyPanel({ positions }: Props) {
+  const [showAll, setShowAll] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const ranked = [...positions].sort(
     (a, b) => a.complexityScore - b.complexityScore,
   );
 
+  const visible = showAll ? ranked : ranked.slice(0, INITIAL_VISIBLE);
+  const hiddenCount = ranked.length - INITIAL_VISIBLE;
+  const cols = 3;
+
+  // Build rows of `cols` items, inserting an expanded detail row after the
+  // row that contains the expanded card.
+  const rows: Array<{ cards: typeof visible; expandedPosition?: PortfolioPosition }> = [];
+  for (let i = 0; i < visible.length; i += cols) {
+    const chunk = visible.slice(i, i + cols);
+    const expandedInRow = expandedId
+      ? chunk.find(p => p.companyEntityId === expandedId)
+      : undefined;
+    rows.push({ cards: chunk, expandedPosition: expandedInRow });
+  }
+
   return (
     <section className="border border-[color:var(--border)] bg-[color:var(--surface)]">
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[color:var(--border)] px-5 py-4">
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted-foreground)]">
-            Ontology
-          </p>
-          <h2 className="mt-1 font-sans text-base font-semibold tracking-tight text-[color:var(--foreground)]">
-            Investment reasoning powered by Cala
-          </h2>
-        </div>
-        <Image
-          src="/cala-logo.png"
-          alt="Cala"
-          width={72}
-          height={24}
-          className="opacity-80"
-          unoptimized
-        />
-      </header>
-
-      <div className="flex flex-col gap-5 px-5 py-5">
-        <p className="max-w-3xl font-sans text-sm leading-7 text-[color:var(--foreground)]">
-          Every investment decision in this portfolio is grounded in{" "}
-          <strong>Cala&apos;s verified entity graph</strong>. The agent queried
-          Cala&apos;s knowledge base to resolve company identities, map
-          parent/subsidiary ownership structures, extract filing-linked
-          complexity metrics, and verify pre-cutoff evidence — then used those
-          facts as the sole basis for position selection and allocation.
-        </p>
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <OntologyStat label="Entities verified" value={String(uniqueEntities.size)} />
-          <OntologyStat label="Cala evidence points" value={String(calaToolMentions)} />
-          <OntologyStat label="Subsidiaries mapped" value={String(totalSubsidiaries)} />
-          <OntologyStat label="Avg complexity" value={avgComplexity.toFixed(2)} />
-          <OntologyStat
-            label="Improving (Δ < 0)"
-            value={`${improving} / ${positions.length}`}
-          />
-          <OntologyStat
-            label="Filing window"
-            value={
-              earliestFiling && latestFiling
-                ? earliestFiling === latestFiling
-                  ? earliestFiling
-                  : `${earliestFiling} — ${latestFiling}`
-                : "—"
-            }
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-            {positions.length} companies analyzed via Cala — ranked by complexity
-          </p>
-          <div className="flex gap-3 overflow-x-auto overscroll-x-contain pb-2 [-ms-overflow-style:none] [scrollbar-width:thin]">
-            {ranked.map((p, idx) => (
-              <CompanyCard key={p.companyEntityId} position={p} rank={idx + 1} />
-            ))}
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[color:var(--border)] px-6 py-5">
+        <div className="w-full">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/cala-logo.png"
+              alt="Cala"
+              width={72}
+              height={24}
+              className="opacity-80"
+              unoptimized
+            />
+            <h2 className="font-sans text-lg font-semibold tracking-tight text-[color:var(--foreground)]">
+              Why these {positions.length} companies?
+            </h2>
           </div>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-            How Cala data drives each decision
+          <p className="mt-3 font-sans text-sm leading-6 text-[color:var(--muted-foreground)]">
+            Each company was selected because Cala&apos;s entity graph shows it has a{" "}
+            <strong className="text-[color:var(--foreground)]">simple corporate structure</strong>.
+            Below are the top picks ranked by simplicity, with the evidence Cala provided.
           </p>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <ReasoningStep
-              step="1"
-              title="Entity resolution"
-              description="Each company is resolved to a verified Cala entity with a stable UUID, ensuring the agent operates on the correct legal entity — not a similarly-named subsidiary or alias."
-            />
-            <ReasoningStep
-              step="2"
-              title="Structure analysis"
-              description="Cala's filing-linked entity graph reveals each company's subsidiary count, jurisdiction spread, and control hierarchy depth — the raw inputs to the complexity scoring model."
-            />
-            <ReasoningStep
-              step="3"
-              title="Evidence-backed selection"
-              description="Only companies with pre-cutoff Cala evidence qualify for inclusion. The agent's thesis, risk notes, and cutoff compliance are all traceable to specific Cala tool calls."
-            />
-          </div>
+          <MetricsExplainer />
         </div>
-
-        <p className="font-mono text-[8px] uppercase tracking-[0.2em] text-[color:var(--muted-foreground)] opacity-60">
-          All entity data, relationships, and structure metrics sourced from
-          Cala&apos;s verified knowledge graph · click any position in the
-          portfolio table to see live Cala data for that company
-        </p>
       </div>
+
+      <div className="flex flex-col">
+        {rows.map((row, rowIdx) => (
+          <div key={rowIdx}>
+            <div className={
+              "grid gap-px bg-[color:var(--border)] sm:grid-cols-2 lg:grid-cols-3" +
+              (rowIdx > 0 ? " border-t border-[color:var(--border)]" : "")
+            }>
+              {row.cards.map((p, idx) => (
+                <CompanyCard
+                  key={p.companyEntityId}
+                  position={p}
+                  rank={rowIdx * cols + idx + 1}
+                  isExpanded={expandedId === p.companyEntityId}
+                  dimmed={expandedId != null && expandedId !== p.companyEntityId}
+                  onToggle={() =>
+                    setExpandedId(current =>
+                      current === p.companyEntityId ? null : p.companyEntityId,
+                    )
+                  }
+                />
+              ))}
+            </div>
+            {row.expandedPosition ? (
+              <div className="animate-[fadeSlideIn_0.3s_ease-out] border-t border-b border-[color:var(--border)] bg-[color:var(--background)]">
+                <CompanyExpandedDetail
+                  position={row.expandedPosition}
+                  onClose={() => setExpandedId(null)}
+                />
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+
+      {!showAll && hiddenCount > 0 ? (
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
+          className="w-full border-t border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-3 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--muted-foreground)] transition hover:bg-[color:var(--surface-elevated)] hover:text-[color:var(--foreground)]"
+        >
+          Show all {ranked.length} companies (+{hiddenCount} more)
+        </button>
+      ) : showAll && hiddenCount > 0 ? (
+        <button
+          type="button"
+          onClick={() => setShowAll(false)}
+          className="w-full border-t border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-3 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--muted-foreground)] transition hover:bg-[color:var(--surface-elevated)] hover:text-[color:var(--foreground)]"
+        >
+          Show fewer
+        </button>
+      ) : null}
     </section>
   );
 }
 
-function CompanyCard({ position, rank }: { position: PortfolioPosition; rank: number }) {
-  const delta = position.complexityChangeVsPrior;
+function MetricsExplainer() {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="flex w-[220px] shrink-0 flex-col gap-2 border border-[color:var(--border)] bg-[color:var(--background)] p-3 transition hover:border-[color:var(--foreground)]">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="font-mono text-xs font-semibold text-[color:var(--foreground)]">
-          {position.nasdaqCode}
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--foreground)] transition hover:opacity-80"
+      >
+        <span className="flex h-4 w-4 items-center justify-center border border-[color:var(--border)] text-[9px]">
+          ?
         </span>
-        <span className="font-mono text-[9px] tabular-nums text-[color:var(--muted-foreground)]">
-          #{String(rank).padStart(2, "0")}
-        </span>
-      </div>
-      <p className="truncate font-sans text-[11px] text-[color:var(--muted-foreground)]">
-        {position.companyName}
-      </p>
-      <div className="mt-auto grid grid-cols-2 gap-x-3 gap-y-1 border-t border-[color:var(--border)] pt-2">
-        <CardStat label="Complexity" value={num.format(position.complexityScore)} />
-        <CardStat
-          label="Δ prior"
-          value={
-            delta != null
-              ? `${delta < 0 ? "↓" : delta > 0 ? "↑" : ""}${num.format(Math.abs(delta))}`
-              : "—"
-          }
-        />
-        <CardStat label="Subs" value={String(position.subsidiaryCount)} />
-        <CardStat label="Filing" value={position.currentAnnualFilingDate} />
-      </div>
+        {open ? "Hide explanation" : "What do subsidiaries, jurisdictions, and depth mean?"}
+      </button>
+      {open ? (
+        <div className="mt-3 grid gap-3 sm:grid-cols-3 animate-[fadeSlideIn_0.3s_ease-out]">
+          <MetricCard
+            title="Subsidiaries"
+            what="The number of child companies or legal entities a company owns."
+            why="Fewer subsidiaries = simpler operations. Companies with sprawling subsidiary networks carry hidden risks in entities that are hard to audit."
+            effect="Lower count → higher ranking in our portfolio."
+          />
+          <MetricCard
+            title="Jurisdictions"
+            what="The number of different countries or legal territories where the company has registered entities."
+            why="Fewer jurisdictions = less regulatory complexity. Multi-jurisdiction companies face overlapping rules, tax regimes, and reporting requirements."
+            effect="Lower count → higher ranking in our portfolio."
+          />
+          <MetricCard
+            title="Hierarchy depth"
+            what="How many layers deep the ownership chain goes — from the parent company to the furthest subsidiary."
+            why="Shallower chains = more transparent control. Deep ownership hierarchies make it harder to trace who controls what, increasing governance risk."
+            effect="Lower depth → higher ranking in our portfolio."
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function CardStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="font-mono text-[8px] uppercase tracking-[0.15em] text-[color:var(--muted-foreground)]">
-        {label}
-      </p>
-      <p className="font-mono text-[10px] font-semibold tabular-nums text-[color:var(--foreground)]">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function OntologyStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="border border-[color:var(--border)] bg-[color:var(--background)] px-3 py-2">
-      <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
-        {label}
-      </p>
-      <p className="mt-1 font-mono text-sm font-semibold tabular-nums text-[color:var(--foreground)]">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function ReasoningStep({
-  step,
+function MetricCard({
   title,
-  description,
+  what,
+  why,
+  effect,
 }: {
-  step: string;
   title: string;
-  description: string;
+  what: string;
+  why: string;
+  effect: string;
 }) {
   return (
-    <div className="flex gap-3 border border-[color:var(--border)] bg-[color:var(--background)] p-4">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center border border-[color:var(--border)] font-mono text-xs font-semibold text-[color:var(--foreground)]">
-        {step}
-      </span>
-      <div>
-        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--foreground)]">
-          {title}
-        </p>
-        <p className="mt-1 font-sans text-xs leading-5 text-[color:var(--muted-foreground)]">
-          {description}
-        </p>
+    <div className="flex flex-col gap-2 border border-[color:var(--border)] bg-[color:var(--background)] p-4">
+      <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--foreground)]">
+        {title}
+      </p>
+      <p className="font-sans text-xs leading-5 text-[color:var(--muted-foreground)]">
+        {what}
+      </p>
+      <p className="font-sans text-xs leading-5 text-[color:var(--foreground)]">
+        {why}
+      </p>
+      <p className="mt-auto border-t border-[color:var(--border)] pt-2 font-mono text-[10px] text-[color:var(--foreground)]">
+        {effect}
+      </p>
+    </div>
+  );
+}
+
+function CompanyCard({
+  position,
+  rank,
+  isExpanded,
+  dimmed,
+  onToggle,
+}: {
+  position: PortfolioPosition;
+  rank: number;
+  isExpanded: boolean;
+  dimmed: boolean;
+  onToggle: () => void;
+}) {
+  const delta = position.complexityChangeVsPrior;
+  const isImproving = delta != null && delta < 0;
+
+  const structureSummary = [
+    `${position.subsidiaryCount} ${position.subsidiaryCount === 1 ? "subsidiary" : "subsidiaries"}`,
+    `${position.jurisdictionCount} ${position.jurisdictionCount === 1 ? "jurisdiction" : "jurisdictions"}`,
+    `depth ${position.hierarchyDepth}`,
+  ].join(", ");
+
+  return (
+    <div
+      className={
+        "flex flex-col bg-[color:var(--surface)] transition-colors duration-300 " +
+        (dimmed ? "[&_*]:!text-[color:var(--border)] pointer-events-none" : "")
+      }
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        className={
+          "flex flex-col gap-3 p-5 text-left transition hover:bg-[color:var(--surface-elevated)] " +
+          (isExpanded ? "bg-[color:var(--surface-elevated)]" : "")
+        }
+      >
+        <div className="flex w-full items-start justify-between gap-3">
+          <div>
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono text-sm font-semibold text-[color:var(--foreground)]">
+                {position.nasdaqCode}
+              </span>
+              <span className="font-mono text-[9px] tabular-nums text-[color:var(--muted-foreground)]">
+                #{String(rank).padStart(2, "0")}
+              </span>
+              <span className="font-mono text-[10px] text-[color:var(--muted-foreground)]">
+                {isExpanded ? "▾" : "▸"}
+              </span>
+            </div>
+            <p className="mt-0.5 font-sans text-xs text-[color:var(--muted-foreground)]">
+              {position.companyName}
+            </p>
+          </div>
+          <span className="shrink-0 font-mono text-xs tabular-nums text-[color:var(--foreground)]">
+            {money.format(position.amount)}
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
+            Investment decision
+          </p>
+          <p className="font-sans text-xs leading-5 text-[color:var(--foreground)]">
+            {position.thesis}
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-1.5 border-t border-[color:var(--border)] pt-3">
+          <div className="flex items-center gap-1.5">
+            <Image
+              src="/cala-logo.png"
+              alt="Cala"
+              width={40}
+              height={14}
+              className="opacity-60"
+              unoptimized
+            />
+            <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
+              found
+            </span>
+          </div>
+          <p className="font-sans text-xs text-[color:var(--foreground)]">
+            {structureSummary}
+            {isImproving
+              ? " — structure is simplifying vs prior filing"
+              : ""}
+          </p>
+          <p className="font-mono text-[10px] text-[color:var(--muted-foreground)]">
+            Filing: {position.currentAnnualFilingDate}
+            {position.priorAnnualFilingDate
+              ? ` · Prior: ${position.priorAnnualFilingDate}`
+              : ""}
+          </p>
+        </div>
+      </button>
+    </div>
+  );
+}
+
+function CompanyExpandedDetail({
+  position,
+  onClose,
+}: {
+  position: PortfolioPosition;
+  onClose: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-4 px-6 py-5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-baseline gap-3">
+          <span className="font-mono text-base font-semibold text-[color:var(--foreground)]">
+            {position.nasdaqCode}
+          </span>
+          <span className="font-sans text-sm text-[color:var(--muted-foreground)]">
+            {position.companyName}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)] transition hover:text-[color:var(--foreground)]"
+        >
+          Close
+        </button>
       </div>
+      <div className="border border-[color:var(--border)] bg-[color:var(--surface)] px-5 py-4">
+        <CalaEntityDetail
+          uuid={position.companyEntityId}
+          companyName={position.companyName}
+        />
+      </div>
+
+      {position.riskNotes.length > 0 ? (
+        <div className="flex flex-col gap-1">
+          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+            Risks
+          </p>
+          <ul className="flex flex-col gap-1">
+            {position.riskNotes.map((risk, idx) => (
+              <li key={idx} className="flex gap-2 font-sans text-xs leading-5 text-[color:var(--muted-foreground)]">
+                <span aria-hidden className="font-mono">·</span>
+                <span>{risk}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {position.calaEvidence.length > 0 ? (
+        <div className="flex flex-col gap-1">
+          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+            Agent evidence notes
+          </p>
+          <ul className="flex flex-col gap-1">
+            {position.calaEvidence.map((line, idx) => (
+              <li key={idx} className="flex gap-2 font-mono text-[10px] leading-5 text-[color:var(--muted-foreground)]">
+                <span aria-hidden>·</span>
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }

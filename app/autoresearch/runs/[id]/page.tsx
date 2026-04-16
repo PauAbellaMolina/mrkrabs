@@ -161,7 +161,7 @@ export default async function AutoresearchSessionDetailPage({
         </p>
       </nav>
 
-      <section className="border border-[color:var(--border)] bg-[color:var(--surface)]">
+      <section className={"border border-[color:var(--border)] bg-[color:var(--surface)]" + (session.status === "running" ? " animate-pulse" : "")}>
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[color:var(--border)] px-6 py-5">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[color:var(--muted-foreground)]">
@@ -227,34 +227,29 @@ export default async function AutoresearchSessionDetailPage({
         ) : null}
 
         {session.logPath ? (
-          <div className="border-t border-[color:var(--border)] px-6 py-4">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-              Live logs
-            </p>
-            <p className="mt-2 font-mono text-[10px] text-[color:var(--muted-foreground)]">
-              Tail the child process&rsquo;s stdout/stderr from a terminal:
-            </p>
-            <pre className="mt-2 select-all overflow-x-auto border border-[color:var(--border)] bg-[color:var(--background)] px-4 py-2 font-mono text-[11px] text-[color:var(--foreground)]">
-              tail -f {session.logPath}
-            </pre>
-          </div>
+          <details className="group border-t border-[color:var(--border)]">
+            <summary className="flex cursor-pointer items-center gap-2 px-6 py-3 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)] transition select-none hover:text-[color:var(--foreground)]">
+              <span className="transition group-open:rotate-90">▶</span>
+              Dev tools
+            </summary>
+            <div className="px-6 pb-4">
+              <p className="font-mono text-[10px] text-[color:var(--muted-foreground)]">
+                Tail the child process&rsquo;s stdout/stderr from a terminal:
+              </p>
+              <pre className="mt-2 select-all overflow-x-auto border border-[color:var(--border)] bg-[color:var(--background)] px-4 py-2 font-mono text-[11px] text-[color:var(--foreground)]">
+                tail -f {session.logPath}
+              </pre>
+            </div>
+          </details>
         ) : null}
       </section>
 
       <ScoreTrendPanel iterations={sessionIterations} />
 
       <section>
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[color:var(--muted-foreground)]">
-              Iterations
-            </p>
-            <h2 className="mt-2 font-sans text-2xl font-semibold tracking-tight text-[color:var(--foreground)]">
-              Inner loop
-            </h2>
-          </div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
-            {sessionIterations.length} visible
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[color:var(--muted-foreground)]">
+            Iterations · {sessionIterations.length}
           </p>
         </div>
         {sessionIterations.length === 0 ? (
@@ -311,48 +306,45 @@ function IterationRow({
     <li className={isLast ? "" : "border-b border-[color:var(--border)]"}>
       <Link
         href={`/runs/${iteration.runId}`}
-        className="flex flex-col gap-2 px-5 py-4 transition hover:bg-[color:var(--surface-elevated)]"
+        className={
+          "flex flex-col gap-1.5 px-5 py-3 transition hover:bg-[color:var(--surface-elevated)]" +
+          (status === "running" ? " animate-pulse" : "")
+        }
       >
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <div className="flex items-baseline gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
             <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
               {iteration.iteration != null
                 ? `#${iteration.iteration}`
-                : "pending"}
+                : "···"}
             </span>
-            <span className="font-mono text-base tabular-nums text-[color:var(--foreground)]">
+            <span className="font-mono text-sm font-semibold tabular-nums text-[color:var(--foreground)]">
               {scoreStr}
             </span>
+            {iteration.durationMs != null ? (
+              <span className="font-mono text-[10px] tabular-nums text-[color:var(--muted-foreground)]">
+                {(iteration.durationMs / 1000).toFixed(0)}s
+              </span>
+            ) : null}
           </div>
-          <div className="flex items-center gap-3">
-            <IterationStatusBadge status={status} />
-          </div>
+          <IterationStatusBadge status={status} />
         </div>
 
-        <p className="font-mono text-[10px] text-[color:var(--muted-foreground)]">
-          {iteration.publicAgentVersion ?? "—"} ·{" "}
-          {new Date(iteration.startedAt).toLocaleString()}
-          {iteration.durationMs != null
-            ? ` · ${(iteration.durationMs / 1000).toFixed(1)}s`
-            : ""}
-          {iteration.model ? ` · ${iteration.model}` : ""}
-        </p>
-
         {iteration.proposedRule ? (
-          <p className="font-mono text-[11px] text-[color:var(--foreground)]">
+          <p className="font-mono text-[11px] leading-relaxed text-[color:var(--muted-foreground)]">
             {iteration.proposedRule}
           </p>
         ) : null}
 
         {iteration.skipReason ? (
-          <p className="font-mono text-[10px] text-[color:var(--muted-foreground)]">
-            skip: {iteration.skipReason}
+          <p className="font-mono text-[10px] text-[color:var(--muted-foreground)] opacity-60">
+            {iteration.skipReason}
           </p>
         ) : null}
 
         {iteration.errorMessage ? (
-          <p className="font-mono text-[10px] text-[color:var(--muted-foreground)]">
-            error: {iteration.errorMessage}
+          <p className="font-mono text-[10px] text-[color:var(--muted-foreground)] opacity-60">
+            {iteration.errorMessage}
           </p>
         ) : null}
       </Link>
@@ -429,7 +421,50 @@ function ScoreTrendPanel({
     (it): it is IterationSummary & { score: number; iteration: number } =>
       it.score != null && it.iteration != null,
   );
-  if (scored.length < 2) return null;
+  if (scored.length === 0) {
+    return (
+      <section className="border border-[color:var(--border)] bg-[color:var(--surface)]">
+        <header className="border-b border-[color:var(--border)] px-5 py-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted-foreground)]">
+            Score
+          </p>
+          <h2 className="mt-1 font-sans text-base font-semibold tracking-tight text-[color:var(--foreground)]">
+            Trend across iterations
+          </h2>
+        </header>
+        <div className="px-5 py-8 text-center">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+            {iterations.some(it => it.status === "running")
+              ? "First iteration running — chart appears when a score lands"
+              : "No scored iterations yet"}
+          </p>
+        </div>
+      </section>
+    );
+  }
+  if (scored.length === 1) {
+    const only = scored[0];
+    return (
+      <section className="border border-[color:var(--border)] bg-[color:var(--surface)]">
+        <header className="border-b border-[color:var(--border)] px-5 py-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted-foreground)]">
+            Score
+          </p>
+          <h2 className="mt-1 font-sans text-base font-semibold tracking-tight text-[color:var(--foreground)]">
+            Trend across iterations
+          </h2>
+        </header>
+        <div className="flex items-baseline gap-3 px-5 py-6">
+          <span className="font-mono text-2xl font-semibold tabular-nums text-[color:var(--foreground)]">
+            {scoreMoney.format(only.score)}
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
+            iteration #{only.iteration} — waiting for more data points
+          </span>
+        </div>
+      </section>
+    );
+  }
 
   const scores = scored.map(it => it.score);
   const minScore = Math.min(...scores);

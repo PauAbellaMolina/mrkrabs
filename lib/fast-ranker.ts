@@ -4,6 +4,7 @@ import { estimateHaikuCostUsd } from "./autoresearch-cost";
 import type { PortfolioOutput, PortfolioPosition } from "./portfolio-schema";
 import {
   loadResearchUniverse,
+  removeFromUniverse,
   type ResearchedCompany,
 } from "./research-universe";
 import {
@@ -444,10 +445,12 @@ export async function runFastIteration(options: {
     ].map((m) => m[1]);
 
     if (badTickers.length > 0) {
+      removeFromUniverse(badTickers);
+
       await emit({
         level: "info",
         type: "step-started",
-        title: `Replacing bad tickers: ${badTickers.join(", ")}`,
+        title: `Replacing bad tickers: ${badTickers.join(", ")} (removed from universe)`,
         data: { badTickers },
       });
 

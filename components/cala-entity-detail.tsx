@@ -72,9 +72,20 @@ export function CalaEntityDetail({ uuid, companyName }: Props) {
 
   if (error || !data) {
     return (
-      <p className="py-4 font-mono text-[10px] text-[color:var(--muted-foreground)]">
-        {error ?? "No data from Cala"}
-      </p>
+      <div className="flex items-center gap-3 py-3">
+        <Image
+          src="/cala-logo.png"
+          alt="Cala"
+          width={40}
+          height={14}
+          className="opacity-40"
+          unoptimized
+        />
+        <p className="font-mono text-[10px] text-[color:var(--muted-foreground)]">
+          Live data unavailable for this entity
+          {companyName ? ` (${companyName})` : ""}
+        </p>
+      </div>
     );
   }
 
@@ -134,9 +145,9 @@ export function CalaEntityDetail({ uuid, companyName }: Props) {
           <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
             Cala knowledge
           </p>
-          <p className="font-sans text-sm leading-6 text-[color:var(--foreground)]">
-            {knowledge.content}
-          </p>
+          <div className="cala-knowledge-content font-sans text-sm leading-6 text-[color:var(--foreground)]">
+            <KnowledgeMarkdown content={knowledge.content} />
+          </div>
         </div>
       ) : null}
 
@@ -441,6 +452,186 @@ function extractProfile(props: Record<string, unknown>): {
     }
   }
   return { profile, remaining };
+}
+
+function KnowledgeMarkdown({ content }: { content: string }) {
+  const lines = content.split(/\r?\n/);
+  const elements: React.ReactNode[] = [];
+  let bulletBuffer: string[] = [];
+  let tableBuffer: string[] = [];
+
+  const flushBullets = () => {
+    if (bulletBuffer.length > 0) {
+      elements.push(
+        <ul key={`ul-${elements.length}`} className="my-1 flex flex-col gap-1 pl-0">
+          {bulletBuffer.map((item, i) => (
+            <li key={i} className="flex gap-2">
+              <span aria-hidden className="font-mono text-[color:var(--muted-foreground)]">·</span>
+              <span className="flex-1"><InlineMarkdown text={item} /></span>
+            </li>
+          ))}
+        </ul>,
+      );
+      bulletBuffer = [];
+    }
+  };
+
+  const flushTable = () => {
+    if (tableBuffer.length < 2) {
+      for (const row of tableBuffer) {
+        elements.push(
+          <p key={`p-${elements.length}`} className="my-1">
+            <InlineMarkdown text={row} />
+          </p>,
+        );
+      }
+      tableBuffer = [];
+      return;
+    }
+    const dataRows = tableBuffer.filter(r => !r.match(/^\s*\|[\s:-]+\|\s*$/));
+    const parsed = dataRows.map(r =>
+      r.split("|").map(c => c.trim()).filter(Boolean),
+    );
+    const header = parsed[0];
+    const body = parsed.slice(1);
+    elements.push(
+      <div key={`tbl-${elements.length}`} className="my-2 overflow-auto">
+        <table className="w-full border-collapse font-mono text-xs">
+          {header ? (
+            <thead>
+              <tr className="border-b border-[color:var(--border)]">
+                {header.map((cell, ci) => (
+                  <th
+                    key={ci}
+                    className="px-3 py-2 text-left text-[9px] font-normal uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]"
+                  >
+                    <InlineMarkdown text={cell} />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+          ) : null}
+          <tbody>
+            {body.map((row, ri) => (
+              <tr
+                key={ri}
+                className="border-b border-[color:var(--border)]"
+              >
+                {row.map((cell, ci) => (
+                  <td
+                    key={ci}
+                    className="px-3 py-2 text-[color:var(--foreground)]"
+                  >
+                    <InlineMarkdown text={cell} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>,
+    );
+    tableBuffer = [];
+  };
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    const isTableRow = line.startsWith("|") && line.endsWith("|");
+
+    if (isTableRow) {
+      flushBullets();
+      tableBuffer.push(line);
+      continue;
+    }
+    if (tableBuffer.length > 0) {
+      flushTable();
+    }
+
+    if (line.length === 0) {
+      flushBullets();
+      continue;
+    }
+    if (line.startsWith("### ")) {
+      flushBullets();
+      elements.push(
+        <h4 key={`h3-${elements.length}`} className="mt-3 mb-1 font-sans text-sm font-semibold text-[color:var(--foreground)]">
+          <InlineMarkdown text={line.slice(4).trim()} />
+        </h4>,
+      );
+      continue;
+    }
+    if (line.startsWith("## ")) {
+      flushBullets();
+      elements.push(
+        <h3 key={`h2-${elements.length}`} className="mt-4 mb-1 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+          <InlineMarkdown text={line.slice(3).trim()} />
+        </h3>,
+      );
+      continue;
+    }
+    if (line.startsWith("# ")) {
+      flushBullets();
+      elements.push(
+        <h2 key={`h1-${elements.length}`} className="mt-4 mb-1 font-sans text-base font-semibold text-[color:var(--foreground)]">
+          <InlineMarkdown text={line.slice(2).trim()} />
+        </h2>,
+      );
+      continue;
+    }
+    const bulletMatch = line.match(/^\s*[-*]\s+(.*)$/);
+    if (bulletMatch) {
+      bulletBuffer.push(bulletMatch[1]);
+      continue;
+    }
+    flushBullets();
+    elements.push(
+      <p key={`p-${elements.length}`} className="my-1">
+        <InlineMarkdown text={line} />
+      </p>,
+    );
+  }
+  flushBullets();
+  flushTable();
+  return <>{elements}</>;
+}
+
+function InlineMarkdown({ text }: { text: string }) {
+  // Handle **bold** and *italic*
+  const parts: React.ReactNode[] = [];
+  let remaining = text;
+  let keyIdx = 0;
+
+  while (remaining.length > 0) {
+    const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
+    const italicMatch = remaining.match(/\*(.+?)\*/);
+
+    const match = boldMatch && italicMatch
+      ? (boldMatch.index! <= italicMatch.index! ? boldMatch : italicMatch)
+      : (boldMatch ?? italicMatch);
+
+    if (!match || match.index === undefined) {
+      parts.push(<span key={keyIdx++}>{remaining}</span>);
+      break;
+    }
+
+    if (match.index > 0) {
+      parts.push(<span key={keyIdx++}>{remaining.slice(0, match.index)}</span>);
+    }
+
+    if (match[0].startsWith("**")) {
+      parts.push(
+        <strong key={keyIdx++} className="font-semibold">{match[1]}</strong>,
+      );
+    } else {
+      parts.push(
+        <em key={keyIdx++} className="italic">{match[1]}</em>,
+      );
+    }
+
+    remaining = remaining.slice(match.index + match[0].length);
+  }
+
+  return <>{parts}</>;
 }
 
 function humanize(key: string): string {

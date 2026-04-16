@@ -17,7 +17,7 @@ export function RefreshButton() {
     <button
       type="button"
       onClick={handleClick}
-      className="inline-flex items-center gap-2 border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--foreground)] transition hover:border-[color:var(--foreground)] hover:bg-[color:var(--surface-elevated)]"
+      className="inline-flex items-center gap-2 border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--foreground)] transition hover:border-[color:var(--foreground)] hover:bg-[color:var(--surface-elevated)]"
     >
       <span className={spinning ? "animate-spin" : ""} aria-hidden>
         ↻

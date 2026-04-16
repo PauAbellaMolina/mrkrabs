@@ -91,7 +91,8 @@ function formatHistory(entries: LedgerEntry[]): string {
         const pct = ((e.score - e.championScoreAtStart) / e.championScoreAtStart) * 100;
         delta = ` (${pct >= 0 ? "+" : ""}${pct.toFixed(2)}% vs champion $${e.championScoreAtStart.toLocaleString()})`;
       }
-      return `  #${e.iteration} — ${score}${delta} [${kept}]${rule}`;
+      const skip = e.skipReason ? `\n       reason: ${e.skipReason}` : "";
+      return `  #${e.iteration} — ${score}${delta} [${kept}]${rule}${skip}`;
     })
     .join("\n");
 }

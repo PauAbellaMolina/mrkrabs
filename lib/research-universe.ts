@@ -28,6 +28,20 @@ export function hasResearchUniverse(): boolean {
   return fs.existsSync(UNIVERSE_FILE);
 }
 
+export function removeFromUniverse(tickers: string[]): void {
+  if (!fs.existsSync(UNIVERSE_FILE) || tickers.length === 0) return;
+  const badSet = new Set(tickers.map((t) => t.toUpperCase()));
+  const existing = JSON.parse(
+    fs.readFileSync(UNIVERSE_FILE, "utf8"),
+  ) as ResearchedCompany[];
+  const filtered = existing.filter((c) => !badSet.has(c.ticker));
+  if (filtered.length === existing.length) return;
+  fs.writeFileSync(UNIVERSE_FILE, JSON.stringify(filtered, null, 2), "utf8");
+  console.info(
+    `[research-universe] removed ${existing.length - filtered.length} bad tickers: ${tickers.join(", ")} — ${filtered.length} remaining`,
+  );
+}
+
 export function loadResearchUniverse(): ResearchedCompany[] {
   if (!fs.existsSync(UNIVERSE_FILE)) return [];
   const raw = fs.readFileSync(UNIVERSE_FILE, "utf8");

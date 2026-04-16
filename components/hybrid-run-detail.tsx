@@ -219,30 +219,30 @@ function DetailBody({
 
       {contextPanel ?? null}
 
-      <ViewTransition name={`run-card-${run.id}`}>
-        <section className="border border-[color:var(--border)] bg-[color:var(--surface)]">
-          <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[color:var(--border)] px-6 py-5">
-            <div className="max-w-3xl">
-              <div className="flex flex-wrap items-center gap-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[color:var(--muted-foreground)]">
-                  {run.agentName} · {run.agentVersion}
-                </p>
-                {run.systemPromptMode ? (
-                  <SystemPromptBadge mode={run.systemPromptMode} />
-                ) : null}
-              </div>
-              {!isAutoresearch ? (
+      {!isAutoresearch ? (
+        <ViewTransition name={`run-card-${run.id}`}>
+          <section className="border border-[color:var(--border)] bg-[color:var(--surface)]">
+            <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[color:var(--border)] px-6 py-5">
+              <div className="max-w-3xl">
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[color:var(--muted-foreground)]">
+                    {run.agentName} · {run.agentVersion}
+                  </p>
+                  {run.systemPromptMode ? (
+                    <SystemPromptBadge mode={run.systemPromptMode} />
+                  ) : null}
+                </div>
                 <h1 className="mt-3 max-w-3xl font-sans text-lg font-semibold tracking-tight text-[color:var(--foreground)]">
                   {truncate(run.prompt, 160)}
                 </h1>
-              ) : null}
-            </div>
-            {!isAutoresearch ? <RunStageBadge stage={stage} /> : null}
-          </header>
+              </div>
+              <RunStageBadge stage={stage} />
+            </header>
 
-          <HeaderStats run={run} stage={stage} totalAllocated={totalAllocated} />
-        </section>
-      </ViewTransition>
+            <HeaderStats run={run} stage={stage} totalAllocated={totalAllocated} />
+          </section>
+        </ViewTransition>
+      ) : null}
 
       {run.checkpoint ? <CheckpointSummaryPanel run={run} /> : null}
 
@@ -499,14 +499,6 @@ function SettledBody({
             />
           ) : null}
 
-          {result.output.portfolioThesis ? (
-            <Panel eyebrow="Strategy" title="Portfolio thesis">
-              <p className="font-sans text-base leading-7 text-[color:var(--foreground)]">
-                {result.output.portfolioThesis}
-              </p>
-            </Panel>
-          ) : null}
-
           {isSubmittable ? (
             <RunSubmissionPanel
               runId={run.id}
@@ -616,7 +608,7 @@ function DetailTabs({
     <nav
       role="tablist"
       aria-label="Run detail view"
-      className="inline-flex self-start border border-[color:var(--border)] bg-[color:var(--surface)]"
+      className="inline-flex self-start gap-4"
     >
       {tabs.map(tab => {
         const active = tab.id === value;
@@ -628,25 +620,13 @@ function DetailTabs({
             aria-selected={active}
             onClick={() => onChange(tab.id)}
             className={
-              "flex flex-col items-start gap-1 px-4 py-2 text-left transition " +
+              "font-mono text-[10px] uppercase tracking-[0.2em] transition " +
               (active
-                ? "bg-[color:var(--foreground)] text-[color:var(--background)]"
-                : "text-[color:var(--foreground)] hover:bg-[color:var(--surface-elevated)]")
+                ? "text-[color:var(--foreground)]"
+                : "text-[color:var(--muted-foreground)] opacity-50 hover:opacity-80")
             }
           >
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em]">
-              {tab.label}
-            </span>
-            <span
-              className={
-                "font-mono text-[9px] uppercase tracking-[0.18em] " +
-                (active
-                  ? "text-[color:var(--background)] opacity-70"
-                  : "text-[color:var(--muted-foreground)]")
-              }
-            >
-              {tab.hint}
-            </span>
+            {tab.label}
           </button>
         );
       })}

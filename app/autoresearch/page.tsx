@@ -22,15 +22,15 @@ export default async function AutoresearchPage() {
       <header className="border-b border-[color:var(--border)] pb-8">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <div className="flex items-center gap-3">
+            <nav className="flex items-center gap-3">
               <Link
                 href="/"
-                className="font-mono text-[10px] uppercase tracking-[0.3em] text-[color:var(--muted-foreground)] transition hover:text-[color:var(--foreground)]"
+                className="inline-flex items-center border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--foreground)] transition hover:border-[color:var(--foreground)]"
               >
-                ← mrkrabs
+                ← Mr. Krabs
               </Link>
               <RefreshButton />
-            </div>
+            </nav>
             <h1 className="mt-3 font-sans text-4xl font-semibold tracking-tight text-[color:var(--foreground)] sm:text-5xl">
               Autoresearch
             </h1>

@@ -27,7 +27,10 @@ export function RunListCard({ run, index }: Props) {
     <ViewTransition name={`run-card-${run.id}`}>
       <Link
         href={`/runs/${run.id}`}
-        className="group block border border-[color:var(--border)] bg-[color:var(--surface)] transition hover:border-[color:var(--foreground)]"
+        className={
+          "group block border border-[color:var(--border)] bg-[color:var(--surface)] transition hover:border-[color:var(--foreground)]" +
+          (stage === "running" ? " animate-pulse" : "")
+        }
         data-stage={stage}
       >
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[color:var(--border)] px-5 py-4">

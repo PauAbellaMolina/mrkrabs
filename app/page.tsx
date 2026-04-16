@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { NewRunForm } from "@/components/new-run-form";
 import {
   HybridRunsHeaderStats,
@@ -22,22 +21,14 @@ export default async function Home() {
       <header className="border-b border-[color:var(--border)] pb-8">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <img src="/cala-logo.png" alt="Cala" className="h-5 w-auto opacity-70" />
               <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[color:var(--muted-foreground)]">
-                Cala · Lobster of Wall Street
+                Lobster of Wall Street
               </p>
-              <span aria-hidden className="text-[10px] text-[color:var(--muted-foreground)]">
-                ·
-              </span>
-              <Link
-                href="/autoresearch"
-                className="font-mono text-[10px] uppercase tracking-[0.3em] text-[color:var(--muted-foreground)] transition hover:text-[color:var(--foreground)]"
-              >
-                Autoresearch →
-              </Link>
             </div>
             <h1 className="mt-3 font-sans text-4xl font-semibold tracking-tight text-[color:var(--foreground)] sm:text-5xl">
-              mrkrabs
+              Mr. Krabs
             </h1>
             <p className="mt-4 max-w-[64ch] text-sm leading-relaxed text-[color:var(--muted-foreground)]">
               An AI agent that allocates $1,000,000 across ≥50 NASDAQ-listed

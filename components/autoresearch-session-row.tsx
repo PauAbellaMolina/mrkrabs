@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import type { AutoresearchSession } from "@/lib/autoresearch-session";
+import { RunStageBadge } from "./run-stage-badge";
 
 // Fixed locale + style so the server-rendered timestamp matches the client
 // render and doesn't trigger a hydration mismatch.
@@ -31,8 +32,7 @@ export function AutoresearchSessionRow({ session, isLast }: Props) {
       : 0;
 
   const isRunning = session.status === "running";
-  // Elapsed-time ticker is client-only — SSR would compute Date.now() on the
-  // server and fight the browser's value on hydrate.
+  const scores = session.scores ?? [];
   const elapsed = useRunningElapsed(session.startedAt, isRunning);
 
   const handleStop = (event: React.MouseEvent) => {
@@ -69,53 +69,32 @@ export function AutoresearchSessionRow({ session, isLast }: Props) {
       <div className="relative">
         <Link
           href={`/autoresearch/runs/${session.sessionId}`}
-          className="flex flex-col gap-3 px-5 py-4 transition hover:bg-[color:var(--surface-elevated)]"
+          className={
+            "flex items-center gap-5 px-5 py-4 transition hover:bg-[color:var(--surface-elevated)]" +
+            (session.status === "running" ? " animate-pulse" : "")
+          }
         >
-          <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <div className="flex items-baseline gap-3">
-              <StatusDot status={session.status} />
-              <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-                {session.status}
-              </span>
-              <span className="font-mono text-base tabular-nums text-[color:var(--foreground)]">
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <SessionStatusBadge status={session.status} />
+              <span className="font-mono text-sm tabular-nums text-[color:var(--foreground)]">
                 {session.completedIterations}/{session.plannedIterations}
               </span>
-              <span className="font-mono text-[11px] text-[color:var(--muted-foreground)]">
-                iterations
+              <span className="font-mono text-[10px] text-[color:var(--muted-foreground)]">
+                {session.model}
               </span>
             </div>
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)] tabular-nums">
-              {isRunning
-                ? (elapsed ?? "…")
-                : startedAtFormatter.format(new Date(session.startedAt))}
-            </span>
+            <div className="flex items-center gap-3">
+              {session.bestScore != null ? (
+                <span className="font-mono text-lg font-semibold tabular-nums text-[color:var(--foreground)]">
+                  ${session.bestScore.toLocaleString()}
+                </span>
+              ) : null}
+              <SessionStats session={session} />
+            </div>
           </div>
-
-          <div className="relative h-1 w-full border border-[color:var(--border)]">
-            <div
-              className="absolute inset-y-0 left-0 bg-[color:var(--foreground)]"
-              style={{ width: `${pct}%` }}
-              aria-hidden
-            />
-          </div>
-
-          <SessionStats session={session} />
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="font-mono text-[10px] text-[color:var(--muted-foreground)]">
-              {session.model}
-              {session.host ? ` · ${session.host}` : ""}
-              {session.pid != null ? ` · pid ${session.pid}` : ""}
-            </p>
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
-              session {session.sessionId.slice(0, 8)}
-            </p>
-          </div>
-
-          {session.errorMessage ? (
-            <p className="font-mono text-[10px] text-[color:var(--muted-foreground)]">
-              error: {session.errorMessage}
-            </p>
+          {scores.length >= 2 ? (
+            <SessionSparkline scores={scores} />
           ) : null}
         </Link>
 
@@ -158,11 +137,6 @@ function SessionStats({ session }: { session: AutoresearchSession }) {
       ) : null}
       {discarded > 0 ? <StatChip label={`${discarded} discarded`} /> : null}
       {skipped > 0 ? <StatChip label={`${skipped} skipped`} /> : null}
-      {best != null ? (
-        <StatChip label={`best $${best.toLocaleString()}`} filled />
-      ) : total > 0 ? (
-        <StatChip label="no score" muted />
-      ) : null}
     </div>
   );
 }
@@ -193,27 +167,82 @@ function StatChip({
   );
 }
 
-function StatusDot({
-  status,
-}: {
-  status: AutoresearchSession["status"];
-}) {
-  const base = "inline-block h-2 w-2 ";
-  if (status === "running") {
-    return (
-      <span
-        aria-hidden
-        className={base + "animate-pulse bg-[color:var(--foreground)]"}
-      />
-    );
-  }
-  if (status === "completed") {
-    return (
-      <span aria-hidden className={base + "bg-[color:var(--foreground)]"} />
-    );
-  }
+const SESSION_STATUS_COLORS: Record<string, string> = {
+  running: "var(--stage-running)",
+  completed: "var(--stage-submitted)",
+  stopped: "var(--stage-submit-failed)",
+  failed: "var(--stage-failed)",
+};
+
+const SESSION_STATUS_LABELS: Record<string, string> = {
+  running: "Running",
+  completed: "Completed",
+  stopped: "Stopped",
+  failed: "Failed",
+};
+
+function SessionStatusBadge({ status }: { status: string }) {
+  const color = SESSION_STATUS_COLORS[status] ?? "var(--muted-foreground)";
+  const label = SESSION_STATUS_LABELS[status] ?? status;
   return (
-    <span aria-hidden className={base + "bg-[color:var(--muted-foreground)]"} />
+    <span
+      className="inline-flex items-center gap-2 border px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em]"
+      style={{
+        color,
+        borderColor: color,
+        backgroundColor: `color-mix(in oklab, ${color} 22%, var(--background))`,
+      }}
+    >
+      {status === "running" ? (
+        <span className="animate-pulse" aria-hidden>◦</span>
+      ) : status === "completed" ? (
+        <span aria-hidden>✓</span>
+      ) : (
+        <span aria-hidden>×</span>
+      )}
+      {label}
+    </span>
+  );
+}
+
+function SessionSparkline({ scores }: { scores: number[] }) {
+  if (scores.length < 2) return null;
+  const W = 120;
+  const H = 36;
+  const pad = 3;
+  const min = Math.min(...scores);
+  const max = Math.max(...scores);
+  const range = max - min || 1;
+
+  const points = scores.map((s, i) => ({
+    x: pad + (i / (scores.length - 1)) * (W - pad * 2),
+    y: pad + (H - pad * 2) - ((s - min) / range) * (H - pad * 2),
+  }));
+
+  const path = points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
+    .join(" ");
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="h-9 w-[120px] shrink-0"
+      aria-label="Score trend"
+    >
+      <path
+        d={path}
+        fill="none"
+        stroke="var(--foreground)"
+        strokeWidth="1.5"
+        opacity="0.5"
+      />
+      <circle
+        cx={points[points.length - 1].x}
+        cy={points[points.length - 1].y}
+        r="2.5"
+        fill="var(--foreground)"
+      />
+    </svg>
   );
 }
 

@@ -5,6 +5,8 @@ import {
   type AgentRunRecord,
 } from "@/lib/agent-runs";
 import { PUBLIC_AUTORESEARCH_AGENT_NAME } from "@/lib/agent-version";
+import { getConvexClient } from "@/lib/convex-client";
+import { api } from "@/convex/_generated/api";
 import {
   loadAutoresearchLedgerForRun,
   type AutoresearchLedgerView,
@@ -45,20 +47,30 @@ export default async function RunDetailPage({
 
   const isAutoresearch =
     serverRun?.agentName === PUBLIC_AUTORESEARCH_AGENT_NAME;
+  const sessionId = serverRun?.sessionId ?? null;
 
   let ledger: AutoresearchLedgerView | null = null;
+  let previousLedgerEntries: AutoresearchLedgerView[] = [];
   if (isAutoresearch && serverRun) {
     try {
       ledger = await loadAutoresearchLedgerForRun(id);
     } catch {
       ledger = null;
     }
+    if (sessionId) {
+      try {
+        const rows = await getConvexClient().query(
+          api.autoresearch.getLedgerBySession,
+          { sessionId },
+        );
+        previousLedgerEntries = (rows as AutoresearchLedgerView[])
+          .filter(r => r.runId !== id)
+          .sort((a, b) => b.iteration - a.iteration);
+      } catch {
+        // best-effort
+      }
+    }
   }
-
-  // sessionId is stamped on the run record for every autoresearch iteration
-  // spawned from the UI. Legacy iterations predate the field, so we fall
-  // back to the autoresearch index page if it's missing.
-  const sessionId = serverRun?.sessionId ?? null;
 
   const backHref = isAutoresearch
     ? sessionId
@@ -94,8 +106,11 @@ export default async function RunDetailPage({
       stageOverride={stageOverride}
       isAutoresearch={isAutoresearch}
       contextPanel={
-        isAutoresearch && ledger ? (
-          <AutoresearchIterationPanel ledger={ledger} />
+        isAutoresearch ? (
+          <AutoresearchIterationPanel
+            ledger={ledger}
+            previousEntries={previousLedgerEntries}
+          />
         ) : null
       }
     />
@@ -104,9 +119,35 @@ export default async function RunDetailPage({
 
 function AutoresearchIterationPanel({
   ledger,
+  previousEntries,
 }: {
-  ledger: AutoresearchLedgerView;
+  ledger: AutoresearchLedgerView | null;
+  previousEntries: AutoresearchLedgerView[];
 }) {
+  // Previous iterations with proposed rules — most recent first.
+  const prevRules = previousEntries.filter(e => e.proposedRule);
+
+  if (!ledger) {
+    return (
+      <section className="border border-[color:var(--border)] bg-[color:var(--surface)]">
+        <div className="flex items-center gap-4 px-6 py-5">
+          <span className="inline-block h-3 w-3 animate-pulse bg-[color:var(--foreground)]" />
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted-foreground)]">
+              Autoresearch iteration · running
+            </p>
+            <p className="mt-1 font-sans text-sm text-[color:var(--foreground)]">
+              Waiting for this iteration to settle…
+            </p>
+          </div>
+        </div>
+        {prevRules.length > 0 ? (
+          <PreviousIterationsContext entries={prevRules} defaultOpen />
+        ) : null}
+      </section>
+    );
+  }
+
   const status: "kept" | "discard" | "skip" = ledger.skipReason
     ? "skip"
     : ledger.kept
@@ -121,60 +162,84 @@ function AutoresearchIterationPanel({
       : null;
   const deltaStr =
     delta == null
-      ? "—"
+      ? ""
       : `${delta >= 0 ? "+" : ""}${delta.toFixed(2)}%`;
-  const scoreStr =
-    ledger.score != null ? `$${ledger.score.toLocaleString()}` : "—";
+
+  const verdictLabel =
+    status === "kept"
+      ? "New champion"
+      : status === "skip"
+        ? "Skipped"
+        : "Discarded";
 
   return (
     <section className="border border-[color:var(--border)] bg-[color:var(--surface)]">
-      <header className="border-b border-[color:var(--border)] px-6 py-4">
-        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted-foreground)]">
-          Autoresearch iteration
-        </p>
-        <h2 className="mt-1 font-sans text-base font-semibold tracking-tight text-[color:var(--foreground)]">
-          #{ledger.iteration}
-          {ledger.publicAgentVersion ? ` · ${ledger.publicAgentVersion}` : ""}
-        </h2>
-      </header>
-
-      <div className="grid grid-cols-4">
-        <Cell label="Status" value={status} pulse={status === "kept"} />
-        <Cell label="Score" value={scoreStr} border="l" />
-        <Cell label="Δ vs champion" value={deltaStr} border="l" />
-        <Cell
-          label="Rules in effect"
-          value={`${ledger.rulesInEffect}`}
-          border="l"
-        />
+      <div className="flex flex-wrap items-end justify-between gap-4 px-6 py-5">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted-foreground)]">
+            Iteration #{ledger.iteration}
+            {ledger.publicAgentVersion
+              ? ` · ${ledger.publicAgentVersion}`
+              : ""}
+            {ledger.rulesInEffect > 0
+              ? ` · ${ledger.rulesInEffect} rules`
+              : ""}
+          </p>
+          {ledger.score != null ? (
+            <p className="mt-2 font-mono text-3xl font-semibold tabular-nums text-[color:var(--foreground)]">
+              ${ledger.score.toLocaleString()}
+              {deltaStr ? (
+                <span className="ml-3 text-base font-normal text-[color:var(--muted-foreground)]">
+                  {deltaStr}
+                </span>
+              ) : null}
+            </p>
+          ) : (
+            <p className="mt-2 font-mono text-xl text-[color:var(--muted-foreground)]">
+              No score
+            </p>
+          )}
+        </div>
+        <span
+          className={
+            "border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] " +
+            (status === "kept"
+              ? "border-[color:var(--foreground)] bg-[color:var(--foreground)] text-[color:var(--background)]"
+              : "border-[color:var(--border)] text-[color:var(--muted-foreground)]")
+          }
+        >
+          {verdictLabel}
+        </span>
       </div>
 
       {ledger.proposedRule ? (
         <div className="border-t border-[color:var(--border)] px-6 py-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-            Proposed rule {status === "kept" ? "(kept)" : "(discarded)"}
+          <p className="mb-1 font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+            Mutation tested
           </p>
-          <p className="mt-2 font-mono text-xs leading-relaxed text-[color:var(--foreground)]">
+          <p className="font-sans text-sm leading-6 text-[color:var(--foreground)]">
             {ledger.proposedRule}
           </p>
         </div>
       ) : (
-        <div className="border-t border-[color:var(--border)] px-6 py-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-            Baseline iteration (no rule proposed)
+        <div className="border-t border-[color:var(--border)] px-6 py-3">
+          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+            Baseline — no mutation
           </p>
         </div>
       )}
 
       {ledger.skipReason ? (
-        <div className="border-t border-[color:var(--border)] px-6 py-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-            Skip reason
-          </p>
-          <p className="mt-2 font-mono text-xs text-[color:var(--foreground)]">
+        <div className="border-t border-[color:var(--border)] bg-[color:var(--background)] px-6 py-3">
+          <p className="font-mono text-[10px] text-[color:var(--muted-foreground)]">
+            <span className="uppercase tracking-[0.18em]">Skip: </span>
             {ledger.skipReason}
           </p>
         </div>
+      ) : null}
+
+      {prevRules.length > 0 ? (
+        <PreviousIterationsContext entries={prevRules} />
       ) : null}
 
       {ledger.systemPromptUsed ? (
@@ -185,6 +250,62 @@ function AutoresearchIterationPanel({
         </ExpandableSection>
       ) : null}
     </section>
+  );
+}
+
+function PreviousIterationsContext({
+  entries,
+  defaultOpen = false,
+}: {
+  entries: AutoresearchLedgerView[];
+  defaultOpen?: boolean;
+}) {
+  const shown = entries.slice(0, 5);
+  return (
+    <details
+      className="group border-t border-[color:var(--border)]"
+      open={defaultOpen || undefined}
+    >
+      <summary className="flex cursor-pointer items-center gap-2 px-6 py-3 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)] transition select-none hover:text-[color:var(--foreground)]">
+        <span className="transition group-open:rotate-90">▶</span>
+        Prior mutations ({entries.length})
+      </summary>
+      <div className="flex flex-col gap-1.5 px-6 pb-4">
+        {shown.map(entry => {
+          const verdict = entry.skipReason
+            ? "skip"
+            : entry.kept
+              ? "kept"
+              : "discard";
+          const scoreLabel =
+            entry.score != null ? `$${entry.score.toLocaleString()}` : "—";
+          return (
+            <div
+              key={entry.runId}
+              className="flex items-baseline gap-3 font-mono text-[11px]"
+            >
+              <span className="shrink-0 text-[color:var(--muted-foreground)]">
+                #{entry.iteration}
+              </span>
+              <span className="shrink-0 tabular-nums text-[color:var(--foreground)]">
+                {scoreLabel}
+              </span>
+              <span className="shrink-0 text-[9px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
+                {verdict}
+              </span>
+              <span className="min-w-0 truncate text-[color:var(--foreground)]">
+                {entry.proposedRule}
+              </span>
+            </div>
+          );
+        })}
+        {entries.length > 5 ? (
+          <p className="font-mono text-[9px] text-[color:var(--muted-foreground)]">
+            + {entries.length - 5} more
+          </p>
+        ) : null}
+      </div>
+    </details>
   );
 }
 

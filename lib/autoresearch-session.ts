@@ -32,6 +32,7 @@ export interface AutoresearchSession {
   discardedCount?: number;
   skippedCount?: number;
   bestScore?: number | null;
+  scores?: number[];
 }
 
 export async function createAutoresearchSession(input: {

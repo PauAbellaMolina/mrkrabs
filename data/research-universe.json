@@ -1152,22 +1152,6 @@
     ]
   },
   {
-    "ticker": "CALIX",
-    "companyName": "Calix, Inc.",
-    "entityId": "9d90971d-a2c9-466f-91dc-f5673f0f1d81",
-    "subsidiaryCount": 0,
-    "jurisdictionCount": 1,
-    "hierarchyDepth": 1,
-    "complexityScore": 0,
-    "complexityChangeVsPrior": null,
-    "currentAnnualFilingDate": "2025-02-26",
-    "priorAnnualFilingDate": null,
-    "evidence": [
-      "GLEIF record 5299002RQRZ4SXSCSJ58 dated 2026-02-26: zero IS_ULTIMATE_PARENT_OF relationships",
-      "IS_REGISTERED_IN: Delaware only"
-    ]
-  },
-  {
     "ticker": "AZN",
     "companyName": "Fundo De Pensões Astrazeneca Portugal",
     "entityId": "643af2c2-0de1-41df-9f49-71ffb3407f67",
@@ -1566,38 +1550,6 @@
     "evidence": [
       "GLEIF: IS_DIRECT_PARENT_OF and IS_ULTIMATE_PARENT_OF FOX FACTORY AUSTRALIA PTY LTD",
       "IS_REGISTERED_IN: Delaware; HQ Braselton GA"
-    ]
-  },
-  {
-    "ticker": "NWLI",
-    "companyName": "National Western Life Group, Inc.",
-    "entityId": "63b9e126-70d8-49b5-a15d-cd2f71655379",
-    "subsidiaryCount": 1,
-    "jurisdictionCount": 1,
-    "hierarchyDepth": 2,
-    "complexityScore": 0.238,
-    "complexityChangeVsPrior": null,
-    "currentAnnualFilingDate": "2025-04-08",
-    "priorAnnualFilingDate": null,
-    "evidence": [
-      "GLEIF: IS_DIRECT_PARENT_OF National Western Life Insurance Company",
-      "Headquarters: Austin, Texas"
-    ]
-  },
-  {
-    "ticker": "HTLF",
-    "companyName": "Heartland Financial USA, Inc.",
-    "entityId": "65b90716-bc56-41a9-9940-84b253fbad7d",
-    "subsidiaryCount": 1,
-    "jurisdictionCount": 1,
-    "hierarchyDepth": 2,
-    "complexityScore": 0.238,
-    "complexityChangeVsPrior": null,
-    "currentAnnualFilingDate": "2025-04-08",
-    "priorAnnualFilingDate": null,
-    "evidence": [
-      "GLEIF: IS_ULTIMATE_PARENT_OF The Bank of Commerce",
-      "IS_REGISTERED_IN: Delaware; headquartered Denver, CO"
     ]
   },
   {
@@ -3757,22 +3709,6 @@
     "priorAnnualFilingDate": "2024-02-20",
     "evidence": [
       "Rate-limit prevented full Cala entity retrieval"
-    ]
-  },
-  {
-    "ticker": "WBA",
-    "companyName": "WALGREENS BOOTS ALLIANCE INC",
-    "entityId": "wba-placeholder",
-    "subsidiaryCount": 15,
-    "jurisdictionCount": 6,
-    "hierarchyDepth": 3,
-    "complexityScore": 2.74,
-    "complexityChangeVsPrior": -0.4,
-    "currentAnnualFilingDate": "2024-10-15",
-    "priorAnnualFilingDate": "2023-10-12",
-    "evidence": [
-      "NASDAQ-listed common stock WBA, annual 10-K filed pre-2025-04-15",
-      "International asset divestitures reducing entity complexity"
     ]
   },
   {
