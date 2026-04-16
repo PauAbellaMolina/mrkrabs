@@ -1,10 +1,8 @@
 # mrkrabs
 
 <p align="center">
-  <img src="public/mr-krabs.png" alt="Mr. Krabs" width="300" />
+  <img src="public/mr-krabs.png" alt="Mr. Krabs" width="500" />
 </p>
-
-> *"I like money."* — Mr. Krabs
 
 An AI agent that builds a **$1,000,000 NASDAQ portfolio** for Cala's **"Lobster of Wall Street"** hackathon challenge — and explains every single pick with verified data from [Cala](https://cala.ai)'s knowledge graph.
 
