@@ -240,7 +240,13 @@ const createCodeExecutionTool = () =>
       const workspace = await mkdtemp(path.join(os.tmpdir(), "mrkrabs-sandbox-"));
       const fileExt =
         runtime === "python" ? ".py" : runtime === "bash" ? ".sh" : ".js";
-      const executable = runtime;
+      // Modern macOS ships without a `python` binary — only `python3`.
+      // Prefer `python3` so the sandbox works on dev laptops by default,
+      // then fall back to `python` only if python3 is missing.
+      const executable =
+        runtime === "python"
+          ? (process.env.MRKRABS_PYTHON?.trim() || "python3")
+          : runtime;
       const sourcePath = path.join(workspace, `main${fileExt}`);
       const start = Date.now();
 
