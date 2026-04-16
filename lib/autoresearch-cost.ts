@@ -51,5 +51,5 @@ export function getBudgetCapUsd(): number {
   const raw = process.env.AUTORESEARCH_BUDGET_USD;
   const parsed = raw ? Number(raw) : NaN;
   if (Number.isFinite(parsed) && parsed > 0) return parsed;
-  return 50;
+  return 200;
 }

@@ -28,6 +28,7 @@ export function NewRunForm() {
   );
   const [variantId, setVariantId] = useState<string>(DEFAULT_ANTHROPIC_VARIANT);
   const [promptMode, setPromptMode] = useState<SystemPromptMode>("base");
+  const [fast, setFast] = useState(false);
 
   const family = useMemo(() => findAnthropicFamily(familyId), [familyId]);
   const resolvedModelId =
@@ -70,6 +71,7 @@ export function NewRunForm() {
         ...(backend === "anthropic"
           ? { systemPromptMode: promptMode }
           : {}),
+        ...(fast ? { fast: true } : {}),
       }),
     })
       .then(async response => {
@@ -137,6 +139,15 @@ export function NewRunForm() {
                   ]}
                   selected={promptMode}
                   onSelect={v => setPromptMode(v as SystemPromptMode)}
+                />
+                <SegmentedRow
+                  label="Speed"
+                  options={[
+                    { value: "fast", label: "Fast (~10s)" },
+                    { value: "full", label: "Full agent (~30min)" },
+                  ]}
+                  selected={fast ? "fast" : "full"}
+                  onSelect={v => setFast(v === "fast")}
                 />
               </>
             ) : null}

@@ -5,6 +5,7 @@ import type { CalaAgentResult } from "@/lib/cala-agent";
 import type { EntityEventsIndex } from "@/lib/entity-events";
 import type { DiffMarker } from "@/lib/run-diff";
 import type { PortfolioPosition } from "@/lib/portfolio-schema";
+import { CalaEntityDetail } from "./cala-entity-detail";
 import { EntityPill } from "./entity-pill";
 
 const money = new Intl.NumberFormat("en-US", {
@@ -214,151 +215,126 @@ function PositionDetail({
   toolEvents?: EntityEventsIndex;
   companyByUuid: Map<string, string>;
 }) {
+  const delta = position.complexityChangeVsPrior;
   return (
-    <div className="flex flex-col gap-5 border-t border-[color:var(--border)] px-5 py-5">
-      <div>
-        <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-          Thesis
-        </p>
-        <p className="mt-1 font-sans text-sm leading-6 text-[color:var(--foreground)]">
-          {position.thesis}
-        </p>
-      </div>
-      <div className="grid gap-5 lg:grid-cols-[1.1fr_1.4fr_1fr]">
-        <ComplexityColumn position={position} />
-        <EvidenceColumn
-          position={position}
-          toolEvents={toolEvents}
-          companyByUuid={companyByUuid}
-        />
-        <RisksColumn position={position} />
-      </div>
-    </div>
-  );
-}
-
-function ComplexityColumn({ position }: { position: PortfolioPosition }) {
-  const metrics: Array<{ label: string; value: string; signal?: "up" | "down" | null }> = [
-    { label: "Subsidiaries", value: String(position.subsidiaryCount) },
-    { label: "Jurisdictions", value: String(position.jurisdictionCount) },
-    { label: "Hierarchy depth", value: String(position.hierarchyDepth) },
-    {
-      label: "Complexity score",
-      value: numberFormatter.format(position.complexityScore),
-    },
-    {
-      label: "Δ vs prior",
-      value:
-        position.complexityChangeVsPrior == null
-          ? "—"
-          : formatSignedNumber(position.complexityChangeVsPrior),
-      signal:
-        position.complexityChangeVsPrior == null
-          ? null
-          : position.complexityChangeVsPrior < 0
-            ? "down"
-            : position.complexityChangeVsPrior > 0
-              ? "up"
-              : null,
-    },
-    { label: "Filing date", value: position.currentAnnualFilingDate },
-    {
-      label: "Prior filing",
-      value: position.priorAnnualFilingDate ?? "—",
-    },
-  ];
-
-  return (
-    <div className="flex flex-col gap-3">
-      <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-        Complexity
+    <div className="flex flex-col gap-4 border-t border-[color:var(--border)] px-5 py-5">
+      <p className="font-sans text-sm leading-6 text-[color:var(--foreground)]">
+        {position.thesis}
       </p>
-      <div className="grid grid-cols-2 border border-[color:var(--border)]">
-        {metrics.map((metric, idx) => (
-          <div
-            key={metric.label}
-            className={
-              "bg-[color:var(--surface)] px-3 py-2 " +
-              ((idx % 2 === 1) ? "border-l border-[color:var(--border)] " : "") +
-              (idx >= 2 ? "border-t border-[color:var(--border)]" : "")
-            }
-          >
-            <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
-              {metric.label}
-            </p>
-            <p className="mt-1 font-mono text-xs font-semibold tabular-nums text-[color:var(--foreground)]">
-              {metric.signal === "down" ? "↓ " : metric.signal === "up" ? "↑ " : ""}
-              {metric.value}
-            </p>
+
+      <div className="flex flex-wrap items-center gap-4 text-[color:var(--foreground)]">
+        <Stat label="Complexity" value={numberFormatter.format(position.complexityScore)} />
+        {delta != null ? (
+          <Stat
+            label="Δ prior"
+            value={`${delta < 0 ? "↓" : delta > 0 ? "↑" : ""}${formatSignedNumber(delta)}`}
+          />
+        ) : null}
+        <Stat label="Filing" value={position.currentAnnualFilingDate} />
+        <Stat label="Subs" value={String(position.subsidiaryCount)} />
+        <Stat label="Jurisdictions" value={String(position.jurisdictionCount)} />
+        <Stat label="Depth" value={String(position.hierarchyDepth)} />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[2fr_0.8fr]">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <img src="/cala-logo.png" alt="Cala" className="h-4 w-auto" />
+              <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+                Cala-verified evidence
+              </p>
+            </div>
+            <span className="font-mono text-[8px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)] opacity-60">
+              live from Cala Entity Graph
+            </span>
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function EvidenceColumn({
-  position,
-  toolEvents,
-  companyByUuid,
-}: {
-  position: PortfolioPosition;
-  toolEvents?: EntityEventsIndex;
-  companyByUuid: Map<string, string>;
-}) {
-  return (
-    <div className="flex flex-col gap-3">
-      <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-        Cala evidence
-      </p>
-      <ul className="flex flex-col gap-2">
-        {position.calaEvidence.map((line, idx) => (
-          <li
-            key={idx}
-            className="flex gap-2 font-mono text-[11px] leading-relaxed text-[color:var(--foreground)]"
-          >
-            <span aria-hidden className="text-[color:var(--muted-foreground)]">
-              ·
+          <div className="border border-[color:var(--border)] bg-[color:var(--surface)] px-5 py-4">
+            <CalaEntityDetail
+              uuid={position.companyEntityId}
+              companyName={position.companyName}
+            />
+          </div>
+          <p className="font-mono text-[10px] leading-5 text-[color:var(--muted-foreground)]">
+            The agent selected{" "}
+            <span className="text-[color:var(--foreground)]">{position.nasdaqCode}</span>{" "}
+            based on the above Cala entity data — complexity score{" "}
+            <span className="font-semibold text-[color:var(--foreground)]">
+              {numberFormatter.format(position.complexityScore)}
             </span>
-            <span className="flex-1 break-words">
-              <EvidenceLine
-                text={line}
-                toolEvents={toolEvents}
-                companyByUuid={companyByUuid}
-              />
+            {position.complexityChangeVsPrior != null ? (
+              <>
+                {" "}(Δ{" "}
+                <span className="font-semibold text-[color:var(--foreground)]">
+                  {formatSignedNumber(position.complexityChangeVsPrior)}
+                </span>
+                {" "}vs prior filing)
+              </>
+            ) : null}
+            , filing dated{" "}
+            <span className="text-[color:var(--foreground)]">
+              {position.currentAnnualFilingDate}
             </span>
-          </li>
-        ))}
-      </ul>
-      {position.supportingEntityIds.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-            Supporting entities
+            .
           </p>
-          <div className="flex flex-wrap gap-1.5">
-            {position.supportingEntityIds.map(uuid => (
-              <EntityPill
-                key={uuid}
-                uuid={uuid}
-                label={companyByUuid.get(uuid.toLowerCase())}
-                toolEvents={toolEvents}
-              />
-            ))}
-          </div>
+          {position.calaEvidence.length > 0 ? (
+            <div className="flex flex-col gap-1">
+              <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+                Agent evidence notes
+              </p>
+              <ul className="flex flex-col gap-1">
+                {position.calaEvidence.map((line, idx) => (
+                  <li
+                    key={idx}
+                    className="flex gap-2 font-mono text-[11px] leading-relaxed text-[color:var(--muted-foreground)]"
+                  >
+                    <span aria-hidden>·</span>
+                    <span className="flex-1 break-words">
+                      <EvidenceLine
+                        text={line}
+                        toolEvents={toolEvents}
+                        companyByUuid={companyByUuid}
+                      />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
-      ) : null}
-      {position.cutoffComplianceNote ? (
-        <p className="border-t border-[color:var(--border)] pt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
-          <span className="text-[color:var(--foreground)]">cutoff · </span>
-          <span className="normal-case tracking-normal">
-            {position.cutoffComplianceNote}
-          </span>
-        </p>
-      ) : null}
-      <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.15em] text-[color:var(--muted-foreground)] opacity-60">
-        Source: Cala Entity Graph
-      </p>
+
+        <div className="flex flex-col gap-3">
+          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+            Risks
+          </p>
+          <ul className="flex flex-col gap-1.5">
+            {position.riskNotes.map((risk, idx) => (
+              <li
+                key={idx}
+                className="flex gap-2 font-sans text-sm leading-6 text-[color:var(--foreground)]"
+              >
+                <span aria-hidden className="font-mono text-[color:var(--muted-foreground)]">·</span>
+                <span className="flex-1">{risk}</span>
+              </li>
+            ))}
+          </ul>
+          {position.cutoffComplianceNote ? (
+            <p className="font-mono text-[10px] text-[color:var(--muted-foreground)]">
+              cutoff: {position.cutoffComplianceNote}
+            </p>
+          ) : null}
+        </div>
+      </div>
     </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="font-mono text-[11px]">
+      <span className="text-[color:var(--muted-foreground)]">{label} </span>
+      <span className="font-semibold tabular-nums">{value}</span>
+    </span>
   );
 }
 
@@ -401,29 +377,6 @@ function EvidenceLine({
     nodes.push(<span key={`t-${lastIndex}`}>{text.slice(lastIndex)}</span>);
   }
   return <>{nodes}</>;
-}
-
-function RisksColumn({ position }: { position: PortfolioPosition }) {
-  return (
-    <div className="flex flex-col gap-3">
-      <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-        Risks
-      </p>
-      <ul className="flex flex-col gap-2">
-        {position.riskNotes.map((risk, idx) => (
-          <li
-            key={idx}
-            className="flex gap-2 font-sans text-sm leading-6 text-[color:var(--foreground)]"
-          >
-            <span aria-hidden className="font-mono text-[color:var(--muted-foreground)]">
-              ·
-            </span>
-            <span className="flex-1">{risk}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
 }
 
 function formatSignedNumber(value: number): string {

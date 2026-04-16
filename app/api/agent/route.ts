@@ -17,6 +17,8 @@ import {
   failRunRecord,
 } from "@/lib/agent-runs";
 import { composeSystemPrompt, loadRules } from "@/lib/autoresearch-ledger";
+import { runFastIteration } from "@/lib/fast-ranker";
+import { hasResearchUniverse } from "@/lib/research-universe";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -30,14 +32,9 @@ const DEFAULT_PROMPT_MODE: SystemPromptMode = "base";
 interface AgentRequestBody {
   prompt?: string;
   backend?: AgentBackend;
-  // Anthropic-only: pick a specific model ID (e.g. "claude-sonnet-4-6",
-  // "claude-haiku-4-5", "claude-opus-4-6"). Ignored by Codex CLI.
   model?: string;
-  // Anthropic-only: "base" uses the trunk prompt verbatim; "champion"
-  // composes BASE + the accumulated autoresearch rules from Convex so the
-  // manual run benefits from whatever the outer loop has learned so far.
-  // Ignored by Codex CLI (its prompt pipeline is a separate compilation).
   systemPromptMode?: SystemPromptMode;
+  fast?: boolean;
 }
 
 // Anthropic model IDs we accept from clients. Includes base IDs, the `[1m]`
@@ -154,6 +151,51 @@ export async function POST(request: Request) {
 
     runId = crypto.randomUUID();
 
+    // Fast mode: single LLM call for ranking + programmatic portfolio
+    // build + direct leaderboard submit. Requires data/research-universe.json.
+    if (body.fast && hasResearchUniverse()) {
+      await createRunRecord({
+        id: runId,
+        requestId,
+        prompt,
+        agentName: agent.name,
+        agentVersion: "fast-ranker",
+        model: "fast-ranker",
+        systemPromptMode: backend === "anthropic" ? promptMode : undefined,
+      });
+
+      const rules =
+        promptMode === "champion"
+          ? (await loadRules()).map((r) => r.text)
+          : [];
+
+      const fast = await runFastIteration({
+        rules,
+        submitOptions: { agentName: agent.name },
+      });
+
+      const result = {
+        model: "fast-ranker",
+        output: fast.output,
+        steps: [],
+        leaderboardResponse: fast.leaderboardResponse,
+      };
+
+      await completeRunRecord(runId, {
+        model: "fast-ranker",
+        result,
+      });
+
+      console.info("[agent][fast-success]", {
+        requestId,
+        runId,
+        positions: fast.output.positions.length,
+        tickers: fast.pickedTickers.length,
+      });
+
+      return Response.json({ runId, ...result });
+    }
+
     await createRunRecord({
       id: runId,
       requestId,
@@ -161,8 +203,6 @@ export async function POST(request: Request) {
       agentName: agent.name,
       agentVersion: agent.version,
       model: resolvedModel,
-      // Only meaningful for Anthropic — the Codex CLI backend compiles its
-      // own prompt and ignores this field.
       systemPromptMode: backend === "anthropic" ? promptMode : undefined,
     });
 

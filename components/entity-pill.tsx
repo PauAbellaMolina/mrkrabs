@@ -80,9 +80,7 @@ function EntityProvenancePopover({
     >
       <div className="flex items-baseline justify-between gap-3">
         <p className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-          <span className="border border-[color:var(--foreground)] bg-[color:var(--foreground)] px-1.5 py-0.5 text-[color:var(--background)]">
-            cala
-          </span>
+          <img src="/cala-logo.png" alt="Cala" className="h-4 w-auto" />
           <span>entity provenance · {uuid}</span>
         </p>
         <button

@@ -64,7 +64,7 @@ const REQUIRED_PORTFOLIO_BUDGET = 1_000_000;
 // tokens but is cheaper than losing the whole autoresearch iteration.
 const MAX_VALIDATION_RETRIES = 2;
 
-class PortfolioValidationError extends Error {
+export class PortfolioValidationError extends Error {
   issues: string[];
   constructor(issues: string[]) {
     super(issues.join(" "));
@@ -73,7 +73,7 @@ class PortfolioValidationError extends Error {
   }
 }
 
-const validatePortfolioOutput = (
+export const validatePortfolioOutput = (
   output: CalaAgentResult["output"],
 ): void => {
   const issues: string[] = [];

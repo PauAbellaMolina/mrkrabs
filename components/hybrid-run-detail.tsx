@@ -10,6 +10,7 @@ import { summarizeResearchCheckpoint } from "@/lib/research-checkpoint";
 import { buildDiffMarkerMap, diffRuns, type DiffMarker } from "@/lib/run-diff";
 import { deriveRunStage, type RunStage } from "@/lib/run-stage";
 import { AutoRefresh } from "./auto-refresh";
+import { CalaOntologyPanel } from "./cala-ontology-panel";
 import { RefreshButton } from "./refresh-button";
 import { ReportRenderer } from "./report-renderer";
 import { RunActivityFeed } from "./run-activity-feed";
@@ -231,14 +232,9 @@ function DetailBody({
                 ) : null}
               </div>
               {!isAutoresearch ? (
-                <>
-                  <h1 className="mt-3 font-sans text-2xl font-semibold tracking-tight text-[color:var(--foreground)] sm:text-3xl">
-                    {truncate(run.prompt, 160)}
-                  </h1>
-                  <p className="mt-4 max-w-2xl whitespace-pre-wrap text-sm leading-6 text-[color:var(--muted-foreground)]">
-                    {run.prompt}
-                  </p>
-                </>
+                <h1 className="mt-3 max-w-3xl font-sans text-lg font-semibold tracking-tight text-[color:var(--foreground)]">
+                  {truncate(run.prompt, 160)}
+                </h1>
               ) : null}
             </div>
             {!isAutoresearch ? <RunStageBadge stage={stage} /> : null}
@@ -337,15 +333,6 @@ function HeaderStats({
       pulse: isRunning,
     },
     {
-      label: "Steps",
-      value: isRunning && run.stepCount === 0 ? "…" : `${run.stepCount}`,
-    },
-    {
-      label: "Tools",
-      value:
-        isRunning && run.toolCallCount === 0 ? "…" : `${run.toolCallCount}`,
-    },
-    {
       label: "Positions",
       value: isRunning ? "…" : positions > 0 ? `${positions}` : "—",
     },
@@ -360,14 +347,13 @@ function HeaderStats({
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6">
+    <div className="grid grid-cols-2 sm:grid-cols-4">
       {cells.map((cell, i) => (
         <div
           key={cell.label}
           className={
             "flex flex-col gap-1 bg-[color:var(--background)] px-5 py-4 " +
-            (i > 0 ? "border-l border-[color:var(--border)]" : "") +
-            " [&:nth-child(n+4)]:border-t [&:nth-child(n+4)]:border-[color:var(--border)] md:[&:nth-child(n+4)]:border-t-0"
+            (i > 0 ? "border-l border-[color:var(--border)]" : "")
           }
         >
           <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[color:var(--muted-foreground)]">
@@ -503,7 +489,7 @@ function SettledBody({
       <DetailTabs value={tab} onChange={setTab} />
 
       {tab === "evidence" ? (
-        <>
+        <section className="flex flex-col gap-6">
           {!isAutoresearch &&
           (stage === "submitted" || stage === "submit-failed") ? (
             <RunSubmissionPanel
@@ -513,142 +499,83 @@ function SettledBody({
             />
           ) : null}
 
-          <section className="flex flex-col gap-6">
-            <Panel eyebrow="Output" title="Result summary">
-              <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-2 sm:grid-cols-4">
-                  <MiniMetric label="Model" value={result.model} />
-                  <MiniMetric
-                    label="Allocated"
-                    value={money.format(totalAllocated)}
-                    border="l"
-                  />
-                  <MiniMetric
-                    label="Post-cutoff"
-                    value={
-                      result.output.cutoffAudit.postCutoffDataUsed
-                        ? "flagged"
-                        : "clean"
-                    }
-                    border="l"
-                  />
-                  <MiniMetric
-                    label="Transactions"
-                    value={`${result.output.submissionPayload.transactions.length}`}
-                    border="l"
-                  />
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4">
-                  <MiniMetric
-                    label="Unique tickers"
-                    value={`${new Set(result.output.positions.map(p => p.nasdaqCode)).size}`}
-                  />
-                  <MiniMetric
-                    label="Min alloc"
-                    value={money.format(
-                      Math.min(
-                        ...result.output.positions.map(p => p.amount),
-                      ),
-                    )}
-                    border="l"
-                  />
-                  <MiniMetric
-                    label="Max alloc"
-                    value={money.format(
-                      Math.max(
-                        ...result.output.positions.map(p => p.amount),
-                      ),
-                    )}
-                    border="l"
-                  />
-                  <MiniMetric
-                    label="Avg alloc"
-                    value={money.format(
-                      Math.round(
-                        totalAllocated /
-                          (result.output.positions.length || 1),
-                      ),
-                    )}
-                    border="l"
-                  />
-                </div>
-                <p className="text-sm leading-6 text-[color:var(--muted-foreground)]">
-                  {result.output.cutoffAudit.complianceSummary}
-                </p>
-              </div>
+          {result.output.portfolioThesis ? (
+            <Panel eyebrow="Strategy" title="Portfolio thesis">
+              <p className="font-sans text-base leading-7 text-[color:var(--foreground)]">
+                {result.output.portfolioThesis}
+              </p>
             </Panel>
+          ) : null}
 
-            {result.output.portfolioThesis ? (
-              <Panel eyebrow="Strategy" title="Portfolio thesis">
-                <div className="flex flex-col gap-5">
-                  <p className="font-sans text-sm leading-7 text-[color:var(--foreground)]">
-                    {result.output.portfolioThesis}
-                  </p>
-                  {result.output.openGaps.length > 0 ? (
-                    <div>
-                      <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-                        Open gaps
-                      </p>
-                      <ul className="mt-2 flex flex-col gap-1.5">
-                        {result.output.openGaps.map((gap, idx) => (
-                          <li
-                            key={idx}
-                            className="flex gap-2 font-mono text-[11px] leading-relaxed text-[color:var(--foreground)]"
-                          >
-                            <span
-                              aria-hidden
-                              className="text-[color:var(--muted-foreground)]"
-                            >
-                              ·
-                            </span>
-                            <span className="flex-1">{gap}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                </div>
-              </Panel>
-            ) : null}
+          {isSubmittable ? (
+            <RunSubmissionPanel
+              runId={run.id}
+              initialSubmission={run.leaderboardSubmission}
+              isMock={isMock}
+            />
+          ) : null}
 
-            {isSubmittable ? (
-              <RunSubmissionPanel
-                runId={run.id}
-                initialSubmission={run.leaderboardSubmission}
-                isMock={isMock}
-              />
-            ) : null}
+          <CalaOntologyPanel positions={result.output.positions} />
 
-            {!isAutoresearch && diff && baseline ? (
-              <RunDiffPanel
-                diff={diff}
-                baselineRunId={baseline.id}
-                baselineStartedAt={baseline.startedAt}
-              />
-            ) : null}
+          <Panel
+            eyebrow="Portfolio"
+            title={`${result.output.positions.length} positions · ${money.format(totalAllocated)}`}
+          >
+            <RunPortfolioTable
+              result={result}
+              markers={markers}
+              toolEvents={toolEvents}
+            />
+          </Panel>
 
-            <Panel
-              eyebrow="Portfolio"
-              title={`${result.output.positions.length} positions`}
-            >
-              <RunPortfolioTable
-                result={result}
-                markers={markers}
-                toolEvents={toolEvents}
-              />
-            </Panel>
-
-            <Panel eyebrow="Narrative" title="Report">
-              <ReportRenderer
-                markdown={result.output.reportMarkdown}
-                toolEvents={toolEvents}
-                companyByUuid={companyByUuid}
-              />
-            </Panel>
-          </section>
-        </>
+          <CollapsiblePanel eyebrow="Narrative" title="Report" defaultOpen={false}>
+            <ReportRenderer
+              markdown={result.output.reportMarkdown}
+              toolEvents={toolEvents}
+              companyByUuid={companyByUuid}
+            />
+          </CollapsiblePanel>
+        </section>
       ) : (
         <section className="flex flex-col gap-6">
+          <Panel eyebrow="Output" title="Result summary">
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4">
+                <MiniMetric label="Model" value={result.model} />
+                <MiniMetric
+                  label="Post-cutoff"
+                  value={
+                    result.output.cutoffAudit.postCutoffDataUsed
+                      ? "flagged"
+                      : "clean"
+                  }
+                  border="l"
+                />
+                <MiniMetric
+                  label="Positions"
+                  value={`${result.output.positions.length}`}
+                  border="l"
+                />
+                <MiniMetric
+                  label="Allocated"
+                  value={money.format(totalAllocated)}
+                  border="l"
+                />
+              </div>
+              <p className="text-sm leading-6 text-[color:var(--muted-foreground)]">
+                {result.output.cutoffAudit.complianceSummary}
+              </p>
+            </div>
+          </Panel>
+
+          {!isAutoresearch && diff && baseline ? (
+            <RunDiffPanel
+              diff={diff}
+              baselineRunId={baseline.id}
+              baselineStartedAt={baseline.startedAt}
+            />
+          ) : null}
+
           <Panel eyebrow="Telemetry" title="Timeline">
             <RunActivityFeed events={run.events} />
           </Panel>
@@ -724,6 +651,42 @@ function DetailTabs({
         );
       })}
     </nav>
+  );
+}
+
+function CollapsiblePanel({
+  eyebrow,
+  title,
+  children,
+  defaultOpen = true,
+}: {
+  eyebrow: string;
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="border border-[color:var(--border)] bg-[color:var(--surface)]">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="flex w-full items-center justify-between gap-4 border-b border-[color:var(--border)] px-5 py-4 text-left transition hover:bg-[color:var(--surface-elevated)]"
+      >
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted-foreground)]">
+            {eyebrow}
+          </p>
+          <h2 className="mt-1 font-sans text-base font-semibold tracking-tight text-[color:var(--foreground)]">
+            {title}
+          </h2>
+        </div>
+        <span className="font-mono text-[10px] text-[color:var(--muted-foreground)]">
+          {open ? "▾" : "▸"}
+        </span>
+      </button>
+      {open ? <div className="px-5 py-5">{children}</div> : null}
+    </section>
   );
 }
 

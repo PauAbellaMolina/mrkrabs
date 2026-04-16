@@ -34,6 +34,7 @@ export function AutoresearchTrigger() {
     useState<AnthropicFamilyId>(DEFAULT_ANTHROPIC_FAMILY);
   const [variantId, setVariantId] = useState<string>(DEFAULT_ANTHROPIC_VARIANT);
   const [baseline, setBaseline] = useState(false);
+  const [fast, setFast] = useState(true);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [isPending, startTransition] = useTransition();
   const [expanded, setExpanded] = useState(false);
@@ -65,6 +66,7 @@ export function AutoresearchTrigger() {
             iterations: clamped,
             model: modelId,
             baseline,
+            fast,
           }),
         });
         const data = (await response.json()) as {
@@ -196,6 +198,27 @@ export function AutoresearchTrigger() {
             }
           >
             {baseline ? "On — 45 locked, agent picks 5" : "Off — full 50-ticker research"}
+          </button>
+        </label>
+
+        <label className="flex items-center gap-3">
+          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+            Fast mode
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={fast}
+            onClick={() => setFast(v => !v)}
+            disabled={isPending}
+            className={
+              "border px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] transition disabled:cursor-not-allowed " +
+              (fast
+                ? "border-[color:var(--foreground)] bg-[color:var(--foreground)] text-[color:var(--background)]"
+                : "border-[color:var(--border)] bg-transparent text-[color:var(--muted-foreground)] hover:border-[color:var(--foreground)] hover:text-[color:var(--foreground)]")
+            }
+          >
+            {fast ? "On — rank + submit (~10s/iter)" : "Off — full agent loop (~30min/iter)"}
           </button>
         </label>
 

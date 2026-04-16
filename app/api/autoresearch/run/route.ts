@@ -24,6 +24,7 @@ interface RunRequestBody {
   iterations?: number;
   model?: string;
   baseline?: boolean;
+  fast?: boolean;
 }
 
 const ALLOWED_MODELS = new Set([
@@ -58,6 +59,7 @@ export async function POST(request: Request) {
   let iterations = 5;
   let model = DEFAULT_MODEL;
   let baseline = false;
+  let fast = false;
   try {
     const body = (await request.json()) as RunRequestBody;
     if (typeof body.iterations === "number" && Number.isFinite(body.iterations)) {
@@ -68,6 +70,9 @@ export async function POST(request: Request) {
     }
     if (body.baseline === true) {
       baseline = true;
+    }
+    if (body.fast === true) {
+      fast = true;
     }
   } catch {
     // empty body is fine — defaults apply
@@ -145,6 +150,7 @@ export async function POST(request: Request) {
                   : (process.env.MRKRABS_BASELINE ?? "1"),
               }
             : {}),
+          ...(fast ? { MRKRABS_FAST: "1" } : {}),
         },
       },
     );

@@ -94,16 +94,17 @@ const DEFAULT_RUN_PROMPT =
 // budget is a ceiling, not a target.
 import { isBaselineMode } from "../lib/portfolio-baseline";
 import {
-  buildUniversePromptBlock,
   hasResearchUniverse,
-  loadResearchUniverse,
   saveResearchUniverse,
 } from "../lib/research-universe";
+import { runFastIteration } from "../lib/fast-ranker";
 
-const HAS_UNIVERSE = hasResearchUniverse();
+const FAST_MODE =
+  (process.env.MRKRABS_FAST === "1" || process.env.MRKRABS_FAST === "true") &&
+  hasResearchUniverse();
 const AUTORESEARCH_STEP_BUDGET = isBaselineMode()
   ? 15
-  : HAS_UNIVERSE
+  : FAST_MODE
     ? 12
     : 50;
 
@@ -286,7 +287,7 @@ async function main() {
     const iteration = iterationCounter++;
     const currentRules = await loadRules();
     const championScore = await loadChampionScore();
-    const history = await loadRecentLedgerEntries(5);
+    const history = await loadRecentLedgerEntries(15);
 
     console.info(
       `\n[autoresearch] ── iteration ${iteration} ── champion $${championScore.score.toLocaleString()} | rules=${currentRules.length}/${8}`,
@@ -333,22 +334,64 @@ async function main() {
       console.info(`[autoresearch] no champion yet — running baseline`);
     }
 
-    let variantPrompt = composeSystemPrompt(candidateRules);
+    const variantPrompt = composeSystemPrompt(candidateRules);
 
-    // Inject pre-researched company data so the agent skips entity research
-    // and goes straight to ranking + submit. Cuts iterations from ~30 min
-    // to ~3 min. The universe file is built from previous successful runs.
-    if (HAS_UNIVERSE) {
-      const universe = loadResearchUniverse();
-      if (universe.length > 0) {
-        variantPrompt += "\n" + buildUniversePromptBlock(universe);
-        console.info(
-          `[autoresearch] injecting research universe (${universe.length} companies) — step budget ${AUTORESEARCH_STEP_BUDGET}`,
-        );
+    let outcome: IterationOutcome;
+
+    if (FAST_MODE) {
+      console.info("[autoresearch] fast-ranker mode (research universe available)");
+      const runId = crypto.randomUUID();
+      const requestId = crypto.randomUUID();
+
+      await createRunRecord({
+        id: runId,
+        requestId,
+        prompt: DEFAULT_RUN_PROMPT,
+        agentName: PUBLIC_AUTORESEARCH_AGENT_NAME,
+        agentVersion: "fast-ranker",
+        model: "fast-ranker",
+        sessionId: SESSION_ID ?? undefined,
+      });
+
+      try {
+        const fast = await runFastIteration({
+          rules: candidateRules.map((r) => r.text),
+          submitOptions: { agentName: PUBLIC_AUTORESEARCH_AGENT_NAME },
+          onEvent: (event) => appendRunEvent(runId, event),
+        });
+        const result = {
+          model: "fast-ranker" as const,
+          output: fast.output,
+          steps: [] as never[],
+          leaderboardResponse: fast.leaderboardResponse,
+        };
+        await completeRunRecord(runId, { model: "fast-ranker", result });
+        outcome = {
+          runId,
+          publicAgentVersion: typeof (fast.leaderboardResponse as Record<string, unknown>)
+            ?.model_agent_version === "string"
+            ? ((fast.leaderboardResponse as Record<string, unknown>).model_agent_version as string)
+            : null,
+          score: extractScoreFromResponse(fast.leaderboardResponse),
+          result,
+          costUsd: fast.costUsd,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown fast-ranker error";
+        console.error("[autoresearch][fast-ranker-error]", message);
+        await failRunRecord(runId, { message, details: error }).catch(() => {});
+        outcome = {
+          runId,
+          publicAgentVersion: null,
+          score: null,
+          costUsd: 0,
+          skipReason: `fast-ranker-error: ${message}`,
+        };
       }
+    } else {
+      // Slow path: full agent with Cala entity research.
+      outcome = await runOneExperiment(variantPrompt);
     }
-
-    const outcome = await runOneExperiment(variantPrompt);
 
     const iterationCost = outcome.costUsd + mutationCostUsd;
     spent = await addSpentUsd(iterationCost);

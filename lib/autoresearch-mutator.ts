@@ -37,6 +37,20 @@ Hard constraints the rule MUST respect (never violate, never contradict):
   - executive changes, corporate events, regulatory context, supply-chain
     context, and financial metrics may only act as tie-breakers or risk notes
 
+Each experiment in the history shows: score, % delta vs the champion at that
+time, and whether it was kept or discarded. Use these signals:
+  - If many recent iterations are close to the champion (e.g. -0.5% to -2%),
+    the current ruleset is nearly optimal — propose FINE-GRAINED refinements
+    (tie-breaker adjustments, edge-case handling, small threshold tweaks).
+  - If recent iterations are far below the champion (e.g. -10% or worse),
+    a recent rule may be actively hurting — propose REMOVING or REVERSING
+    the most recently added rule, or try a fundamentally different angle.
+  - If scores are volatile (some +2%, some -8%), the ranking is unstable —
+    propose rules that STABILIZE selection (e.g. minimum filing recency,
+    minimum subsidiary count threshold, exclude micro-caps).
+  - Pay attention to which proposed rules were followed by score improvements
+    vs drops — learn from the pattern.
+
 Good rules:
   - Concrete ("ignore complexity changes smaller than 10% of prior subsidiary
     count so tiny Exhibit 21 diffs do not dominate the ranking")
@@ -72,7 +86,12 @@ function formatHistory(entries: LedgerEntry[]): string {
       const score = e.score != null ? `$${e.score.toLocaleString()}` : "skipped";
       const kept = e.kept ? "KEPT" : "discarded";
       const rule = e.proposedRule ? `\n       rule: ${e.proposedRule}` : "";
-      return `  #${e.iteration} ${e.publicAgentVersion ?? "?"} — ${score} (${kept})${rule}`;
+      let delta = "";
+      if (e.score != null && e.championScoreAtStart > 0) {
+        const pct = ((e.score - e.championScoreAtStart) / e.championScoreAtStart) * 100;
+        delta = ` (${pct >= 0 ? "+" : ""}${pct.toFixed(2)}% vs champion $${e.championScoreAtStart.toLocaleString()})`;
+      }
+      return `  #${e.iteration} — ${score}${delta} [${kept}]${rule}`;
     })
     .join("\n");
 }

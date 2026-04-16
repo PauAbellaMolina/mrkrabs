@@ -35,13 +35,16 @@ export function loadResearchUniverse(): ResearchedCompany[] {
 }
 
 export function saveResearchUniverse(positions: PortfolioPosition[]): void {
-  const seen = new Set<string>();
-  const companies: ResearchedCompany[] = [];
+  // Merge with existing universe — never shrink, only grow or update.
+  const existing = fs.existsSync(UNIVERSE_FILE)
+    ? (JSON.parse(fs.readFileSync(UNIVERSE_FILE, "utf8")) as ResearchedCompany[])
+    : [];
+  const merged = new Map<string, ResearchedCompany>();
+  for (const c of existing) merged.set(c.ticker, c);
   for (const p of positions) {
     const key = p.nasdaqCode.toUpperCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    companies.push({
+    if (merged.has(key)) continue;
+    merged.set(key, {
       ticker: key,
       companyName: p.companyName,
       entityId: p.companyEntityId,
@@ -55,12 +58,14 @@ export function saveResearchUniverse(positions: PortfolioPosition[]): void {
       evidence: p.calaEvidence.slice(0, 3),
     });
   }
-  companies.sort((a, b) => a.complexityScore - b.complexityScore);
+  const sorted = [...merged.values()].sort(
+    (a, b) => a.complexityScore - b.complexityScore,
+  );
   const dir = path.dirname(UNIVERSE_FILE);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(UNIVERSE_FILE, JSON.stringify(companies, null, 2), "utf8");
+  fs.writeFileSync(UNIVERSE_FILE, JSON.stringify(sorted, null, 2), "utf8");
   console.info(
-    `[research-universe] saved ${companies.length} companies to ${UNIVERSE_FILE}`,
+    `[research-universe] saved ${sorted.length} companies to ${UNIVERSE_FILE}`,
   );
 }
 
