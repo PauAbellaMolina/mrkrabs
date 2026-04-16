@@ -10,15 +10,11 @@ import { summarizeResearchCheckpoint } from "@/lib/research-checkpoint";
 import { buildDiffMarkerMap, diffRuns, type DiffMarker } from "@/lib/run-diff";
 import { deriveRunStage, type RunStage } from "@/lib/run-stage";
 import { AutoRefresh } from "./auto-refresh";
+import { RefreshButton } from "./refresh-button";
 import { ReportRenderer } from "./report-renderer";
 import { RunActivityFeed } from "./run-activity-feed";
 import { RunDiffPanel } from "./run-diff-panel";
 import { RunPortfolioTable } from "./run-portfolio-table";
-import {
-  RunSkeletonMetricRow,
-  RunSkeletonPortfolio,
-  RunSkeletonReport,
-} from "./run-skeleton-blocks";
 import { RunStageBadge } from "./run-stage-badge";
 import { RunSubmissionPanel } from "./run-submission-panel";
 
@@ -42,6 +38,13 @@ type Props = {
   backHref?: string;
   backLabel?: string;
   contextPanel?: React.ReactNode;
+  // When an autoresearch ledger entry provides a definitive verdict,
+  // this overrides the stage derived from run.status so stale "running"
+  // records render their final state correctly.
+  stageOverride?: RunStage;
+  // Autoresearch iterations submit automatically — hide the manual
+  // submit / resubmit UI.
+  hideSubmit?: boolean;
 };
 
 const DEFAULT_BACK_HREF = "/";
@@ -54,6 +57,8 @@ export function HybridRunDetail({
   backHref = DEFAULT_BACK_HREF,
   backLabel = DEFAULT_BACK_LABEL,
   contextPanel,
+  stageOverride,
+  hideSubmit,
 }: Props) {
   const { ready, enabled } = useMockMode();
 
@@ -95,6 +100,8 @@ export function HybridRunDetail({
         backHref={backHref}
         backLabel={backLabel}
         contextPanel={contextPanel}
+        stageOverride={stageOverride}
+        hideSubmit={hideSubmit}
       />
     );
   }
@@ -117,6 +124,7 @@ export function HybridRunDetail({
       backHref={backHref}
       backLabel={backLabel}
       contextPanel={contextPanel}
+      stageOverride={stageOverride}
     />
   );
 }
@@ -157,6 +165,8 @@ function DetailBody({
   backHref,
   backLabel,
   contextPanel,
+  stageOverride,
+  hideSubmit,
 }: {
   run: AgentRunRecord;
   baseline: AgentRunRecord | null;
@@ -164,8 +174,10 @@ function DetailBody({
   backHref: string;
   backLabel: string;
   contextPanel?: React.ReactNode;
+  stageOverride?: RunStage;
+  hideSubmit?: boolean;
 }) {
-  const stage = deriveRunStage(run);
+  const stage = stageOverride ?? deriveRunStage(run);
   const isRunning = stage === "running";
 
   const diff =
@@ -184,15 +196,18 @@ function DetailBody({
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col gap-8 px-6 py-10">
-      <AutoRefresh enabled={isRunning && !isMock} intervalMs={1000} />
+      <AutoRefresh enabled={isRunning && !isMock} intervalMs={5000} />
 
       <nav className="flex flex-wrap items-center justify-between gap-3">
-        <Link
-          href={backHref}
-          className="inline-flex items-center border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--foreground)] transition hover:border-[color:var(--foreground)]"
-        >
-          {backLabel}
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href={backHref}
+            className="inline-flex items-center border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--foreground)] transition hover:border-[color:var(--foreground)]"
+          >
+            {backLabel}
+          </Link>
+          <RefreshButton />
+        </div>
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
           Request {run.requestId}
         </p>
@@ -232,6 +247,8 @@ function DetailBody({
         <RunningBody run={run} />
       ) : stage === "failed" ? (
         <FailedBody run={run} />
+      ) : !run.result ? (
+        <DegradedSettledBody run={run} />
       ) : (
         <SettledBody
           run={run}
@@ -241,6 +258,7 @@ function DetailBody({
           markers={markers}
           totalAllocated={totalAllocated}
           isMock={isMock}
+          hideSubmit={hideSubmit}
         />
       )}
     </main>
@@ -368,17 +386,38 @@ function RunningBody({ run }: { run: AgentRunRecord }) {
       <Panel eyebrow="Live" title="Activity">
         <RunActivityFeed events={run.events} pulseLatest />
       </Panel>
-      <Panel eyebrow="Pending" title="Result summary">
-        <RunSkeletonMetricRow cells={4} />
-        <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
-          Waiting for the agent to finish. This page refreshes every second.
+
+      {run.checkpoint ? <CheckpointSummaryPanel run={run} /> : null}
+
+      <Panel eyebrow="Context" title="Prompt">
+        <pre className="max-h-[400px] overflow-auto whitespace-pre-wrap border border-[color:var(--border)] bg-[color:var(--background)] p-4 font-mono text-xs leading-6 text-[color:var(--foreground)]">
+          {run.prompt}
+        </pre>
+      </Panel>
+    </section>
+  );
+}
+
+// The iteration settled (ledger has a verdict) but completeRunRecord
+// never persisted run.result. Show the timeline + submission + checkpoint
+// instead of crashing on the missing result.
+function DegradedSettledBody({ run }: { run: AgentRunRecord }) {
+  return (
+    <section className="flex flex-col gap-6">
+      <Panel eyebrow="Notice" title="Result not persisted">
+        <p className="font-mono text-xs leading-relaxed text-[color:var(--muted-foreground)]">
+          This iteration settled (the ledger recorded a verdict and a
+          leaderboard score), but the full portfolio result was not saved to the
+          run record. This typically happens when a Convex write times out after
+          the agent finishes. The timeline and submission (if any) are still
+          available below.
         </p>
       </Panel>
-      <Panel eyebrow="Pending" title="Report">
-        <RunSkeletonReport />
-      </Panel>
-      <Panel eyebrow="Pending" title="Portfolio">
-        <RunSkeletonPortfolio rows={6} />
+
+      {run.checkpoint ? <CheckpointSummaryPanel run={run} /> : null}
+
+      <Panel eyebrow="Telemetry" title="Timeline">
+        <RunActivityFeed events={run.events} />
       </Panel>
     </section>
   );
@@ -421,6 +460,7 @@ function SettledBody({
   markers,
   totalAllocated,
   isMock,
+  hideSubmit,
 }: {
   run: AgentRunRecord;
   stage: RunStage;
@@ -429,9 +469,11 @@ function SettledBody({
   markers: Map<string, DiffMarker> | undefined;
   totalAllocated: number;
   isMock: boolean;
+  hideSubmit?: boolean;
 }) {
   const result = run.result!;
-  const isSubmittable = stage === "done" || stage === "submit-failed";
+  const isSubmittable =
+    !hideSubmit && (stage === "done" || stage === "submit-failed");
   const [tab, setTab] = useState<DetailTab>("evidence");
 
   // Build the uuid → Cala-tool-call index once per run; EntityPill in the
@@ -459,7 +501,8 @@ function SettledBody({
 
       {tab === "evidence" ? (
         <>
-          {stage === "submitted" || stage === "submit-failed" ? (
+          {!hideSubmit &&
+          (stage === "submitted" || stage === "submit-failed") ? (
             <RunSubmissionPanel
               runId={run.id}
               initialSubmission={run.leaderboardSubmission}

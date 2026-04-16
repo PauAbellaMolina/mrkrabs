@@ -91,7 +91,8 @@ const DEFAULT_RUN_PROMPT =
 // capped by AUTORESEARCH_BUDGET_USD so this is safe to crank. The
 // submit_portfolio tool lets the agent stop as soon as it commits, so the
 // budget is a ceiling, not a target.
-const AUTORESEARCH_STEP_BUDGET = 40;
+import { isBaselineMode } from "../lib/portfolio-baseline";
+const AUTORESEARCH_STEP_BUDGET = isBaselineMode() ? 15 : 40;
 
 interface IterationOutcome {
   runId: string;
@@ -145,6 +146,10 @@ async function runOneExperiment(
       stepBudget: AUTORESEARCH_STEP_BUDGET,
       model: RESOLVED_MODEL,
       runId,
+      submitFn: (payload) =>
+        submitToLeaderboard(payload, {
+          agentName: PUBLIC_AUTORESEARCH_AGENT_NAME,
+        }),
       onTelemetryEvent: (event) => appendRunEvent(runId, event),
       onFinish: async (event) => {
         agentCostUsd = estimateAnthropicCostUsd(event.totalUsage, RESOLVED_MODEL);
@@ -198,30 +203,29 @@ async function runOneExperiment(
     };
   }
 
-  const submitResult = await submitToLeaderboard(
-    agentResult.output.submissionPayload,
-    { agentName: PUBLIC_AUTORESEARCH_AGENT_NAME },
-  );
-
-  if (!submitResult.ok) {
-    const detailPreview =
-      submitResult.upstreamStatus != null
-        ? `HTTP ${submitResult.upstreamStatus}`
-        : "unknown";
+  // submit_portfolio now submits to the leaderboard inside the agent
+  // (via submitFn). If the agent exhausted its step budget without a
+  // successful submission, leaderboardResponse is null.
+  if (!agentResult.leaderboardResponse) {
     return {
       runId,
-      publicAgentVersion: submitResult.agentVersion,
+      publicAgentVersion: null,
       score: null,
       result: agentResult,
       costUsd: agentCostUsd,
-      skipReason: `submit-rejected: ${detailPreview}`,
+      skipReason: "agent finished without successful leaderboard submission",
     };
   }
 
-  const score = extractScoreFromResponse(submitResult.response);
+  const score = extractScoreFromResponse(agentResult.leaderboardResponse);
   return {
     runId,
-    publicAgentVersion: submitResult.agentVersion,
+    publicAgentVersion:
+      typeof (agentResult.leaderboardResponse as Record<string, unknown>)
+        ?.model_agent_version === "string"
+        ? ((agentResult.leaderboardResponse as Record<string, unknown>)
+            .model_agent_version as string)
+        : null,
     score,
     result: agentResult,
     costUsd: agentCostUsd,
@@ -249,6 +253,10 @@ async function main() {
     startingLedger.length > 0
       ? startingLedger[startingLedger.length - 1].iteration + 1
       : 1;
+
+  const MAX_CONSECUTIVE_FAILURES = 3;
+  let consecutiveFailures = 0;
+  let lastFailureReason = "";
 
   for (let i = 0; i < iterations; i++) {
     const iteration = iterationCounter++;
@@ -324,6 +332,26 @@ async function main() {
       });
     }
 
+    // When an iteration is skipped due to submission failure (not an agent
+    // error or empty result), the proposed rule wasn't tested fairly.
+    // Persist it so the next iteration inherits it instead of losing the
+    // mutator's work.
+    const isSubmitFailure =
+      !kept &&
+      proposedRule &&
+      outcome.skipReason &&
+      (outcome.skipReason.startsWith("submit-rejected") ||
+        outcome.skipReason.startsWith("agent finished without"));
+    if (isSubmitFailure) {
+      console.info(
+        `[autoresearch] preserving untested rule for next iteration: ${proposedRule}`,
+      );
+      await appendRule({
+        text: proposedRule,
+        addedAtIteration: iteration,
+      });
+    }
+
     const entry: LedgerEntry = {
       iteration,
       ranAt: new Date().toISOString(),
@@ -336,6 +364,7 @@ async function main() {
       estimatedCostUsd: iterationCost,
       proposedRule: proposedRule ?? undefined,
       rulesInEffect: candidateRules.length,
+      systemPromptUsed: variantPrompt,
       sessionId: SESSION_ID ?? undefined,
     };
     await appendLedgerEntry(entry);
@@ -359,6 +388,25 @@ async function main() {
     console.info(
       `[autoresearch] iter=${iteration} score=${scoreStr} Δ=${deltaStr} cost=$${iterationCost.toFixed(4)} spent=$${spent.toFixed(2)}/$${budgetCap.toFixed(2)} [${tag}]${outcome.skipReason ? " " + outcome.skipReason : ""}`,
     );
+
+    if (outcome.skipReason) {
+      if (outcome.skipReason === lastFailureReason) {
+        consecutiveFailures++;
+      } else {
+        consecutiveFailures = 1;
+        lastFailureReason = outcome.skipReason;
+      }
+    } else {
+      consecutiveFailures = 0;
+      lastFailureReason = "";
+    }
+
+    if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+      const reason = `${MAX_CONSECUTIVE_FAILURES} consecutive failures with same error: ${lastFailureReason}`;
+      console.error(`[autoresearch] ${reason}. Aborting session.`);
+      await markSession("failed", reason);
+      break;
+    }
 
     if (spent >= budgetCap) {
       console.error(

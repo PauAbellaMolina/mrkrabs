@@ -181,6 +181,7 @@ export const getLedgerByRunId = query({
       estimatedCostUsd: entry.estimatedCostUsd,
       proposedRule: entry.proposedRule,
       rulesInEffect: entry.rulesInEffect,
+      systemPromptUsed: entry.systemPromptUsed,
     };
   },
 });
@@ -198,6 +199,7 @@ export const appendLedger = mutation({
     estimatedCostUsd: v.number(),
     proposedRule: v.optional(v.string()),
     rulesInEffect: v.number(),
+    systemPromptUsed: v.optional(v.string()),
     sessionId: v.optional(v.string()),
   },
   handler: async (ctx, entry) => {

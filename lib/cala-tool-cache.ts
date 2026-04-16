@@ -27,6 +27,22 @@ const CACHED_TOOLS = new Set([
 const TRUNCATED_TOOLS = new Set(["knowledge_search", "knowledge_query"]);
 const TRUNCATE_BUDGET_CHARS = 2000;
 
+// Entity-family tools return legitimately large structured JSON but are
+// polluted with hourly price-tick arrays (high_1h/low_1h/volume_1h/...) on
+// TRADED_ON relationships. A single TXN retrieve_entity came back at ~59 MB,
+// 99% of it tick data, and blew up the Anthropic request with "Payload Too
+// Large" once the model called retrieve_entity in parallel. Price ticks are
+// irrelevant to the legal-entity complexity thesis, so we strip any array
+// of timestamped points before returning the result to the model.
+const ENTITY_SANITIZED_TOOLS = new Set([
+  "entity_search",
+  "entity_introspection",
+  "retrieve_entity",
+]);
+// After time-series stripping, cap each text block to this many chars as a
+// safety net (the cap only fires if stripping wasn't enough).
+const ENTITY_MAX_CHARS = 12_000;
+
 const CACHE_DIR = path.join(process.cwd(), "data");
 const CACHE_FILE = path.join(CACHE_DIR, "cala-tool-cache.json");
 
@@ -68,14 +84,27 @@ function loadCacheFromDisk() {
   loaded = true;
   try {
     if (!fs.existsSync(CACHE_FILE)) return;
+    const stat = fs.statSync(CACHE_FILE);
     const raw = fs.readFileSync(CACHE_FILE, "utf8");
     const entries = JSON.parse(raw) as CacheEntry[];
     if (!Array.isArray(entries)) return;
+    let shrunk = 0;
     for (const entry of entries) {
+      // Sanitize entity-family results at load time so the in-memory cache
+      // doesn't hold hundreds of MB of time-series data from pre-fix runs.
+      // The sanitizer is idempotent, so already-clean entries pass through.
+      if (ENTITY_SANITIZED_TOOLS.has(entry.toolName)) {
+        const sanitized = sanitizeEntityResult(entry.toolName, entry.result);
+        if (sanitized !== entry.result) {
+          entry.result = sanitized;
+          shrunk += 1;
+          dirty = true;
+        }
+      }
       memoryCache.set(`${entry.toolName}:${entry.argsHash}`, entry);
     }
     console.info(
-      `[cala-cache] loaded ${entries.length} entries from ${CACHE_FILE}`,
+      `[cala-cache] loaded ${entries.length} entries from ${CACHE_FILE} (${(stat.size / 1024 / 1024).toFixed(1)} MB on disk${shrunk > 0 ? `; sanitized ${shrunk} entries — persist will shrink the file` : ""})`,
     );
   } catch (error) {
     console.warn(
@@ -114,6 +143,86 @@ export function cacheStats() {
 type MinimalTool = {
   execute?: (...args: unknown[]) => Promise<unknown> | unknown;
 };
+
+// Recursively walk a parsed JSON value. Arrays of time-series points
+// (objects with `time` + `value` keys) get replaced with a short marker.
+// Returns both the stripped value and a count of how many series were
+// removed, so callers can log the impact.
+function stripTimeSeriesNode(
+  node: unknown,
+  counter: { removed: number; points: number },
+): unknown {
+  if (Array.isArray(node)) {
+    if (
+      node.length > 0 &&
+      typeof node[0] === "object" &&
+      node[0] !== null &&
+      "time" in (node[0] as Record<string, unknown>) &&
+      "value" in (node[0] as Record<string, unknown>)
+    ) {
+      counter.removed += 1;
+      counter.points += node.length;
+      return `[${node.length} time-series points stripped]`;
+    }
+    return node.map((item) => stripTimeSeriesNode(item, counter));
+  }
+  if (node && typeof node === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+      out[k] = stripTimeSeriesNode(v, counter);
+    }
+    return out;
+  }
+  return node;
+}
+
+// Strip time-series arrays from entity_* tool responses and cap each text
+// block to ENTITY_MAX_CHARS as a safety net. Idempotent — re-running on
+// already-sanitized data is a no-op, which matters because we also apply
+// this lazily when reading from the on-disk cache.
+function sanitizeEntityResult(
+  toolName: string,
+  result: unknown,
+): unknown {
+  if (!result || typeof result !== "object") return result;
+  const record = result as {
+    content?: Array<{ type?: string; text?: string }>;
+    structuredContent?: unknown;
+    isError?: boolean;
+  };
+  if (!Array.isArray(record.content)) return result;
+
+  const counter = { removed: 0, points: 0 };
+  const cleaned = record.content.map((block) => {
+    if (block?.type !== "text" || typeof block.text !== "string") return block;
+    let text = block.text;
+    try {
+      const parsed = JSON.parse(text);
+      const stripped = stripTimeSeriesNode(parsed, counter);
+      text = JSON.stringify(stripped);
+    } catch {
+      // Not JSON — leave it alone, the char cap below still applies.
+    }
+    if (text.length > ENTITY_MAX_CHARS) {
+      text =
+        text.slice(0, ENTITY_MAX_CHARS) +
+        `\n…[truncated at ${ENTITY_MAX_CHARS} chars; result was ${text.length} chars]`;
+    }
+    return { ...block, text };
+  });
+
+  if (counter.removed > 0) {
+    console.info(
+      `[cala-cache][sanitized] ${toolName}: stripped ${counter.removed} time-series (${counter.points} points)`,
+    );
+  }
+
+  return {
+    ...record,
+    content: cleaned,
+    structuredContent: undefined,
+  };
+}
 
 function truncateResultForContext(result: unknown): unknown {
   // Stringify → slice → replace the top-level text shape with the capped
@@ -180,6 +289,7 @@ export function wrapToolsWithCache<T extends Record<string, MinimalTool>>(
   for (const [name, toolDef] of Object.entries(tools)) {
     const shouldCache = CACHED_TOOLS.has(name);
     const shouldTruncate = TRUNCATED_TOOLS.has(name);
+    const shouldSanitize = ENTITY_SANITIZED_TOOLS.has(name);
     if (!shouldCache && !shouldTruncate) continue;
     const originalExecute = toolDef.execute;
     if (typeof originalExecute !== "function") continue;
@@ -194,9 +304,24 @@ export function wrapToolsWithCache<T extends Record<string, MinimalTool>>(
         if (hit) {
           hits += 1;
           if ((hits + misses) % 10 === 1) report();
+          // Lazy migration: legacy on-disk cache entries predate
+          // sanitization and can be 50+ MB. Run the sanitizer on every
+          // hit so the model never sees the unstripped payload; it's
+          // idempotent on already-clean entries. Also overwrite the
+          // in-memory cache so subsequent hits skip the work, and mark
+          // dirty so the shrunk result gets persisted on next flush.
+          if (shouldSanitize) {
+            const sanitized = sanitizeEntityResult(name, hit.result);
+            if (sanitized !== hit.result) {
+              memoryCache.set(key, { ...hit, result: sanitized });
+              dirty = true;
+            }
+            return sanitized;
+          }
           return hit.result;
         }
-        const result = await originalExecute(input, ...rest);
+        const raw = await originalExecute(input, ...rest);
+        const result = shouldSanitize ? sanitizeEntityResult(name, raw) : raw;
         memoryCache.set(key, {
           toolName: name,
           argsHash: key.split(":")[1],

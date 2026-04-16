@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { RefreshButton } from "@/components/refresh-button";
 import { AutoresearchTrigger } from "@/components/autoresearch-trigger";
 import { AutoresearchSessionRow } from "@/components/autoresearch-session-row";
 import { ChampionPromptSection } from "@/components/champion-prompt-section";
@@ -13,20 +14,23 @@ export const dynamic = "force-dynamic";
 
 export default async function AutoresearchPage() {
   const state = await loadAutoresearchIndexState();
+  const hasRunning = state.sessions.some(s => s.status === "running");
 
   return (
     <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col gap-10 px-6 py-10">
-      <AutoRefresh enabled intervalMs={3000} />
-
+      <AutoRefresh enabled={hasRunning} intervalMs={5000} />
       <header className="border-b border-[color:var(--border)] pb-8">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <Link
-              href="/"
-              className="font-mono text-[10px] uppercase tracking-[0.3em] text-[color:var(--muted-foreground)] transition hover:text-[color:var(--foreground)]"
-            >
-              ← mrkrabs
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/"
+                className="font-mono text-[10px] uppercase tracking-[0.3em] text-[color:var(--muted-foreground)] transition hover:text-[color:var(--foreground)]"
+              >
+                ← mrkrabs
+              </Link>
+              <RefreshButton />
+            </div>
             <h1 className="mt-3 font-sans text-4xl font-semibold tracking-tight text-[color:var(--foreground)] sm:text-5xl">
               Autoresearch
             </h1>

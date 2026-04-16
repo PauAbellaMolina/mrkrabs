@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { RefreshButton } from "@/components/refresh-button";
 import { AutoresearchSessionStopButton } from "@/components/autoresearch-session-stop-button";
 import { api } from "@/convex/_generated/api";
 import { getConvexClient } from "@/lib/convex-client";
@@ -144,15 +145,17 @@ export default async function AutoresearchSessionDetailPage({
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col gap-8 px-6 py-10">
-      <AutoRefresh enabled={session.status === "running"} intervalMs={2000} />
-
+      <AutoRefresh enabled={session.status === "running"} intervalMs={5000} />
       <nav className="flex flex-wrap items-center justify-between gap-3">
-        <Link
-          href="/autoresearch"
-          className="inline-flex items-center border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--foreground)] transition hover:border-[color:var(--foreground)]"
-        >
-          ← Back to autoresearch
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/autoresearch"
+            className="inline-flex items-center border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--foreground)] transition hover:border-[color:var(--foreground)]"
+          >
+            ← Back to autoresearch
+          </Link>
+          <RefreshButton />
+        </div>
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
           session {sessionId}
         </p>
@@ -282,16 +285,19 @@ function IterationRow({
   iteration: IterationSummary;
   isLast: boolean;
 }) {
-  const status: "running" | "kept" | "discard" | "skip" | "failed" =
-    iteration.status === "running"
-      ? "running"
-      : iteration.status === "failed"
-        ? "failed"
-        : iteration.skipReason
-          ? "skip"
-          : iteration.kept
-            ? "kept"
-            : "discard";
+  // Ledger verdict takes priority over run.status — completeRunRecord
+  // can silently fail and leave run.status="running" even after the
+  // iteration settles with a score in the ledger.
+  const hasLedger = iteration.iteration != null;
+  const status: "running" | "kept" | "discard" | "skip" | "failed" = hasLedger
+    ? iteration.skipReason
+      ? "skip"
+      : iteration.kept
+        ? "kept"
+        : "discard"
+    : iteration.status === "failed"
+      ? "failed"
+      : "running";
   const scoreStr =
     iteration.score != null ? `$${iteration.score.toLocaleString()}` : "—";
 

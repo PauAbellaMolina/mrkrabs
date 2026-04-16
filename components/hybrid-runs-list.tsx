@@ -6,6 +6,7 @@ import { useMockMode } from "@/lib/mock-mode";
 import { listMockRunSummaries } from "@/lib/mock-store";
 import { deriveSummaryStage, type RunStage } from "@/lib/run-stage";
 import { AutoRefresh } from "./auto-refresh";
+import { RefreshButton } from "./refresh-button";
 import { RunListCard } from "./run-list-card";
 import { StageFilterPills, type StageFilter } from "./stage-filter-pills";
 
@@ -42,21 +43,23 @@ export function HybridRunsList({ serverRuns, emptyState }: Props) {
   }, [runs, filter]);
 
   const anyRunning = counts.running > 0;
-  const refreshInterval = anyRunning ? 1000 : 4000;
 
   return (
     <>
-      <AutoRefresh enabled intervalMs={refreshInterval} />
+      <AutoRefresh enabled={anyRunning} intervalMs={5000} />
       {runs.length === 0 ? (
         emptyState
       ) : (
         <div className="flex flex-col gap-4">
-          <StageFilterPills
-            value={filter}
-            onChange={setFilter}
-            counts={counts}
-            total={runs.length}
-          />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <StageFilterPills
+              value={filter}
+              onChange={setFilter}
+              counts={counts}
+              total={runs.length}
+            />
+            <RefreshButton />
+          </div>
           {filteredRuns.length === 0 ? (
             <div className="border border-dashed border-[color:var(--border)] px-6 py-10 text-center">
               <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">

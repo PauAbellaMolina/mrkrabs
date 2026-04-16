@@ -195,7 +195,7 @@ export function AutoresearchTrigger() {
                 : "border-[color:var(--border)] bg-transparent text-[color:var(--muted-foreground)] hover:border-[color:var(--foreground)] hover:text-[color:var(--foreground)]")
             }
           >
-            {baseline ? "On — 40 locked, agent picks 10" : "Off — full 50-ticker research"}
+            {baseline ? "On — 45 locked, agent picks 5" : "Off — full 50-ticker research"}
           </button>
         </label>
 

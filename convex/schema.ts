@@ -103,6 +103,7 @@ export default defineSchema({
     estimatedCostUsd: v.number(),
     proposedRule: v.optional(v.string()),
     rulesInEffect: v.number(),
+    systemPromptUsed: v.optional(v.string()),
     // Set only when the iteration was produced inside an autoresearch
     // session (i.e. spawned via /api/autoresearch/run). Legacy rows from
     // before this field was introduced leave it null.

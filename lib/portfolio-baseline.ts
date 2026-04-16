@@ -3,9 +3,9 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import type { PortfolioOutput, PortfolioPosition } from "./portfolio-schema";
 
-// MRKRABS_BASELINE=1 mode: locks 40 tickers to a verified prior submission,
-// asks the agent to only research + pick 10 more. Real leaderboard
-// submission (all 50 tickers shipped), but iteration time drops ~80% since
+// MRKRABS_BASELINE=1 mode: locks 45 tickers to a verified prior submission,
+// asks the agent to only research + pick 5 more. Real leaderboard
+// submission (all 50 tickers shipped), but iteration time drops ~90% since
 // the agent skips the bulk of the research loop.
 //
 // Turn on by setting MRKRABS_BASELINE=1 when spawning an autoresearch
@@ -93,7 +93,7 @@ export function buildBaselinePromptBlock(): string {
     `Your submit_portfolio call must contain exactly ${count} positions — the locked ${b.tickers.length} will be merged in server-side.`,
     "",
     "Valid NASDAQ tickers that are NOT yet in the baseline (you can pick from these or any other verified NASDAQ-listed common stock):",
-    "  PYPL, QCOM, REGN, ROST, SHOP, SMCI, SNOW, SNPS, TXN, VRTX, WDAY, ZS",
+    "  SMCI, SNOW, SNPS, TXN, VRTX, WDAY, ZS",
     "(These are suggestions from a prior successful submission — you are free to research other NASDAQ-listed tickers if the filing-linked complexity thesis points elsewhere.)",
   ].join("\n");
 }

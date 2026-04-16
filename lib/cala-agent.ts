@@ -38,7 +38,7 @@ const CODE_EXEC_DEFAULT_TIMEOUT_MS = 15_000;
 // researching 50 candidates without leaving room for the final emit, and
 // the submit_portfolio tool now lets us stop early when the agent commits
 // (via `hasToolCall("submit_portfolio")`), so a larger headroom is cheap.
-const DEFAULT_STEP_BUDGET = 80;
+const DEFAULT_STEP_BUDGET = 50;
 const CONTEXT_CLEAR_TOOL_TRIGGER_TOKENS = 30_000;
 const CONTEXT_CLEAR_TOOL_KEEP_COUNT = 8;
 const CONTEXT_CLEAR_TOOL_MIN_TOKENS = 4_000;
@@ -332,6 +332,7 @@ export interface CalaAgentResult {
   model: string;
   output: PortfolioOutput;
   steps: CalaAgentStep[];
+  leaderboardResponse?: unknown;
 }
 
 interface RunCalaAgentOptions {
@@ -348,6 +349,21 @@ interface RunCalaAgentOptions {
   // model here; autoresearch/scripts leave it unset.
   model?: string;
   runId?: string;
+  // When provided, submit_portfolio actually submits to the leaderboard
+  // and feeds 422 errors (bad tickers, etc.) back to the agent so it can
+  // fix and retry within its step budget. Without this, the tool only
+  // validates locally.
+  submitFn?: (payload: {
+    team_id: string;
+    model_agent_name: string;
+    model_agent_version: string;
+    transactions: Array<{ nasdaq_code: string; amount: number }>;
+  }) => Promise<{
+    ok: boolean;
+    upstreamStatus?: number;
+    details?: unknown;
+    response?: unknown;
+  }>;
   onTelemetryEvent?: (event: {
     level: "info" | "error";
     type: string;
@@ -414,7 +430,7 @@ export const runCalaAgent = async (
   const effectiveModel = options?.model?.trim() || DEFAULT_MODEL;
   const baseSystemPrompt =
     options?.systemPromptOverride?.trim() || BASE_SYSTEM_PROMPT_FOR_RESEARCH;
-  // BASELINE test mode locks 40 tickers and asks the agent to only pick 10
+  // BASELINE test mode locks 45 tickers and asks the agent to only pick 5
   // more. The baseline prompt block appends after the normal system prompt
   // so the existing thesis + tool-use guidance still applies; the block
   // just narrows the task scope and lists the forbidden tickers.
@@ -423,7 +439,7 @@ export const runCalaAgent = async (
     ? `${baseSystemPrompt}\n\n${buildBaselinePromptBlock()}`
     : baseSystemPrompt;
   if (baselineEnabled) {
-    console.info("[cala-agent] BASELINE mode on — agent picks 10, 40 locked");
+    console.info("[cala-agent] BASELINE mode on — agent picks 5, 45 locked");
   }
 
   // Anthropic's context-management features (clear_tool_uses_20250919,
@@ -460,6 +476,9 @@ export const runCalaAgent = async (
   // passes validatePortfolioOutput. Preferred over extractJsonObject when
   // both paths produce output on the same attempt.
   let capturedOutput: PortfolioOutput | null = null;
+  // When submitFn is provided and the leaderboard accepted the portfolio,
+  // store the upstream response so callers can extract the score.
+  let leaderboardResponse: unknown = null;
 
   const submitPortfolioTool = tool({
     description:
@@ -472,8 +491,8 @@ export const runCalaAgent = async (
     execute: async (input) => {
       try {
         let validated = portfolioOutputSchema.parse(input);
-        // BASELINE mode: the agent submitted only 10 positions; merge in
-        // the 40 locked baseline tickers before the validator runs so the
+        // BASELINE mode: the agent submitted only 5 positions; merge in
+        // the 45 locked baseline tickers before the validator runs so the
         // usual 50-ticker / $1M / no-duplicate checks apply to the full
         // payload. If the agent accidentally picked a ticker that's
         // already in the baseline, validatePortfolioOutput will catch the
@@ -482,11 +501,9 @@ export const runCalaAgent = async (
           validated = mergeWithBaseline(validated);
         }
         validatePortfolioOutput(validated);
-        capturedOutput = validated;
         const txs = validated.submissionPayload.transactions;
         const total = txs.reduce((sum, t) => sum + t.amount, 0);
-        return {
-          accepted: true as const,
+        const summary = {
           positions: validated.positions.length,
           transactions: txs.length,
           total_usd: total,
@@ -494,6 +511,44 @@ export const runCalaAgent = async (
             txs.map((t) => t.nasdaq_code.trim().toUpperCase()),
           ).size,
         };
+
+        // When submitFn is provided, actually submit to the leaderboard.
+        // A 422 with a bad ticker gets fed back so the agent can swap it
+        // out and retry — capturedOutput stays null so the loop continues.
+        if (options?.submitFn) {
+          const submitResult = await options.submitFn(
+            validated.submissionPayload,
+          );
+          if (!submitResult.ok && submitResult.upstreamStatus === 422) {
+            const errorBody =
+              submitResult.details &&
+              typeof submitResult.details === "object" &&
+              "error" in (submitResult.details as Record<string, unknown>)
+                ? (submitResult.details as { error: string }).error
+                : JSON.stringify(submitResult.details);
+            const badTickers = [
+              ...errorBody.matchAll(
+                /Failed to fetch (?:historical )?price for ([A-Z.]{1,6})/g,
+              ),
+            ].map((m) => m[1]);
+            return {
+              accepted: false as const,
+              leaderboard_rejection: true as const,
+              errors: [
+                `Leaderboard rejected (HTTP 422): ${errorBody}`,
+                ...(badTickers.length > 0
+                  ? [
+                      `Bad ticker(s): ${badTickers.join(", ")}. Replace ${badTickers.length === 1 ? "it" : "them"} with valid NASDAQ-listed stock(s) and call submit_portfolio again.`,
+                    ]
+                  : []),
+              ],
+            };
+          }
+          leaderboardResponse = submitResult.response;
+        }
+
+        capturedOutput = validated;
+        return { accepted: true as const, ...summary };
       } catch (error) {
         const issues =
           error instanceof PortfolioValidationError
@@ -536,6 +591,7 @@ export const runCalaAgent = async (
       // Reset the capture for this attempt — every retry gets a fresh shot
       // at the tool.
       capturedOutput = null;
+      leaderboardResponse = null;
 
       const retryAddendum = isRetry
         ? [
@@ -595,7 +651,7 @@ export const runCalaAgent = async (
               },
             }
           : {}),
-        maxOutputTokens: 8000,
+        maxOutputTokens: 4000,
         maxRetries: 2,
         experimental_onStepStart: async (event: {
           stepNumber: number;
@@ -718,9 +774,7 @@ export const runCalaAgent = async (
                 },
               }
             : {}),
-          // Commit pass outputs a full 50-position JSON blob via the tool
-          // call — give it headroom beyond the research pass's 8000.
-          maxOutputTokens: 16000,
+          maxOutputTokens: 8000,
           maxRetries: 2,
           onStepFinish: async (event: {
             stepNumber: number;
@@ -784,6 +838,7 @@ export const runCalaAgent = async (
           model: effectiveModel,
           output: validatedOutput,
           steps: aggregatedSteps,
+          ...(leaderboardResponse != null ? { leaderboardResponse } : {}),
         };
 
         console.info("[cala-agent][generateText][success]", {
@@ -795,12 +850,26 @@ export const runCalaAgent = async (
           outputSource,
         });
 
-        await options?.onFinish?.({
-          totalUsage: aggregatedUsage ?? result.totalUsage,
-          result: response,
-          functionId: "cala-agent",
-          metadata: { attempt },
-        });
+        // onFinish is post-success telemetry (Convex mutations like
+        // completeRunRecord). A failure here MUST NOT trigger the outer
+        // retry — the portfolio is already captured and validated. Isolate
+        // it so a transient Convex error just logs and we still return.
+        try {
+          await options?.onFinish?.({
+            totalUsage: aggregatedUsage ?? result.totalUsage,
+            result: response,
+            functionId: "cala-agent",
+            metadata: { attempt },
+          });
+        } catch (finishError) {
+          console.warn("[cala-agent][onFinish][error]", {
+            attempt,
+            message:
+              finishError instanceof Error
+                ? finishError.message
+                : String(finishError),
+          });
+        }
 
         return response;
       } catch (error) {

@@ -25,11 +25,16 @@ async function getByRunIdOrThrow(
 export const listSummaries = query({
   args: {},
   handler: async ctx => {
-    const all = await ctx.db.query("runs").collect();
-    return all
-      .slice()
-      .sort((a, b) => (a.startedAt < b.startedAt ? 1 : -1))
-      .map(run => {
+    // Use the by_startedAt index in descending order and cap at 50 docs.
+    // Before this the query .collect()'d the entire table — every poll
+    // read every run doc including 100KB+ events arrays, burning through
+    // the free-tier database bandwidth budget in hours.
+    const all = await ctx.db
+      .query("runs")
+      .withIndex("by_startedAt")
+      .order("desc")
+      .take(50);
+    return all.map(run => {
         const resultOutput = run.result as
           | {
               output?: {

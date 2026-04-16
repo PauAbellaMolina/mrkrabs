@@ -9,6 +9,7 @@ import {
   loadAutoresearchLedgerForRun,
   type AutoresearchLedgerView,
 } from "@/lib/autoresearch-run-view";
+import type { RunStage } from "@/lib/run-stage";
 
 export const dynamic = "force-dynamic";
 
@@ -70,6 +71,19 @@ export default async function RunDetailPage({
       : "← Back to autoresearch"
     : "← Back to runs";
 
+  // The ledger is the source of truth for autoresearch iterations. If it
+  // has a verdict (kept, discarded, skipped), override the stage derived
+  // from run.status — because completeRunRecord can silently fail and
+  // leave run.status="running" even though the iteration has settled.
+  let stageOverride: RunStage | undefined;
+  if (isAutoresearch && ledger) {
+    if (ledger.skipReason) {
+      stageOverride = "failed";
+    } else {
+      stageOverride = "submitted";
+    }
+  }
+
   return (
     <HybridRunDetail
       runId={id}
@@ -77,6 +91,8 @@ export default async function RunDetailPage({
       serverBaseline={serverBaseline}
       backHref={backHref}
       backLabel={backLabel}
+      stageOverride={stageOverride}
+      hideSubmit={isAutoresearch}
       contextPanel={
         isAutoresearch && ledger ? (
           <AutoresearchIterationPanel ledger={ledger} />
@@ -122,22 +138,33 @@ function AutoresearchIterationPanel({
         </h2>
       </header>
 
-      <div className="grid grid-cols-3">
+      <div className="grid grid-cols-4">
         <Cell label="Status" value={status} pulse={status === "kept"} />
         <Cell label="Score" value={scoreStr} border="l" />
         <Cell label="Δ vs champion" value={deltaStr} border="l" />
+        <Cell
+          label="Rules in effect"
+          value={`${ledger.rulesInEffect}`}
+          border="l"
+        />
       </div>
 
       {ledger.proposedRule ? (
         <div className="border-t border-[color:var(--border)] px-6 py-4">
           <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
-            Proposed rule
+            Proposed rule {status === "kept" ? "(kept)" : "(discarded)"}
           </p>
           <p className="mt-2 font-mono text-xs leading-relaxed text-[color:var(--foreground)]">
             {ledger.proposedRule}
           </p>
         </div>
-      ) : null}
+      ) : (
+        <div className="border-t border-[color:var(--border)] px-6 py-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)]">
+            Baseline iteration (no rule proposed)
+          </p>
+        </div>
+      )}
 
       {ledger.skipReason ? (
         <div className="border-t border-[color:var(--border)] px-6 py-4">
@@ -148,6 +175,14 @@ function AutoresearchIterationPanel({
             {ledger.skipReason}
           </p>
         </div>
+      ) : null}
+
+      {ledger.systemPromptUsed ? (
+        <ExpandableSection label="System prompt used">
+          <pre className="max-h-[400px] overflow-auto whitespace-pre-wrap border border-[color:var(--border)] bg-[color:var(--background)] p-4 font-mono text-[11px] leading-relaxed text-[color:var(--foreground)]">
+            {ledger.systemPromptUsed}
+          </pre>
+        </ExpandableSection>
       ) : null}
     </section>
   );
@@ -191,5 +226,23 @@ function Cell({
         {value}
       </p>
     </div>
+  );
+}
+
+function ExpandableSection({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="group border-t border-[color:var(--border)]">
+      <summary className="flex cursor-pointer items-center gap-2 px-6 py-4 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted-foreground)] transition select-none hover:text-[color:var(--foreground)]">
+        <span className="transition group-open:rotate-90">▶</span>
+        {label}
+      </summary>
+      <div className="px-6 pb-5">{children}</div>
+    </details>
   );
 }

@@ -32,6 +32,7 @@ export interface LedgerEntry {
   estimatedCostUsd: number;
   proposedRule?: string;
   rulesInEffect: number;
+  systemPromptUsed?: string;
   sessionId?: string;
 }
 

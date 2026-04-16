@@ -18,6 +18,7 @@ export interface AutoresearchLedgerView {
   estimatedCostUsd: number;
   proposedRule?: string;
   rulesInEffect: number;
+  systemPromptUsed?: string;
 }
 
 export async function loadAutoresearchLedgerForRun(

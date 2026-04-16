@@ -40,6 +40,34 @@ function sanitizeForConvex<T>(value: T): T {
   return out as unknown as T;
 }
 
+const TRANSIENT_RE =
+  /Server Error|network|timeout|ECONN|EAI|fetch failed/i;
+const RETRY_DELAYS_MS = [250, 750, 1500];
+
+async function withTransientRetry<T>(
+  fn: () => Promise<T>,
+  label: string,
+): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i <= RETRY_DELAYS_MS.length; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      if (i < RETRY_DELAYS_MS.length && TRANSIENT_RE.test(msg)) {
+        console.warn(
+          `[agent-runs][${label}] transient error, retrying in ${RETRY_DELAYS_MS[i]}ms: ${msg}`,
+        );
+        await new Promise(r => setTimeout(r, RETRY_DELAYS_MS[i]));
+        continue;
+      }
+      break;
+    }
+  }
+  throw lastErr;
+}
+
 // Shared run state — backed by Convex. Previously this file owned a
 // filesystem-backed store with a per-runId mutex and atomic temp-file
 // writes; all of that is gone now because Convex mutations are already
@@ -192,12 +220,16 @@ export async function completeRunRecord(
     telemetry?: AgentRunRecord["telemetry"];
   },
 ) {
-  await getConvexClient().mutation(api.runs.complete, {
-    runId,
-    model: input.model,
-    result: sanitizeForConvex(input.result),
-    telemetry: sanitizeForConvex(input.telemetry),
-  });
+  await withTransientRetry(
+    () =>
+      getConvexClient().mutation(api.runs.complete, {
+        runId,
+        model: input.model,
+        result: sanitizeForConvex(input.result),
+        telemetry: sanitizeForConvex(input.telemetry),
+      }),
+    "completeRunRecord",
+  );
 }
 
 export async function failRunRecord(
@@ -207,11 +239,15 @@ export async function failRunRecord(
     details?: unknown;
   },
 ) {
-  await getConvexClient().mutation(api.runs.fail, {
-    runId,
-    message: input.message,
-    details: sanitizeForConvex(input.details),
-  });
+  await withTransientRetry(
+    () =>
+      getConvexClient().mutation(api.runs.fail, {
+        runId,
+        message: input.message,
+        details: sanitizeForConvex(input.details),
+      }),
+    "failRunRecord",
+  );
 }
 
 export async function listRunSummaries(): Promise<AgentRunSummary[]> {
