@@ -6,6 +6,14 @@
 
 An AI agent that builds a **$1,000,000 NASDAQ portfolio** for Cala's **"Lobster of Wall Street"** hackathon challenge — and explains every single pick with verified data from [Cala](https://cala.ai)'s knowledge graph.
 
+## Demo
+
+<div align="center">
+  <a href="https://www.loom.com/share/1c5825e960bd474796db6931003fb96e">
+    <img src="https://cdn.loom.com/sessions/thumbnails/1c5825e960bd474796db6931003fb96e-with-play.gif" alt="Demo video" width="600" />
+  </a>
+</div>
+
 ## The challenge
 
 Turn the clock back 365 days — it's April 15th 2025. You have $1,000,000 and access to Cala's verified-knowledge API. Build an agent that researches NASDAQ-listed companies and allocates that capital across **at least 50 stocks**. One year later (today, 2026-04-15) the portfolio is scored on real market data and ranked on a live leaderboard.
