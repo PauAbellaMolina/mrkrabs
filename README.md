@@ -8,7 +8,14 @@ An AI agent that builds a **$1,000,000 NASDAQ portfolio** for Cala's **"Lobster 
 
 ## Demo
 
-<div style="position: relative; padding-bottom: 64.98194945848375%; height: 0;"><iframe src="https://www.loom.com/embed/1c5825e960bd474796db6931003fb96e" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+<div>
+  <a href="https://www.loom.com/share/1c5825e960bd474796db6931003fb96e">
+    <p>Building an AI Agent for Investment Portfolios - Watch Video</p>
+  </a>
+  <a href="https://www.loom.com/share/1c5825e960bd474796db6931003fb96e">
+    <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/1c5825e960bd474796db6931003fb96e-59238f45af9cdeab-full-play.gif#t=0.1">
+  </a>
+</div>
 
 ## The challenge
 
