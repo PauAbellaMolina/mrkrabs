@@ -4,7 +4,7 @@
   <img src="public/mr-krabs.png" alt="Mr. Krabs" width="500" />
 </p>
 
-An AI agent that builds a $1,000,000 NASDAQ portfolio for Cala's "Lobster of Wall Street" challenge at the Project Barcelona hackathon — with an autoresearch loop that self-improves the stock picking strategy and explains every pick with verified data from Cala's knowledge graph.
+An AI agent that builds a $1,000,000 NASDAQ portfolio for [Cala](https://cala.ai)'s "Lobster of Wall Street" challenge at the Project Barcelona hackathon — with an autoresearch loop that self-improves the stock picking strategy and explains every pick with verified data from [Cala](https://cala.ai)'s knowledge graph.
 
 ## Demo
 
